@@ -2,6 +2,9 @@
 
 neovim plugin for competitive programming.
 
+> NOTE: sample test data from [codeforces](https://codeforces.com) is scraped via [cloudscraper](https://github.com/VeNoMouS/cloudscraper).
+> Use at your own risk.
+
 ## Features
 
 - Support for multiple online judges (AtCoder, Codeforces, CSES)
@@ -14,8 +17,8 @@ neovim plugin for competitive programming.
 
 - Neovim 0.9+
 - `make`
-- (Optional) [uv](https://docs.astral.sh/uv/) for problem scraping
-- (Optional) [LuaSnip](https://github.com/L3MON4D3/LuaSnip) for snippets
+-  [uv](https://docs.astral.sh/uv/) for problem scraping (optional)
+- [LuaSnip](https://github.com/L3MON4D3/LuaSnip) for snippets (optional)
 
 ## Installation
 
