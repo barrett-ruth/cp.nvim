@@ -29,6 +29,17 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --display-style quiet .
 
+  lua-typecheck:
+    name: Lua Type Checking
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Lua LS Type Check
+        uses: mrcjkb/lua-typecheck-action@v0
+        with:
+          checklevel: Warning
+          directories: lua
+
   python-format:
     name: Python Formatting
     runs-on: ubuntu-latest
