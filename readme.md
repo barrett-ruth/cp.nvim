@@ -19,8 +19,6 @@ neovim plugin for competitive programming.
 - `make`
 -  [uv](https://docs.astral.sh/uv/): problem scraping (optional)
 - [LuaSnip](https://github.com/L3MON4D3/LuaSnip): contest-specific snippets (optional)
-- [vim-zoom](https://github.com/dhruvasagar/vim-zoom): better diff view
-  (optional)
 
 ## Installation
 

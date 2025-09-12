@@ -1,5 +1,7 @@
 local config_module = require("cp.config")
 local snippets = require("cp.snippets")
+local execute = require("cp.execute")
+local scrape = require("cp.scrape")
 
 local M = {}
 local config = {}
@@ -40,9 +42,9 @@ local function setup_python_env()
 
 	if vim.fn.isdirectory(venv_dir) == 0 then
 		log("setting up Python environment for scrapers...")
-		local result = vim.fn.system(("cd %s && uv sync"):format(vim.fn.shellescape(plugin_path)))
-		if vim.v.shell_error ~= 0 then
-			log("failed to setup Python environment: " .. result, vim.log.levels.ERROR)
+		local result = vim.system({ "uv", "sync" }, { cwd = plugin_path, text = true }):wait()
+		if result.code ~= 0 then
+			log("failed to setup Python environment: " .. result.stderr, vim.log.levels.ERROR)
 			return false
 		end
 		log("python environment setup complete")
@@ -63,8 +65,8 @@ local function setup_contest(contest_type)
 	end
 
 	vim.g.cp_contest = contest_type
-	vim.fn.system(("cp -fr %s/* ."):format(config.template_dir))
-	vim.fn.system(("make setup VERSION=%s"):format(config.contests[contest_type].cpp_version))
+	vim.fn.mkdir("build", "p")
+	vim.fn.mkdir("io", "p")
 	log(("set up %s contest environment"):format(contest_type))
 end
 
@@ -89,16 +91,23 @@ local function setup_problem(problem_id, problem_letter)
 
 	vim.cmd.only()
 
-	local filename, full_problem_id
-	if (vim.g.cp_contest == "atcoder" or vim.g.cp_contest == "codeforces") and problem_letter then
-		full_problem_id = problem_id .. problem_letter
-		filename = full_problem_id .. ".cc"
-		vim.fn.system(("make scrape %s %s %s"):format(vim.g.cp_contest, problem_id, problem_letter))
+	local scrape_result = scrape.scrape_problem(vim.g.cp_contest, problem_id, problem_letter)
+
+	if not scrape_result.success then
+		log("scraping failed: " .. scrape_result.error, vim.log.levels.WARN)
+		log("you can manually add test cases to io/ directory", vim.log.levels.INFO)
 	else
-		full_problem_id = problem_id
-		filename = problem_id .. ".cc"
-		vim.fn.system(("make scrape %s %s"):format(vim.g.cp_contest, problem_id))
+		log(("scraped %d test case(s) for %s"):format(scrape_result.test_count, scrape_result.problem_id))
 	end
+
+	local full_problem_id = scrape_result.success and scrape_result.problem_id
+		or (
+			(vim.g.cp_contest == "atcoder" or vim.g.cp_contest == "codeforces")
+				and problem_letter
+				and problem_id .. problem_letter:upper()
+			or problem_id
+		)
+	local filename = full_problem_id .. ".cc"
 
 	vim.cmd.e(filename)
 
@@ -150,10 +159,16 @@ local function run_problem()
 		lsp.lsp_format({ async = true })
 	end
 
-	vim.system({ "make", "run", vim.fn.expand("%:t") }, {}, function()
-		vim.schedule(function()
-			vim.cmd.checktime()
-		end)
+	if not vim.g.cp_contest then
+		log("no contest mode set", vim.log.levels.ERROR)
+		return
+	end
+
+	local contest_config = config.contests[vim.g.cp_contest]
+
+	vim.schedule(function()
+		execute.run_problem(problem_id, contest_config, false)
+		vim.cmd.checktime()
 	end)
 end
 
@@ -168,10 +183,16 @@ local function debug_problem()
 		lsp.lsp_format({ async = true })
 	end
 
-	vim.system({ "make", "debug", vim.fn.expand("%:t") }, {}, function()
-		vim.schedule(function()
-			vim.cmd.checktime()
-		end)
+	if not vim.g.cp_contest then
+		log("no contest mode set", vim.log.levels.ERROR)
+		return
+	end
+
+	local contest_config = config.contests[vim.g.cp_contest]
+
+	vim.schedule(function()
+		execute.run_problem(problem_id, contest_config, true)
+		vim.cmd.checktime()
 	end)
 end
 
@@ -202,7 +223,8 @@ local function diff_problem()
 		end
 
 		local temp_output = vim.fn.tempname()
-		vim.fn.system(("awk '/^\\[[^]]*\\]:/ {exit} {print}' %s > %s"):format(vim.fn.shellescape(output), temp_output))
+		local result = vim.system({ "awk", "/^\\[[^]]*\\]:/ {exit} {print}", output }, { text = true }):wait()
+		vim.fn.writefile(vim.split(result.stdout, "\n"), temp_output)
 
 		local session_file = vim.fn.tempname() .. ".vim"
 		vim.cmd(("silent! mksession! %s"):format(session_file))
@@ -239,7 +261,6 @@ function M.setup(user_config)
 	config = config_module.setup(user_config)
 
 	local plugin_path = get_plugin_path()
-	config.template_dir = plugin_path .. "/templates"
 	config.snippets.path = plugin_path .. "/templates/snippets"
 
 	snippets.setup(config)

@@ -20,15 +20,7 @@ M.defaults = {
 }
 
 local function extend_contest_config(base_config, contest_config)
-	local result = vim.deepcopy(base_config)
-
-	for key, value in pairs(contest_config) do
-		if key == "compile_flags" or key == "debug_flags" then
-			vim.list_extend(result[key], value)
-		else
-			result[key] = value
-		end
-	end
+	local result = vim.tbl_deep_extend("force", base_config, contest_config)
 
 	local std_flag = ("-std=c++%d"):format(result.cpp_version)
 	table.insert(result.compile_flags, 1, std_flag)
