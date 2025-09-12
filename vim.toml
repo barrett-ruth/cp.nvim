@@ -2,5 +2,8 @@
 base = "lua52"
 name = "vim"
 
+[features]
+lua52 = true
+
 [vim]
 any = true
