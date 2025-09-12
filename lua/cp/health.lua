@@ -23,7 +23,7 @@ end
 
 local function check_python_env()
 	local plugin_path = debug.getinfo(1, "S").source:sub(2)
-	plugin_path = vim.fn.fnamemodify(plugin_path, ":h:h:h:h")
+	plugin_path = vim.fn.fnamemodify(plugin_path, ":h:h:h")
 	local venv_dir = plugin_path .. "/.venv"
 
 	if vim.fn.isdirectory(venv_dir) == 1 then
@@ -35,7 +35,7 @@ end
 
 local function check_scrapers()
 	local plugin_path = debug.getinfo(1, "S").source:sub(2)
-	plugin_path = vim.fn.fnamemodify(plugin_path, ":h:h:h:h")
+	plugin_path = vim.fn.fnamemodify(plugin_path, ":h:h:h")
 
 	local scrapers = { "atcoder.py", "codeforces.py", "cses.py" }
 	for _, scraper in ipairs(scrapers) do
@@ -56,24 +56,6 @@ local function check_luasnip()
 		vim.health.info("LuaSnip snippets loaded: " .. snippet_count)
 	else
 		vim.health.info("LuaSnip not available - template expansion will be limited")
-	end
-end
-
-local function check_directories()
-	local cwd = vim.fn.getcwd()
-	local build_dir = cwd .. "/build"
-	local io_dir = cwd .. "/io"
-
-	if vim.fn.isdirectory(build_dir) == 1 then
-		vim.health.ok("Build directory exists: " .. build_dir)
-	else
-		vim.health.info("Build directory will be created when needed")
-	end
-
-	if vim.fn.isdirectory(io_dir) == 1 then
-		vim.health.ok("IO directory exists: " .. io_dir)
-	else
-		vim.health.info("IO directory will be created when needed")
 	end
 end
 
@@ -100,7 +82,6 @@ function M.check()
 	check_python_env()
 	check_scrapers()
 	check_luasnip()
-	check_directories()
 	check_config()
 end
 
