@@ -1,1 +1,4 @@
 std = "vim"
+
+[config]
+lua52 = true
