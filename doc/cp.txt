@@ -1,0 +1,156 @@
+*cp.txt*  Competitive programming plugin for Neovim
+
+Author:  Barrett Ruth <br.barrettruth@gmail.com>
+License: Same terms as Vim itself (see |license|)
+
+INTRODUCTION						*cp* *cp.nvim*
+
+cp.nvim is a competitive programming plugin that automates problem setup,
+compilation, and testing workflow for online judges.
+
+Supported platforms: AtCoder, Codeforces, CSES
+
+REQUIREMENTS						*cp-requirements*
+
+- Neovim 0.10.0+
+- uv package manager (https://docs.astral.sh/uv/)
+- C++ compiler (g++/clang++)
+
+Optional:
+- LuaSnip for template expansion (https://github.com/L3MON4D3/LuaSnip)
+
+COMMANDS						*cp-commands*
+
+								*:CP*
+:CP {contest}                   Set up contest environment for {contest}.
+                                Available contests: atcoder, codeforces, cses
+
+:CP {contest} {problem}         Set up problem from {contest}. Scrapes test 
+                                cases and creates source file.
+
+:CP {contest} {problem} {letter}
+                                For AtCoder/Codeforces: set up problem with
+                                specific letter (e.g. a, b, c)
+
+:CP {problem}                   Set up {problem} in current contest mode.
+                                Requires contest to be set first.
+
+:CP run                         Compile and run current problem with test input.
+                                Shows execution time and output comparison.
+
+:CP debug                       Compile with debug flags and run current problem.
+                                Includes sanitizers and debug symbols.
+
+:CP diff                        Enter diff mode to compare actual vs expected
+                                output. Run again to exit diff mode.
+
+CONFIGURATION						*cp-config*
+
+cp.nvim is automatically lazy-loaded - no config/setup is required.
+
+Provide extra options via a setup() function with your package manager. For
+example, with lazy.nvim (https://github.com/folke/lazy.nvim):
+
+    {
+      'barrett-ruth/cp.nvim',
+      config = function()
+        local ls = require('luasnip')
+        local s = ls.snippet
+
+        require('cp').setup({
+          contests = {
+            default = {
+              cpp_version = 20,
+              compile_flags = { "-O2", "-DLOCAL", "-Wall", "-Wextra" },
+              debug_flags = { "-g3", "-fsanitize=address,undefined", "-DLOCAL" },
+              timeout_ms = 2000,
+            },
+            atcoder = {
+              cpp_version = 23,
+            },
+          },
+          snippets = {
+            cses = {
+              s("cses", "#include <iostream>\nusing namespace std;\n\nint main() {\n\t$0\n}")
+            },
+          },
+          hooks = {
+            before_run = function(problem_id)
+              vim.cmd.w()
+              vim.lsp.buf.format()
+            end,
+            before_debug = function(problem_id)
+              ...
+            end
+          },
+        })
+      end
+    }
+
+Configuration options:
+
+contests                        Dictionary of contest configurations - each contest inherits from 'default'.
+
+  cpp_version                   c++ standard version (e.g. 20, 23)
+  compile_flags                 compiler flags for run builds
+  debug_flags                   compiler flags for debug builds
+  timeout_ms                    duration (ms) to run/debug before timeout
+
+snippets                        LuaSnip snippets by contest type
+
+hooks                           Functions called at specific events
+  before_run                    Called before :CP run
+  before_debug                  Called before :CP debug
+
+WORKFLOW						*cp-workflow*
+
+1. Set up contest environment: >
+    :CP atcoder
+<
+2. Set up specific problem: >
+    :CP abc123 a
+<
+   This creates abc123a.cc and scrapes test cases to io/abc123a.in and
+   io/abc123a.expected. Alternatively, run :CP atcoder abc123 a
+
+3. Write, test, and view your solution output:
+
+    :CP run
+<
+   Output appears in vertical split showing execution time, output, and
+   whether it matches expected output.
+
+4. Debug if needed:
+
+    :CP debug
+<
+5. Compare actual vs. expected output visually: >
+
+    :CP diff
+<
+   Enters 3-way diff mode with actual, expected, and input files.
+
+FILE STRUCTURE						*cp-files*
+
+cp.nvim creates the following file structure upon setup:
+
+    problem.cc
+    build/*.{run,debug}
+    io/
+      problem.in
+      problem.out
+      problem.expected
+
+SNIPPETS						*cp-snippets*
+
+cp.nvim integrates with LuaSnip for automatic template expansion. When you
+open a new problem file, type the contest name and press <Tab> to expand.
+
+Built-in snippets include basic C++ templates for each contest type.
+Custom snippets can be added via configuration.
+
+HEALTH CHECK						*cp-health*
+
+Run |:checkhealth| cp to verify your setup.
+
+ vim:tw=78:ts=8:ft=help:norl:
