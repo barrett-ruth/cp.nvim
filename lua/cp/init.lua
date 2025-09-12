@@ -214,66 +214,57 @@ end
 
 local initialized = false
 
+function M.is_initialized()
+	return initialized
+end
+
 function M.setup(user_config)
 	if initialized and not user_config then
 		return
 	end
 
 	config = config_module.setup(user_config)
-
 	snippets.setup(config)
+	initialized = true
+end
 
-	if initialized then
+function M.handle_command(opts)
+	local args = opts.fargs
+	if #args == 0 then
+		log("Usage: :CP <contest|problem_id|run|debug|diff>", vim.log.levels.ERROR)
 		return
 	end
-	initialized = true
 
-	vim.api.nvim_create_user_command("CP", function(opts)
-		local args = opts.fargs
-		if #args == 0 then
-			log("Usage: :CP <contest|problem_id|run|debug|diff>", vim.log.levels.ERROR)
-			return
-		end
+	local cmd = args[1]
 
-		local cmd = args[1]
-
-		if vim.tbl_contains(competition_types, cmd) then
-			if args[2] then
-				setup_contest(cmd)
-				if (cmd == "atcoder" or cmd == "codeforces") and args[3] then
-					setup_problem(args[2], args[3])
-				else
-					setup_problem(args[2])
-				end
+	if vim.tbl_contains(competition_types, cmd) then
+		if args[2] then
+			setup_contest(cmd)
+			if (cmd == "atcoder" or cmd == "codeforces") and args[3] then
+				setup_problem(args[2], args[3])
 			else
-				setup_contest(cmd)
+				setup_problem(args[2])
 			end
-		elseif cmd == "run" then
-			run_problem()
-		elseif cmd == "debug" then
-			debug_problem()
-		elseif cmd == "diff" then
-			diff_problem()
 		else
-			if vim.g.cp_contest then
-				if (vim.g.cp_contest == "atcoder" or vim.g.cp_contest == "codeforces") and args[2] then
-					setup_problem(cmd, args[2])
-				else
-					setup_problem(cmd)
-				end
-			else
-				log("no contest mode set. run :CP <contest> first or use full command", vim.log.levels.ERROR)
-			end
+			setup_contest(cmd)
 		end
-	end, {
-		nargs = "*",
-		complete = function(ArgLead, _, _)
-			local commands = vim.list_extend(vim.deepcopy(competition_types), { "run", "debug", "diff" })
-			return vim.tbl_filter(function(cmd)
-				return cmd:find(ArgLead, 1, true) == 1
-			end, commands)
-		end,
-	})
+	elseif cmd == "run" then
+		run_problem()
+	elseif cmd == "debug" then
+		debug_problem()
+	elseif cmd == "diff" then
+		diff_problem()
+	else
+		if vim.g.cp_contest then
+			if (vim.g.cp_contest == "atcoder" or vim.g.cp_contest == "codeforces") and args[2] then
+				setup_problem(cmd, args[2])
+			else
+				setup_problem(cmd)
+			end
+		else
+			log("no contest mode set. run :CP <contest> first or use full command", vim.log.levels.ERROR)
+		end
+	end
 end
 
 return M
