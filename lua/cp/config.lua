@@ -4,6 +4,12 @@
 ---@field debug_flags string[]
 ---@field timeout_ms number
 
+---@class cp.PartialContestConfig
+---@field cpp_version? number
+---@field compile_flags? string[]
+---@field debug_flags? string[]
+---@field timeout_ms? number
+
 ---@class cp.HooksConfig
 ---@field before_run? function
 ---@field before_debug? function
@@ -12,6 +18,11 @@
 ---@field contests table<string, cp.ContestConfig>
 ---@field snippets table<string, any>
 ---@field hooks cp.HooksConfig
+
+---@class cp.PartialConfig
+---@field contests? table<string, cp.PartialContestConfig>
+---@field snippets? table<string, any>
+---@field hooks? cp.HooksConfig
 
 local M = {}
 
@@ -42,7 +53,7 @@ M.defaults = {
 }
 
 ---@param base_config cp.ContestConfig
----@param contest_config cp.ContestConfig
+---@param contest_config cp.PartialContestConfig
 ---@return cp.ContestConfig
 local function extend_contest_config(base_config, contest_config)
 	local result = vim.tbl_deep_extend("force", base_config, contest_config)
@@ -80,7 +91,7 @@ local function validate_contest_config(path, contest_config)
 	})
 end
 
----@param user_config cp.Config|nil
+---@param user_config cp.PartialConfig|nil
 ---@return cp.Config
 function M.setup(user_config)
 	local ok, err = validate_path("config", {
