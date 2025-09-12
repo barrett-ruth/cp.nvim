@@ -50,7 +50,7 @@ local function execute_binary(binary_path, input_data, timeout_ms)
 	}
 end
 
-local function format_output(exec_result, expected_file)
+local function format_output(exec_result, expected_file, is_debug)
 	local lines = { exec_result.stdout }
 
 	if exec_result.timed_out then
@@ -63,7 +63,7 @@ local function format_output(exec_result, expected_file)
 	end
 
 	table.insert(lines, ("\n[time]: %.2f ms"):format(exec_result.time_ms))
-	table.insert(lines, "\n[debug]: false")
+	table.insert(lines, ("\n[debug]: %s"):format(is_debug and "true" or "false"))
 
 	if vim.fn.filereadable(expected_file) == 1 and exec_result.code == 0 then
 		local expected_content = vim.fn.readfile(expected_file)
@@ -103,7 +103,7 @@ function M.run_problem(problem_id, contest_config, is_debug)
 	end
 
 	local exec_result = execute_binary(paths.binary, input_data, contest_config.timeout_ms)
-	local formatted_output = format_output(exec_result, paths.expected)
+	local formatted_output = format_output(exec_result, paths.expected, is_debug)
 
 	vim.fn.writefile(vim.split(formatted_output, "\n"), paths.output)
 end

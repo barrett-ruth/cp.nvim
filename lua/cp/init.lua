@@ -12,7 +12,7 @@ local function log(msg, level)
 end
 
 if not vim.fn.has("nvim-0.10.0") then
-	log("cp.nvim requires Neovim 0.10.0+", vim.log.levels.ERROR)
+	log("cp.nvim requires nvim-0.10.0+", vim.log.levels.ERROR)
 	return M
 end
 
@@ -105,7 +105,21 @@ local function setup_problem(problem_id, problem_letter)
 	vim.cmd.e(filename)
 
 	if vim.api.nvim_buf_get_lines(0, 0, -1, true)[1] == "" then
-		vim.api.nvim_input(("i%s<c-space><esc>"):format(vim.g.cp_contest))
+		local has_luasnip, luasnip = pcall(require, "luasnip")
+		if has_luasnip then
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, { vim.g.cp_contest })
+			vim.api.nvim_win_set_cursor(0, { 1, #vim.g.cp_contest })
+			vim.cmd.startinsert({ bang = true })
+
+			vim.schedule(function()
+				if luasnip.expandable() then
+					luasnip.expand()
+				end
+				vim.cmd.stopinsert()
+			end)
+		else
+			vim.api.nvim_input(("i%s<c-space><esc>"):format(vim.g.cp_contest))
+		end
 	end
 
 	vim.api.nvim_set_option_value("winbar", "", { scope = "local" })

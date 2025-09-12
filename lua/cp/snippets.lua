@@ -3,18 +3,73 @@ local M = {}
 function M.setup(config)
 	local has_luasnip, luasnip = pcall(require, "luasnip")
 	if not has_luasnip then
+		vim.notify("[cp.nvim]: LuaSnip not available - snippets disabled", vim.log.levels.INFO)
 		return
 	end
 
-	local snippets = {}
+	local s = luasnip.snippet
+	local i = luasnip.insert_node
+	local fmt = require("luasnip.extras.fmt").fmt
 
+	local default_snippets = {
+		s(
+			"codeforces",
+			fmt(
+				[[void solve() {{
+  {}
+}}
+
+int main() {{
+  std::cin.tie(nullptr)->sync_with_stdio(false);
+
+  int tc = 1;
+  std::cin >> tc;
+
+  for (int t = 0; t < tc; ++t) {{
+    solve();
+  }}
+
+  return 0;
+}}]],
+				{ i(1) }
+			)
+		),
+
+		s(
+			"atcoder",
+			fmt(
+				[[void solve() {{
+  {}
+}}
+
+int main() {{
+  std::cin.tie(nullptr)->sync_with_stdio(false);
+
+#ifdef LOCAL
+  int tc;
+  std::cin >> tc;
+
+  for (int t = 0; t < tc; ++t) {{
+    solve();
+  }}
+#else
+  solve();
+#endif
+
+  return 0;
+}}]],
+				{ i(1) }
+			)
+		),
+	}
+
+	local user_snippets = {}
 	for _, snippet in pairs(config.snippets or {}) do
-		table.insert(snippets, snippet)
+		table.insert(user_snippets, snippet)
 	end
 
-	if #snippets > 0 then
-		luasnip.add_snippets("cpp", snippets)
-	end
+	local all_snippets = vim.list_extend(default_snippets, user_snippets)
+	luasnip.add_snippets("cpp", all_snippets)
 end
 
 return M
