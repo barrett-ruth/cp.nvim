@@ -39,6 +39,7 @@ jobs:
         with:
           checklevel: Warning
           directories: lua
+          configpath: .luarc.json
 
   python-format:
     name: Python Formatting
