@@ -16,10 +16,6 @@ if not vim.fn.has("nvim-0.10.0") then
 	return M
 end
 
-local function get_plugin_path()
-	local plugin_path = debug.getinfo(1, "S").source:sub(2)
-	return vim.fn.fnamemodify(plugin_path, ":h:h:h")
-end
 
 local competition_types = { "atcoder", "codeforces", "cses" }
 
