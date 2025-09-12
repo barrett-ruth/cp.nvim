@@ -253,7 +253,7 @@ function M.handle_command(opts)
 		local similar_contests = vim.tbl_filter(function(contest)
 			return contest:find(cmd:sub(1, 3), 1, true) == 1
 		end, competition_types)
-		
+
 		if #similar_contests > 0 then
 			log(
 				("unknown contest type '%s'. Did you mean: %s"):format(cmd, table.concat(similar_contests, ", ")),
