@@ -13,7 +13,7 @@ function M.scrape_problem(contest, problem_id, problem_letter)
 	ensure_io_directory()
 
 	local plugin_path = get_plugin_path()
-	local scraper_path = plugin_path .. "/templates/scrapers/" .. contest .. ".py"
+	local scraper_path = plugin_path .. "/scrapers/" .. contest .. ".py"
 
 	local args
 	if contest == "cses" then

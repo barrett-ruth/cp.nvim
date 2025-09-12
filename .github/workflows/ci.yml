@@ -39,7 +39,7 @@ jobs:
       - name: Install ruff
         run: uv tool install ruff
       - name: Check Python formatting with ruff
-        run: ruff format --check templates/scrapers/
+        run: ruff format --check scrapers/
 
   python-lint:
     name: Python Linting
@@ -51,4 +51,4 @@ jobs:
       - name: Install ruff
         run: uv tool install ruff
       - name: Lint Python files with ruff
-        run: ruff check templates/scrapers/
+        run: ruff check scrapers/

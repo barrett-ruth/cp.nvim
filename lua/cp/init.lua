@@ -161,9 +161,8 @@ local function run_problem()
 		return
 	end
 
-	local has_lsp, lsp = pcall(require, "lsp")
-	if has_lsp and lsp.lsp_format then
-		lsp.lsp_format({ async = true })
+	if config.hooks and config.hooks.before_run then
+		config.hooks.before_run(problem_id)
 	end
 
 	if not vim.g.cp_contest then
@@ -185,9 +184,8 @@ local function debug_problem()
 		return
 	end
 
-	local has_lsp, lsp = pcall(require, "lsp")
-	if has_lsp and lsp.lsp_format then
-		lsp.lsp_format({ async = true })
+	if config.hooks and config.hooks.before_debug then
+		config.hooks.before_debug(problem_id)
 	end
 
 	if not vim.g.cp_contest then
@@ -245,9 +243,6 @@ function M.setup(user_config)
 	end
 
 	config = config_module.setup(user_config)
-
-	local plugin_path = get_plugin_path()
-	config.snippets.path = plugin_path .. "/templates/snippets"
 
 	snippets.setup(config)
 
