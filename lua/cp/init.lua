@@ -16,7 +16,6 @@ if not vim.fn.has("nvim-0.10.0") then
 	return M
 end
 
-
 local function get_plugin_path()
 	local plugin_path = debug.getinfo(1, "S").source:sub(2)
 	return vim.fn.fnamemodify(plugin_path, ":h:h:h")
@@ -218,7 +217,7 @@ local function diff_problem()
 		local actual_output = result.stdout
 
 		window.setup_diff_layout(actual_output, expected, input)
-		
+
 		vim.g.cp_diff_mode = true
 		log("entered diff mode")
 	end

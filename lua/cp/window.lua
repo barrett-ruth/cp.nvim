@@ -21,7 +21,7 @@ function M.save_layout()
 			}
 		end
 	end
-	
+
 	return {
 		windows = windows,
 		current_win = vim.api.nvim_get_current_win(),
@@ -30,11 +30,13 @@ function M.save_layout()
 end
 
 function M.restore_layout(state)
-	if not state then return end
-	
+	if not state then
+		return
+	end
+
 	vim.cmd.diffoff()
 	vim.cmd(state.layout)
-	
+
 	for win, win_state in pairs(state.windows) do
 		if vim.api.nvim_win_is_valid(win) then
 			vim.api.nvim_set_current_win(win)
@@ -43,7 +45,7 @@ function M.restore_layout(state)
 			end
 		end
 	end
-	
+
 	if vim.api.nvim_win_is_valid(state.current_win) then
 		vim.api.nvim_set_current_win(state.current_win)
 	end
@@ -52,21 +54,21 @@ end
 function M.setup_diff_layout(actual_output, expected_output, input_file)
 	vim.cmd.diffoff()
 	vim.cmd.only()
-	
+
 	local output_lines = vim.split(actual_output, "\n")
 	local output_buf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_lines(output_buf, 0, -1, false, output_lines)
 	vim.bo[output_buf].filetype = "cpoutput"
-	
+
 	vim.cmd.edit()
 	vim.api.nvim_set_current_buf(output_buf)
 	vim.cmd.diffthis()
 	M.clearcol()
-	
+
 	vim.cmd.vsplit(expected_output)
 	vim.cmd.diffthis()
 	M.clearcol()
-	
+
 	vim.cmd(("botright split %s"):format(input_file))
 	M.clearcol()
 	vim.cmd.wincmd("k")
