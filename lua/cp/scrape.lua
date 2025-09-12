@@ -91,7 +91,7 @@ function M.scrape_problem(contest, problem_id, problem_letter)
 		local all_inputs = {}
 		local all_outputs = {}
 
-		for i, test_case in ipairs(data.test_cases) do
+		for _, test_case in ipairs(data.test_cases) do
 			local input_lines = vim.split(test_case.input:gsub("\r", ""):gsub("\n+$", ""), "\n")
 			local output_lines = vim.split(test_case.output:gsub("\r", ""):gsub("\n+$", ""), "\n")
 
