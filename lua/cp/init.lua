@@ -34,18 +34,18 @@ local function setup_python_env()
     end
 
     if vim.fn.isdirectory(venv_dir) == 0 then
-        log('Setting up Python environment for scrapers...')
+        log('setting up Python environment for scrapers...')
         local result = vim.fn.system(
             ('cd %s && uv sync'):format(vim.fn.shellescape(plugin_path))
         )
         if vim.v.shell_error ~= 0 then
             log(
-                'Failed to setup Python environment: ' .. result,
+                'failed to setup Python environment: ' .. result,
                 vim.log.levels.ERROR
             )
             return false
         end
-        log('Python environment setup complete')
+        log('python environment setup complete')
     end
 
     return true
@@ -56,7 +56,7 @@ local competition_types = { 'atcoder', 'codeforces', 'cses', 'icpc' }
 local function setup_contest(contest_type)
     if not vim.tbl_contains(competition_types, contest_type) then
         log(
-            ('Unknown contest type. Available: [%s]'):format(
+            ('unknown contest type. Available: [%s]'):format(
                 table.concat(competition_types, ', ')
             ),
             vim.log.levels.ERROR

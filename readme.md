@@ -39,4 +39,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ## TODO
 
+- vimdocs
+- example video
+- more flexible setup (more of a question of philosophy)
 - USACO support
