@@ -19,7 +19,6 @@ setup:
 	test -d build || mkdir -p build
 	test -d io || mkdir -p io
 	test -f compile_flags.txt && echo -std=c++$(VERSION) >>compile_flags.txt
-	test -f .clangd && echo -e "\t\t-std=c++$(VERSION)" >>.clangd
 
 init:
 	make setup

@@ -8,6 +8,11 @@ local function log(msg, level)
 	vim.notify(("[cp.nvim]: %s"):format(msg), level or vim.log.levels.INFO)
 end
 
+if not vim.fn.has("nvim-0.10.0") then
+	log("cp.nvim requires Neovim 0.10.0+", vim.log.levels.ERROR)
+	return M
+end
+
 local function clearcol()
 	vim.api.nvim_set_option_value("number", false, { scope = "local" })
 	vim.api.nvim_set_option_value("relativenumber", false, { scope = "local" })
