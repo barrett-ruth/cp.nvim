@@ -41,9 +41,6 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ## TODO
 
-- update templates to minimum vrsion that's comatible with scrapers (i.e.
-  aggregated testcases, ifdef local, etc.)
-- vimdocs  
+- vimdocs
 - example video
-- more flexible setup (more of a question of philosophy)
 - USACO support
