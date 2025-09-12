@@ -16,7 +16,6 @@ if not vim.fn.has("nvim-0.10.0") then
 	return M
 end
 
-
 local competition_types = { "atcoder", "codeforces", "cses" }
 
 local function setup_contest(contest_type)
