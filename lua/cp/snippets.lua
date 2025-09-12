@@ -8,12 +8,8 @@ function M.setup(config)
 
 	local snippets = {}
 
-	for name, snippet in pairs(config.snippets or {}) do
-		if type(snippet) == "table" and snippet.trig then
-			table.insert(snippets, snippet)
-		else
-			table.insert(snippets, snippet)
-		end
+	for _, snippet in pairs(config.snippets or {}) do
+		table.insert(snippets, snippet)
 	end
 
 	if #snippets > 0 then

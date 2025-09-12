@@ -285,7 +285,7 @@ function M.setup(user_config)
 		end
 	end, {
 		nargs = "*",
-		complete = function(ArgLead, CmdLine, ...)
+		complete = function(ArgLead, _, _)
 			local commands = vim.list_extend(vim.deepcopy(competition_types), { "run", "debug", "diff" })
 			return vim.tbl_filter(function(cmd)
 				return cmd:find(ArgLead, 1, true) == 1
