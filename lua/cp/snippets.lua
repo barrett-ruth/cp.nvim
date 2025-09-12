@@ -7,7 +7,7 @@ function M.setup(config)
 		return
 	end
 
-	local s, i, fmt = ls.snippet, ls.insert_node, require('luasnip.extras.fmt').fmt
+	local s, i, fmt = ls.snippet, ls.insert_node, require("luasnip.extras.fmt").fmt
 
 	local default_snippets = {
 		s(
