@@ -1,0 +1,12 @@
+[selene]
+base = "lua52"
+name = "vim"
+
+[vim]
+any = true
+
+[map]
+any = true
+
+[bmap]
+any = true

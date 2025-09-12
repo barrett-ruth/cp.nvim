@@ -1,0 +1,6 @@
+std = "vim"
+
+exclude = [".luacheckrc"]
+
+[rules]
+mixed_table = "allow"
