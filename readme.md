@@ -2,12 +2,11 @@
 
 neovim plugin for competitive programming.
 
-> NOTE: sample test data from [codeforces](https://codeforces.com) is scraped via [cloudscraper](https://github.com/VeNoMouS/cloudscraper).
-> Use at your own risk.
+> Sample test data from [codeforces](https://codeforces.com) is scraped via [cloudscraper](https://github.com/VeNoMouS/cloudscraper). Use at your own risk.
 
 ## Features
 
-- Support for multiple online judges (AtCoder, Codeforces, CSES)
+- Support for multiple online judges ([AtCoder](https://atcoder.jp/), [Codeforces](https://codeforces.com/), [CSES](https://cses.fi))
 - Automatic problem scraping and test case management
 - Integrated build, run, and debug commands
 - Diff mode for comparing output with expected results
@@ -18,20 +17,6 @@ neovim plugin for competitive programming.
 - Neovim 0.10.0+
 - [uv](https://docs.astral.sh/uv/): problem scraping (optional)
 - [LuaSnip](https://github.com/L3MON4D3/LuaSnip): contest-specific snippets (optional)
-
-## Installation
-
-Using [lazy.nvim](https://github.com/folke/lazy.nvim):
-
-```lua
-{
-    "barrett-ruth/cp.nvim",
-    cmd = "CP",
-    dependencies = {
-        "L3MON4D3/LuaSnip",
-    }
-}
-```
 
 ## Documentation
 

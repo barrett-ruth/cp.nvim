@@ -250,14 +250,20 @@ function M.handle_command(opts)
 	elseif cmd == "diff" then
 		diff_problem()
 	else
-		if vim.g.cp_contest then
-			if (vim.g.cp_contest == "atcoder" or vim.g.cp_contest == "codeforces") and args[2] then
-				setup_problem(cmd, args[2])
-			else
-				setup_problem(cmd)
-			end
+		local similar_contests = vim.tbl_filter(function(contest)
+			return contest:find(cmd:sub(1, 3), 1, true) == 1
+		end, competition_types)
+		
+		if #similar_contests > 0 then
+			log(
+				("unknown contest type '%s'. Did you mean: %s"):format(cmd, table.concat(similar_contests, ", ")),
+				vim.log.levels.ERROR
+			)
 		else
-			log("no contest mode set. run :CP <contest> first or use full command", vim.log.levels.ERROR)
+			log(
+				("unknown contest type '%s'. Available: [%s]"):format(cmd, table.concat(competition_types, ", ")),
+				vim.log.levels.ERROR
+			)
 		end
 	end
 end
