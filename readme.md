@@ -1,10 +1,10 @@
 # cp.nvim
 
-A Neovim plugin for competitive programming.
+neovim plugin for competitive programming.
 
 ## Features
 
-- Support for multiple online judges (AtCoder, Codeforces, CSES, ICPC)
+- Support for multiple online judges (AtCoder, Codeforces, CSES)
 - Automatic problem scraping and test case management
 - Integrated build, run, and debug commands
 - Diff mode for comparing output with expected results
@@ -13,7 +13,7 @@ A Neovim plugin for competitive programming.
 ## Requirements
 
 - Neovim 0.9+
-- `make` and a C++ compiler
+- `make`
 - (Optional) [uv](https://docs.astral.sh/uv/) for problem scraping
 - (Optional) [LuaSnip](https://github.com/L3MON4D3/LuaSnip) for snippets
 

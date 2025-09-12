@@ -46,7 +46,7 @@ local function setup_python_env()
 	return true
 end
 
-local competition_types = { "atcoder", "codeforces", "cses", "icpc" }
+local competition_types = { "atcoder", "codeforces", "cses", }
 
 local function setup_contest(contest_type)
 	if not vim.tbl_contains(competition_types, contest_type) then
