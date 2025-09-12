@@ -21,30 +21,6 @@ local function get_plugin_path()
 	return vim.fn.fnamemodify(plugin_path, ":h:h:h")
 end
 
-local function setup_python_env()
-	local plugin_path = get_plugin_path()
-	local venv_dir = plugin_path .. "/.venv"
-
-	if vim.fn.executable("uv") == 0 then
-		log(
-			"uv is not installed. Install it to enable problem scraping: https://docs.astral.sh/uv/",
-			vim.log.levels.WARN
-		)
-		return false
-	end
-
-	if vim.fn.isdirectory(venv_dir) == 0 then
-		log("setting up Python environment for scrapers...")
-		local result = vim.system({ "uv", "sync" }, { cwd = plugin_path, text = true }):wait()
-		if result.code ~= 0 then
-			log("failed to setup Python environment: " .. result.stderr, vim.log.levels.ERROR)
-			return false
-		end
-		log("python environment setup complete")
-	end
-
-	return true
-end
 
 local competition_types = { "atcoder", "codeforces", "cses" }
 
@@ -82,7 +58,7 @@ local function setup_problem(problem_id, problem_letter)
 		vim.g.cp_diff_mode = false
 	end
 
-	vim.cmd.only()
+	vim.cmd('silent only')
 
 	local scrape_result = scrape.scrape_problem(vim.g.cp_contest, problem_id, problem_letter)
 
@@ -136,10 +112,12 @@ local function setup_problem(problem_id, problem_letter)
 
 	vim.cmd.vsplit(output)
 	vim.cmd.w()
+	vim.bo.filetype = "cp"
 	window.clearcol()
 	vim.cmd(("vertical resize %d"):format(math.floor(vim.o.columns * 0.3)))
 	vim.cmd.split(input)
 	vim.cmd.w()
+	vim.bo.filetype = "cp"
 	window.clearcol()
 	vim.cmd.wincmd("h")
 
@@ -250,8 +228,6 @@ function M.setup(user_config)
 		return
 	end
 	initialized = true
-
-	setup_python_env()
 
 	vim.api.nvim_create_user_command("CP", function(opts)
 		local args = opts.fargs

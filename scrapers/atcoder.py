@@ -68,7 +68,7 @@ def main():
 
     contest_id = sys.argv[1]
     problem_letter = sys.argv[2]
-    problem_id = contest_id + problem_letter
+    problem_id = contest_id + problem_letter.lower()
 
     url = parse_problem_url(contest_id, problem_letter)
     print(f"Scraping: {url}", file=sys.stderr)
@@ -88,6 +88,11 @@ def main():
     test_cases = []
     for input_data, output_data in tests:
         test_cases.append({"input": input_data, "output": output_data})
+    
+    if test_cases:
+        combined_input = str(len(test_cases)) + "\n" + "\n".join(tc["input"] for tc in test_cases)
+        combined_output = "\n".join(tc["output"] for tc in test_cases)
+        test_cases = [{"input": combined_input, "output": combined_output}]
 
     result = {
         "success": True,
