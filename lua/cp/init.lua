@@ -2,6 +2,7 @@ local config_module = require("cp.config")
 local snippets = require("cp.snippets")
 local execute = require("cp.execute")
 local scrape = require("cp.scrape")
+local window = require("cp.window")
 
 local M = {}
 local config = {}
@@ -15,13 +16,6 @@ if not vim.fn.has("nvim-0.10.0") then
 	return M
 end
 
-local function clearcol()
-	vim.api.nvim_set_option_value("number", false, { scope = "local" })
-	vim.api.nvim_set_option_value("relativenumber", false, { scope = "local" })
-	vim.api.nvim_set_option_value("statuscolumn", "", { scope = "local" })
-	vim.api.nvim_set_option_value("signcolumn", "no", { scope = "local" })
-	vim.api.nvim_set_option_value("equalalways", false, { scope = "global" })
-end
 
 local function get_plugin_path()
 	local plugin_path = debug.getinfo(1, "S").source:sub(2)
@@ -129,11 +123,11 @@ local function setup_problem(problem_id, problem_letter)
 
 	vim.cmd.vsplit(output)
 	vim.cmd.w()
-	clearcol()
+	window.clearcol()
 	vim.cmd(("vertical resize %d"):format(math.floor(vim.o.columns * 0.3)))
 	vim.cmd.split(input)
 	vim.cmd.w()
-	clearcol()
+	window.clearcol()
 	vim.cmd.wincmd("h")
 
 	log(("switched to problem %s"):format(full_problem_id))
@@ -198,13 +192,9 @@ end
 
 local function diff_problem()
 	if vim.g.cp_diff_mode then
-		vim.cmd.diffoff()
-		if vim.g.cp_saved_session then
-			vim.cmd(("silent! source %s"):format(vim.g.cp_saved_session))
-			vim.fn.delete(vim.g.cp_saved_session)
-			vim.g.cp_saved_session = nil
-		end
+		window.restore_layout(vim.g.cp_saved_layout)
 		vim.g.cp_diff_mode = false
+		vim.g.cp_saved_layout = nil
 		log("exited diff mode")
 	else
 		local problem_id = get_current_problem()
@@ -222,31 +212,14 @@ local function diff_problem()
 			return
 		end
 
-		local temp_output = vim.fn.tempname()
+		vim.g.cp_saved_layout = window.save_layout()
+
 		local result = vim.system({ "awk", "/^\\[[^]]*\\]:/ {exit} {print}", output }, { text = true }):wait()
-		vim.fn.writefile(vim.split(result.stdout, "\n"), temp_output)
+		local actual_output = result.stdout
 
-		local session_file = vim.fn.tempname() .. ".vim"
-		vim.cmd(("silent! mksession! %s"):format(session_file))
-		vim.g.cp_saved_session = session_file
-
-		vim.cmd.diffoff()
-		vim.cmd.only()
-
-		vim.cmd.edit(temp_output)
-		vim.cmd.diffthis()
-		clearcol()
-
-		vim.cmd.vsplit(expected)
-		vim.cmd.diffthis()
-		clearcol()
-
-		vim.cmd(("botright split %s"):format(input))
-		clearcol()
-		vim.cmd.wincmd("k")
-
+		window.setup_diff_layout(actual_output, expected, input)
+		
 		vim.g.cp_diff_mode = true
-		vim.g.cp_temp_output = temp_output
 		log("entered diff mode")
 	end
 end
