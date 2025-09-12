@@ -1,9 +1,0 @@
-BasedOnStyle: Google
-AllowShortBlocksOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: false
-AllowShortCompoundRequirementOnASingleLine: false
-AllowShortEnumsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: false
-AllowShortIfStatementsOnASingleLine: false
-AllowShortLambdasOnASingleLine: false
-AllowShortLoopsOnASingleLine: false

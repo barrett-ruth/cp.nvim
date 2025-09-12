@@ -16,36 +16,6 @@ if not vim.fn.has("nvim-0.10.0") then
 	return M
 end
 
-local function get_plugin_path()
-	local plugin_path = debug.getinfo(1, "S").source:sub(2)
-	return vim.fn.fnamemodify(plugin_path, ":h:h:h")
-end
-
-local function setup_python_env()
-	local plugin_path = get_plugin_path()
-	local venv_dir = plugin_path .. "/.venv"
-
-	if vim.fn.executable("uv") == 0 then
-		log(
-			"uv is not installed. Install it to enable problem scraping: https://docs.astral.sh/uv/",
-			vim.log.levels.WARN
-		)
-		return false
-	end
-
-	if vim.fn.isdirectory(venv_dir) == 0 then
-		log("setting up Python environment for scrapers...")
-		local result = vim.system({ "uv", "sync" }, { cwd = plugin_path, text = true }):wait()
-		if result.code ~= 0 then
-			log("failed to setup Python environment: " .. result.stderr, vim.log.levels.ERROR)
-			return false
-		end
-		log("python environment setup complete")
-	end
-
-	return true
-end
-
 local competition_types = { "atcoder", "codeforces", "cses" }
 
 local function setup_contest(contest_type)
@@ -82,7 +52,7 @@ local function setup_problem(problem_id, problem_letter)
 		vim.g.cp_diff_mode = false
 	end
 
-	vim.cmd.only()
+	vim.cmd("silent only")
 
 	local scrape_result = scrape.scrape_problem(vim.g.cp_contest, problem_id, problem_letter)
 
@@ -136,10 +106,12 @@ local function setup_problem(problem_id, problem_letter)
 
 	vim.cmd.vsplit(output)
 	vim.cmd.w()
+	vim.bo.filetype = "cp"
 	window.clearcol()
 	vim.cmd(("vertical resize %d"):format(math.floor(vim.o.columns * 0.3)))
 	vim.cmd.split(input)
 	vim.cmd.w()
+	vim.bo.filetype = "cp"
 	window.clearcol()
 	vim.cmd.wincmd("h")
 
@@ -161,9 +133,8 @@ local function run_problem()
 		return
 	end
 
-	local has_lsp, lsp = pcall(require, "lsp")
-	if has_lsp and lsp.lsp_format then
-		lsp.lsp_format({ async = true })
+	if config.hooks and config.hooks.before_run then
+		config.hooks.before_run(problem_id)
 	end
 
 	if not vim.g.cp_contest then
@@ -185,9 +156,8 @@ local function debug_problem()
 		return
 	end
 
-	local has_lsp, lsp = pcall(require, "lsp")
-	if has_lsp and lsp.lsp_format then
-		lsp.lsp_format({ async = true })
+	if config.hooks and config.hooks.before_debug then
+		config.hooks.before_debug(problem_id)
 	end
 
 	if not vim.g.cp_contest then
@@ -239,71 +209,57 @@ end
 
 local initialized = false
 
+function M.is_initialized()
+	return initialized
+end
+
 function M.setup(user_config)
 	if initialized and not user_config then
 		return
 	end
 
 	config = config_module.setup(user_config)
-
-	local plugin_path = get_plugin_path()
-	config.snippets.path = plugin_path .. "/templates/snippets"
-
 	snippets.setup(config)
+	initialized = true
+end
 
-	if initialized then
+function M.handle_command(opts)
+	local args = opts.fargs
+	if #args == 0 then
+		log("Usage: :CP <contest|problem_id|run|debug|diff>", vim.log.levels.ERROR)
 		return
 	end
-	initialized = true
 
-	setup_python_env()
+	local cmd = args[1]
 
-	vim.api.nvim_create_user_command("CP", function(opts)
-		local args = opts.fargs
-		if #args == 0 then
-			log("Usage: :CP <contest|problem_id|run|debug|diff>", vim.log.levels.ERROR)
-			return
-		end
-
-		local cmd = args[1]
-
-		if vim.tbl_contains(competition_types, cmd) then
-			if args[2] then
-				setup_contest(cmd)
-				if (cmd == "atcoder" or cmd == "codeforces") and args[3] then
-					setup_problem(args[2], args[3])
-				else
-					setup_problem(args[2])
-				end
+	if vim.tbl_contains(competition_types, cmd) then
+		if args[2] then
+			setup_contest(cmd)
+			if (cmd == "atcoder" or cmd == "codeforces") and args[3] then
+				setup_problem(args[2], args[3])
 			else
-				setup_contest(cmd)
+				setup_problem(args[2])
 			end
-		elseif cmd == "run" then
-			run_problem()
-		elseif cmd == "debug" then
-			debug_problem()
-		elseif cmd == "diff" then
-			diff_problem()
 		else
-			if vim.g.cp_contest then
-				if (vim.g.cp_contest == "atcoder" or vim.g.cp_contest == "codeforces") and args[2] then
-					setup_problem(cmd, args[2])
-				else
-					setup_problem(cmd)
-				end
-			else
-				log("no contest mode set. run :CP <contest> first or use full command", vim.log.levels.ERROR)
-			end
+			setup_contest(cmd)
 		end
-	end, {
-		nargs = "*",
-		complete = function(ArgLead, _, _)
-			local commands = vim.list_extend(vim.deepcopy(competition_types), { "run", "debug", "diff" })
-			return vim.tbl_filter(function(cmd)
-				return cmd:find(ArgLead, 1, true) == 1
-			end, commands)
-		end,
-	})
+	elseif cmd == "run" then
+		run_problem()
+	elseif cmd == "debug" then
+		debug_problem()
+	elseif cmd == "diff" then
+		diff_problem()
+	else
+		if vim.g.cp_contest then
+			if (vim.g.cp_contest == "atcoder" or vim.g.cp_contest == "codeforces") and args[2] then
+				setup_problem(cmd, args[2])
+			else
+				setup_problem(cmd)
+			end
+		else
+			log("no contest mode set. run :CP <contest> first or use full command", vim.log.levels.ERROR)
+		end
+	end
 end
 
 return M

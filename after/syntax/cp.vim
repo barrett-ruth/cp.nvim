@@ -14,4 +14,4 @@ highlight default link cpOutputDebug Comment
 highlight default link cpOutputMatchesTrue DiffAdd
 highlight default link cpOutputMatchesFalse DiffDelete
 
-let b:current_syntax = "cpoutput"
+let b:current_syntax = "cp"

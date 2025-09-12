@@ -29,6 +29,18 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --display-style quiet .
 
+  lua-typecheck:
+    name: Lua Type Checking
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Lua LS Type Check
+        uses: mrcjkb/lua-typecheck-action@v0
+        with:
+          checklevel: Warning
+          directories: lua
+          configpath: .luarc.json
+
   python-format:
     name: Python Formatting
     runs-on: ubuntu-latest
@@ -39,7 +51,7 @@ jobs:
       - name: Install ruff
         run: uv tool install ruff
       - name: Check Python formatting with ruff
-        run: ruff format --check templates/scrapers/
+        run: ruff format --check scrapers/
 
   python-lint:
     name: Python Linting
@@ -51,4 +63,4 @@ jobs:
       - name: Install ruff
         run: uv tool install ruff
       - name: Lint Python files with ruff
-        run: ruff check templates/scrapers/
+        run: ruff check scrapers/

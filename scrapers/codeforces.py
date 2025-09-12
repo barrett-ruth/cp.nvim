@@ -43,16 +43,9 @@ def scrape(url: str):
                         output_lines.append(line_div.get_text().strip())
 
                 if input_lines and output_lines:
-                    if len(input_lines) > 1 and input_lines[0].isdigit():
-                        test_count = int(input_lines[0])
-                        remaining_input = input_lines[1:]
-                        for i in range(min(test_count, len(output_lines))):
-                            if i < len(remaining_input):
-                                tests.append((remaining_input[i], output_lines[i]))
-                    else:
-                        input_text = "\n".join(input_lines)
-                        output_text = "\n".join(output_lines)
-                        tests.append((input_text, output_text))
+                    input_text = "\n".join(input_lines)
+                    output_text = "\n".join(output_lines)
+                    tests.append((input_text, output_text))
 
         return tests
 
@@ -84,7 +77,7 @@ def main():
 
     contest_id = sys.argv[1]
     problem_letter = sys.argv[2]
-    problem_id = contest_id + problem_letter.upper()
+    problem_id = contest_id + problem_letter.lower()
 
     url = parse_problem_url(contest_id, problem_letter)
     tests = scrape_sample_tests(url)
