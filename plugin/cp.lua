@@ -1,6 +1,6 @@
 if vim.g.loaded_cp then
-    return
+	return
 end
 vim.g.loaded_cp = 1
 
-require('cp').setup()
+require("cp").setup()
