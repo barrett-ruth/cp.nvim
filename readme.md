@@ -15,12 +15,9 @@ neovim plugin for competitive programming.
 
 ## Requirements
 
-- Neovim 0.9+
-- `make`
--  [uv](https://docs.astral.sh/uv/): problem scraping (optional)
+- Neovim 0.10.0+
+- [uv](https://docs.astral.sh/uv/): problem scraping (optional)
 - [LuaSnip](https://github.com/L3MON4D3/LuaSnip): contest-specific snippets (optional)
-- [vim-zoom](https://github.com/dhruvasagar/vim-zoom): better diff view
-  (optional)
 
 ## Installation
 
@@ -44,8 +41,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ## TODO
 
-- remove vim-zoom dependency
-- vimdocs
+- vimdocs  
 - example video
 - more flexible setup (more of a question of philosophy)
 - USACO support

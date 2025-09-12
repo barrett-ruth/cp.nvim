@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 import sys
 
 import cloudscraper
@@ -73,31 +74,43 @@ def scrape_sample_tests(url: str):
 
 def main():
     if len(sys.argv) != 3:
-        print("Usage: codeforces.py <contest_id> <problem_letter>", file=sys.stderr)
-        print("Example: codeforces.py 1234 A", file=sys.stderr)
+        result = {
+            "success": False,
+            "error": "Usage: codeforces.py <contest_id> <problem_letter>",
+            "problem_id": None,
+        }
+        print(json.dumps(result))
         sys.exit(1)
 
     contest_id = sys.argv[1]
     problem_letter = sys.argv[2]
+    problem_id = contest_id + problem_letter.upper()
 
     url = parse_problem_url(contest_id, problem_letter)
     tests = scrape_sample_tests(url)
 
     if not tests:
-        print(f"No tests found for {contest_id} {problem_letter}", file=sys.stderr)
-        print(
-            "Consider adding test cases manually to the io/ directory", file=sys.stderr
-        )
+        result = {
+            "success": False,
+            "error": f"No tests found for {contest_id} {problem_letter}",
+            "problem_id": problem_id,
+            "url": url,
+        }
+        print(json.dumps(result))
         sys.exit(1)
 
-    print("---INPUT---")
-    print(len(tests))
+    test_cases = []
     for input_data, output_data in tests:
-        print(input_data)
-    print("---OUTPUT---")
-    for input_data, output_data in tests:
-        print(output_data)
-    print("---END---")
+        test_cases.append({"input": input_data, "output": output_data})
+
+    result = {
+        "success": True,
+        "problem_id": problem_id,
+        "url": url,
+        "test_cases": test_cases,
+    }
+
+    print(json.dumps(result))
 
 
 if __name__ == "__main__":

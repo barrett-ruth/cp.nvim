@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 import sys
 
 import requests
@@ -57,31 +58,54 @@ def scrape(url: str) -> list[tuple[str, str]]:
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: cses.py <problem_id_or_url>", file=sys.stderr)
+        result = {
+            "success": False,
+            "error": "Usage: cses.py <problem_id_or_url>",
+            "problem_id": None,
+        }
+        print(json.dumps(result))
         sys.exit(1)
 
     problem_input = sys.argv[1]
     url = parse_problem_url(problem_input)
 
     if not url:
-        print(f"Invalid problem input: {problem_input}", file=sys.stderr)
-        print("Use either problem ID (e.g., 1068) or full URL", file=sys.stderr)
+        result = {
+            "success": False,
+            "error": f"Invalid problem input: {problem_input}. Use either problem ID (e.g., 1068) or full URL",
+            "problem_id": problem_input if problem_input.isdigit() else None,
+        }
+        print(json.dumps(result))
         sys.exit(1)
 
     tests = scrape(url)
 
+    problem_id = (
+        problem_input if problem_input.isdigit() else problem_input.split("/")[-1]
+    )
+
     if not tests:
-        print(f"No tests found for {problem_input}", file=sys.stderr)
+        result = {
+            "success": False,
+            "error": f"No tests found for {problem_input}",
+            "problem_id": problem_id,
+            "url": url,
+        }
+        print(json.dumps(result))
         sys.exit(1)
 
-    print("---INPUT---")
-    print(len(tests))
+    test_cases = []
     for input_data, output_data in tests:
-        print(input_data)
-    print("---OUTPUT---")
-    for input_data, output_data in tests:
-        print(output_data)
-    print("---END---")
+        test_cases.append({"input": input_data, "output": output_data})
+
+    result = {
+        "success": True,
+        "problem_id": problem_id,
+        "url": url,
+        "test_cases": test_cases,
+    }
+
+    print(json.dumps(result))
 
 
 if __name__ == "__main__":
