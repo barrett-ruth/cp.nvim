@@ -21,7 +21,6 @@ local function get_plugin_path()
 	return vim.fn.fnamemodify(plugin_path, ":h:h:h")
 end
 
-
 local competition_types = { "atcoder", "codeforces", "cses" }
 
 local function setup_contest(contest_type)
@@ -58,7 +57,7 @@ local function setup_problem(problem_id, problem_letter)
 		vim.g.cp_diff_mode = false
 	end
 
-	vim.cmd('silent only')
+	vim.cmd("silent only")
 
 	local scrape_result = scrape.scrape_problem(vim.g.cp_contest, problem_id, problem_letter)
 

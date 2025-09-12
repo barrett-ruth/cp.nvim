@@ -35,7 +35,7 @@ function M.restore_layout(state)
 	end
 
 	vim.cmd.diffoff()
-	
+
 	local problem_id = vim.fn.expand("%:t:r")
 	if problem_id == "" then
 		for win, win_state in pairs(state.windows) do
@@ -50,13 +50,13 @@ function M.restore_layout(state)
 	end
 
 	if problem_id ~= "" then
-		vim.cmd('silent only')
-		
+		vim.cmd("silent only")
+
 		local base_fp = vim.fn.getcwd()
 		local input = ("%s/io/%s.in"):format(base_fp, problem_id)
 		local output = ("%s/io/%s.out"):format(base_fp, problem_id)
 		local source = problem_id .. ".cc"
-		
+
 		vim.cmd.edit(source)
 		vim.cmd.vsplit(output)
 		vim.bo.filetype = "cp"
@@ -68,7 +68,7 @@ function M.restore_layout(state)
 		vim.cmd.wincmd("h")
 	else
 		vim.cmd(state.layout)
-		
+
 		for win, win_state in pairs(state.windows) do
 			if vim.api.nvim_win_is_valid(win) then
 				vim.api.nvim_set_current_win(win)
@@ -86,7 +86,7 @@ end
 
 function M.setup_diff_layout(actual_output, expected_output, input_file)
 	vim.cmd.diffoff()
-	vim.cmd('silent only')
+	vim.cmd("silent only")
 
 	local output_lines = vim.split(actual_output, "\n")
 	local output_buf = vim.api.nvim_create_buf(false, true)
