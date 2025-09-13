@@ -29,6 +29,7 @@ M.defaults = {
 		before_run = nil,
 		before_debug = nil,
 	},
+	debug = false,
 }
 
 ---@param base_config table
@@ -56,6 +57,7 @@ function M.setup(user_config)
 			contests = { user_config.contests, { "table", "nil" }, true },
 			snippets = { user_config.snippets, { "table", "nil" }, true },
 			hooks = { user_config.hooks, { "table", "nil" }, true },
+			debug = { user_config.debug, { "boolean", "nil" }, true },
 		})
 
 		if user_config.hooks then

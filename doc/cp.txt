@@ -58,6 +58,7 @@ example, with lazy.nvim (https://github.com/folke/lazy.nvim):
         local s = ls.snippet
 
         require('cp').setup({
+          debug = false,
           contests = {
             default = {
               cpp_version = 20,
@@ -101,6 +102,9 @@ snippets                        LuaSnip snippets by contest type
 hooks                           Functions called at specific events
   before_run                    Called before :CP run
   before_debug                  Called before :CP debug
+
+debug                           Show info messages during operation
+                                (default: false, silent operation)
 
 WORKFLOW						*cp-workflow*
 
