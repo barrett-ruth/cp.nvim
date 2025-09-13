@@ -65,7 +65,7 @@ function M.restore_layout(state, tile_fn)
 		if tile_fn then
 			tile_fn(source_buf, input_buf, output_buf)
 		else
-			default_tile(source_buf, input_buf, output_buf)
+			M.default_tile(source_buf, input_buf, output_buf)
 		end
 	else
 		vim.cmd(state.layout)
