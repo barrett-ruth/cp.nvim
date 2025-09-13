@@ -54,7 +54,7 @@ local function setup_problem(problem_id, problem_letter)
 
 	local ctx = problem.create_context(vim.g.cp_contest, problem_id, problem_letter, config)
 
-	local scrape_result = scrape.scrape_problem(vim.g.cp_contest, problem_id, problem_letter)
+	local scrape_result = scrape.scrape_problem(ctx)
 
 	if not scrape_result.success then
 		logger.log("scraping failed: " .. scrape_result.error, vim.log.levels.WARN)

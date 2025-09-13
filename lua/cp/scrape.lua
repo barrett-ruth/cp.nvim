@@ -35,23 +35,14 @@ local function setup_python_env()
 	return true
 end
 
-function M.scrape_problem(contest, problem_id, problem_letter)
+---@param ctx ProblemContext
+function M.scrape_problem(ctx)
 	ensure_io_directory()
 
-	local cache_problem_id = problem_id:lower()
-	if contest == "atcoder" or contest == "codeforces" then
-		if problem_letter then
-			cache_problem_id = cache_problem_id .. problem_letter:lower()
-		end
-	end
-
-	local input_file = "io/" .. cache_problem_id .. ".in"
-	local expected_file = "io/" .. cache_problem_id .. ".expected"
-
-	if vim.fn.filereadable(input_file) == 1 and vim.fn.filereadable(expected_file) == 1 then
+	if vim.fn.filereadable(ctx.input_file) == 1 and vim.fn.filereadable(ctx.expected_file) == 1 then
 		return {
 			success = true,
-			problem_id = cache_problem_id,
+			problem_id = ctx.problem_name,
 			test_count = 1,
 		}
 	end
@@ -64,13 +55,13 @@ function M.scrape_problem(contest, problem_id, problem_letter)
 	end
 
 	local plugin_path = get_plugin_path()
-	local scraper_path = plugin_path .. "/scrapers/" .. contest .. ".py"
+	local scraper_path = plugin_path .. "/scrapers/" .. ctx.contest .. ".py"
 
 	local args
-	if contest == "cses" then
-		args = { "uv", "run", scraper_path, problem_id }
+	if ctx.contest == "cses" then
+		args = { "uv", "run", scraper_path, ctx.problem_id }
 	else
-		args = { "uv", "run", scraper_path, problem_id, problem_letter }
+		args = { "uv", "run", scraper_path, ctx.problem_id, ctx.problem_letter }
 	end
 
 	local result = vim.system(args, {
@@ -98,10 +89,6 @@ function M.scrape_problem(contest, problem_id, problem_letter)
 		return data
 	end
 
-	local full_problem_id = data.problem_id:lower()
-	input_file = "io/" .. full_problem_id .. ".in"
-	expected_file = "io/" .. full_problem_id .. ".expected"
-
 	if #data.test_cases > 0 then
 		local all_inputs = {}
 		local all_outputs = {}
@@ -119,13 +106,13 @@ function M.scrape_problem(contest, problem_id, problem_letter)
 			end
 		end
 
-		vim.fn.writefile(all_inputs, input_file)
-		vim.fn.writefile(all_outputs, expected_file)
+		vim.fn.writefile(all_inputs, ctx.input_file)
+		vim.fn.writefile(all_outputs, ctx.expected_file)
 	end
 
 	return {
 		success = true,
-		problem_id = full_problem_id,
+		problem_id = ctx.problem_name,
 		test_count = #data.test_cases,
 		url = data.url,
 	}

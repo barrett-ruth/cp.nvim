@@ -75,7 +75,13 @@ local function check_config()
 end
 
 function M.check()
+	local version = require("cp.version")
 	vim.health.start("cp.nvim health check")
+
+	vim.health.info("Version: " .. version.version)
+	if version.semver then
+		vim.health.info("Semantic version: v" .. version.semver.full)
+	end
 
 	check_nvim_version()
 	check_uv()
