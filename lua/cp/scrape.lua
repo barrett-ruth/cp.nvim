@@ -101,9 +101,7 @@ function M.scrape_problem(contest, problem_id, problem_letter)
 		return data
 	end
 
-	local full_problem_id = data.problem_id:lower()
-	local input_file = "io/" .. full_problem_id .. ".in"
-	local expected_file = "io/" .. full_problem_id .. ".expected"
+	full_problem_id = data.problem_id:lower()
 
 	if #data.test_cases > 0 then
 		local all_inputs = {}
