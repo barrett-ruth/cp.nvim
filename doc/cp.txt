@@ -92,6 +92,13 @@ example, with lazy.nvim (https://github.com/folke/lazy.nvim):
             vim.api.nvim_set_current_buf(input_buf)
             vim.cmd('wincmd h | wincmd h')
           end,
+          filename = function(contest, problem_id, problem_letter)
+            if contest == "atcoder" then
+              return problem_id:lower() .. (problem_letter or "") .. ".cpp"
+            else
+              return problem_id:lower() .. (problem_letter or "") .. ".cc"
+            end
+          end,
         })
       end
     }
@@ -121,6 +128,10 @@ debug                           Show info messages during operation
 tile                            Custom function to arrange windows
                                   function(source_buf, input_buf, output_buf)
                                 (default: nil, uses built-in layout)
+
+filename                        Custom function to generate filenames
+                                  function(contest, problem_id, problem_letter)
+                                (default: nil, uses problem_id + letter + ".cc")
 
 WORKFLOW						*cp-workflow*
 

@@ -4,6 +4,7 @@
 ---@field hooks table
 ---@field debug boolean
 ---@field tile? fun(source_buf: number, input_buf: number, output_buf: number)
+---@field filename? fun(contest: string, problem_id: string, problem_letter?: string): string
 
 local M = {}
 
@@ -33,6 +34,7 @@ M.defaults = {
 	},
 	debug = false,
 	tile = nil,
+	filename = nil,
 }
 
 ---@param base_config table
@@ -62,6 +64,7 @@ function M.setup(user_config)
 			hooks = { user_config.hooks, { "table", "nil" }, true },
 			debug = { user_config.debug, { "boolean", "nil" }, true },
 			tile = { user_config.tile, { "function", "nil" }, true },
+			filename = { user_config.filename, { "function", "nil" }, true },
 		})
 
 		if user_config.hooks then
@@ -83,5 +86,17 @@ function M.setup(user_config)
 
 	return config
 end
+
+local function default_filename(contest, problem_id, problem_letter)
+	local full_problem_id = problem_id:lower()
+	if contest == "atcoder" or contest == "codeforces" then
+		if problem_letter then
+			full_problem_id = full_problem_id .. problem_letter:lower()
+		end
+	end
+	return full_problem_id .. ".cc"
+end
+
+M.default_filename = default_filename
 
 return M
