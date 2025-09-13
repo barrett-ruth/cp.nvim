@@ -2,6 +2,8 @@
 ---@field contests table
 ---@field snippets table
 ---@field hooks table
+---@field debug boolean
+---@field tile? fun(source_buf: number, input_buf: number, output_buf: number)
 
 local M = {}
 
@@ -30,6 +32,7 @@ M.defaults = {
 		before_debug = nil,
 	},
 	debug = false,
+	tile = nil,
 }
 
 ---@param base_config table
@@ -58,6 +61,7 @@ function M.setup(user_config)
 			snippets = { user_config.snippets, { "table", "nil" }, true },
 			hooks = { user_config.hooks, { "table", "nil" }, true },
 			debug = { user_config.debug, { "boolean", "nil" }, true },
+			tile = { user_config.tile, { "function", "nil" }, true },
 		})
 
 		if user_config.hooks then

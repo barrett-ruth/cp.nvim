@@ -84,6 +84,14 @@ example, with lazy.nvim (https://github.com/folke/lazy.nvim):
               ...
             end
           },
+          tile = function(source_buf, input_buf, output_buf)
+            vim.api.nvim_set_current_buf(source_buf)
+            vim.cmd.vsplit()
+            vim.api.nvim_set_current_buf(output_buf)
+            vim.cmd.vsplit()
+            vim.api.nvim_set_current_buf(input_buf)
+            vim.cmd('wincmd h | wincmd h')
+          end,
         })
       end
     }
@@ -101,10 +109,18 @@ snippets                        LuaSnip snippets by contest type
 
 hooks                           Functions called at specific events
   before_run                    Called before :CP run
+                                  function(problem_id)
+                                (default: nil, do nothing)
   before_debug                  Called before :CP debug
+                                  function(problem_id)
+                                (default: nil, do nothing)
 
 debug                           Show info messages during operation
                                 (default: false, silent operation)
+
+tile                            Custom function to arrange windows
+                                  function(source_buf, input_buf, output_buf)
+                                (default: nil, uses built-in layout)
 
 WORKFLOW						*cp-workflow*
 

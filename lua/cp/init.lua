@@ -98,19 +98,15 @@ local function setup_problem(problem_id, problem_letter)
 	vim.diagnostic.enable(false)
 
 	local base_fp = vim.fn.fnamemodify(filename, ":p:h")
-	local input = ("%s/io/%s.in"):format(base_fp, full_problem_id)
-	local output = ("%s/io/%s.out"):format(base_fp, full_problem_id)
+	local input_file = ("%s/io/%s.in"):format(base_fp, full_problem_id)
+	local output_file = ("%s/io/%s.out"):format(base_fp, full_problem_id)
 
-	vim.cmd.vsplit(output)
-	vim.cmd.w()
-	vim.bo.filetype = "cp"
-	window.clearcol()
-	vim.cmd(("vertical resize %d"):format(math.floor(vim.o.columns * 0.3)))
-	vim.cmd.split(input)
-	vim.cmd.w()
-	vim.bo.filetype = "cp"
-	window.clearcol()
-	vim.cmd.wincmd("h")
+	local source_buf = vim.api.nvim_get_current_buf()
+	local input_buf = vim.fn.bufnr(input_file, true)
+	local output_buf = vim.fn.bufnr(output_file, true)
+
+	local tile_fn = config.tile or window.default_tile
+	tile_fn(source_buf, input_buf, output_buf)
 
 	logger.log(("switched to problem %s"):format(full_problem_id))
 end
@@ -172,7 +168,8 @@ end
 
 local function diff_problem()
 	if vim.g.cp_diff_mode then
-		window.restore_layout(vim.g.cp_saved_layout)
+		local tile_fn = config.tile or window.default_tile
+		window.restore_layout(vim.g.cp_saved_layout, tile_fn)
 		vim.g.cp_diff_mode = false
 		vim.g.cp_saved_layout = nil
 		logger.log("exited diff mode")
