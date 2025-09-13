@@ -26,6 +26,6 @@ neovim plugin for competitive programming.
 
 ## TODO
 
-- vimdocs
-- example video
+- better highlighting
+- test case management
 - USACO support
