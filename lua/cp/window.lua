@@ -5,7 +5,7 @@ function M.clearcol()
 	vim.api.nvim_set_option_value("relativenumber", false, { scope = "local" })
 	vim.api.nvim_set_option_value("statuscolumn", "", { scope = "local" })
 	vim.api.nvim_set_option_value("signcolumn", "no", { scope = "local" })
-	vim.api.nvim_set_option_value("equalalways", false, { scope = "global" })
+	vim.api.nvim_set_option_value("foldcolumn", "0", { scope = "local" })
 end
 
 function M.save_layout()
@@ -29,7 +29,7 @@ function M.save_layout()
 	}
 end
 
-function M.restore_layout(state)
+function M.restore_layout(state, tile_fn)
 	if not state then
 		return
 	end
@@ -53,19 +53,20 @@ function M.restore_layout(state)
 		vim.cmd("silent only")
 
 		local base_fp = vim.fn.getcwd()
-		local input = ("%s/io/%s.in"):format(base_fp, problem_id)
-		local output = ("%s/io/%s.out"):format(base_fp, problem_id)
-		local source = problem_id .. ".cc"
+		local input_file = ("%s/io/%s.in"):format(base_fp, problem_id)
+		local output_file = ("%s/io/%s.out"):format(base_fp, problem_id)
+		local source_file = problem_id .. ".cc"
 
-		vim.cmd.edit(source)
-		vim.cmd.vsplit(output)
-		vim.bo.filetype = "cp"
-		M.clearcol()
-		vim.cmd(("vertical resize %d"):format(math.floor(vim.o.columns * 0.3)))
-		vim.cmd.split(input)
-		vim.bo.filetype = "cp"
-		M.clearcol()
-		vim.cmd.wincmd("h")
+		vim.cmd.edit(source_file)
+		local source_buf = vim.api.nvim_get_current_buf()
+		local input_buf = vim.fn.bufnr(input_file, true)
+		local output_buf = vim.fn.bufnr(output_file, true)
+
+		if tile_fn then
+			tile_fn(source_buf, input_buf, output_buf)
+		else
+			M.default_tile(source_buf, input_buf, output_buf)
+		end
 	else
 		vim.cmd(state.layout)
 
@@ -107,7 +108,24 @@ function M.setup_diff_layout(actual_output, expected_output, input_file)
 	vim.cmd(("botright split %s"):format(input_file))
 	vim.bo.filetype = "cp"
 	M.clearcol()
+	vim.cmd(("resize %d"):format(math.floor(vim.o.lines * 0.3)))
 	vim.cmd.wincmd("k")
 end
+
+local function default_tile(source_buf, input_buf, output_buf)
+	vim.api.nvim_set_current_buf(source_buf)
+	vim.cmd.vsplit()
+	vim.api.nvim_set_current_buf(output_buf)
+	vim.bo.filetype = "cp"
+	M.clearcol()
+	vim.cmd(("vertical resize %d"):format(math.floor(vim.o.columns * 0.3)))
+	vim.cmd.split()
+	vim.api.nvim_set_current_buf(input_buf)
+	vim.bo.filetype = "cp"
+	M.clearcol()
+	vim.cmd.wincmd("h")
+end
+
+M.default_tile = default_tile
 
 return M
