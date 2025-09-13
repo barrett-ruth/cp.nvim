@@ -1,4 +1,5 @@
 local M = {}
+local logger = require("cp.log")
 
 local function get_plugin_path()
 	local plugin_path = debug.getinfo(1, "S").source:sub(2)
@@ -9,16 +10,12 @@ local function ensure_io_directory()
 	vim.fn.mkdir("io", "p")
 end
 
-local function log(msg, level)
-	vim.notify(("[cp.nvim]: %s"):format(msg), level or vim.log.levels.INFO)
-end
-
 local function setup_python_env()
 	local plugin_path = get_plugin_path()
 	local venv_dir = plugin_path .. "/.venv"
 
 	if vim.fn.executable("uv") == 0 then
-		log(
+		logger.log(
 			"uv is not installed. Install it to enable problem scraping: https://docs.astral.sh/uv/",
 			vim.log.levels.WARN
 		)
@@ -26,13 +23,13 @@ local function setup_python_env()
 	end
 
 	if vim.fn.isdirectory(venv_dir) == 0 then
-		log("setting up Python environment for scrapers...")
+		logger.log("setting up Python environment for scrapers...")
 		local result = vim.system({ "uv", "sync" }, { cwd = plugin_path, text = true }):wait()
 		if result.code ~= 0 then
-			log("failed to setup Python environment: " .. result.stderr, vim.log.levels.ERROR)
+			logger.log("failed to setup Python environment: " .. result.stderr, vim.log.levels.ERROR)
 			return false
 		end
-		log("python environment setup complete")
+		logger.log("python environment setup complete")
 	end
 
 	return true
@@ -41,20 +38,20 @@ end
 function M.scrape_problem(contest, problem_id, problem_letter)
 	ensure_io_directory()
 
-	local full_problem_id = problem_id:lower()
+	local cache_problem_id = problem_id:lower()
 	if contest == "atcoder" or contest == "codeforces" then
 		if problem_letter then
-			full_problem_id = full_problem_id .. problem_letter:upper()
+			cache_problem_id = cache_problem_id .. problem_letter:lower()
 		end
 	end
 
-	local input_file = "io/" .. full_problem_id .. ".in"
-	local expected_file = "io/" .. full_problem_id .. ".expected"
+	local input_file = "io/" .. cache_problem_id .. ".in"
+	local expected_file = "io/" .. cache_problem_id .. ".expected"
 
 	if vim.fn.filereadable(input_file) == 1 and vim.fn.filereadable(expected_file) == 1 then
 		return {
 			success = true,
-			problem_id = full_problem_id,
+			problem_id = cache_problem_id,
 			test_count = 1,
 		}
 	end
@@ -101,7 +98,9 @@ function M.scrape_problem(contest, problem_id, problem_letter)
 		return data
 	end
 
-	full_problem_id = data.problem_id:lower()
+	local full_problem_id = data.problem_id:lower()
+	input_file = "io/" .. full_problem_id .. ".in"
+	expected_file = "io/" .. full_problem_id .. ".expected"
 
 	if #data.test_cases > 0 then
 		local all_inputs = {}

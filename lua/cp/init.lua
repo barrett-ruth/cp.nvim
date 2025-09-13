@@ -3,16 +3,13 @@ local snippets = require("cp.snippets")
 local execute = require("cp.execute")
 local scrape = require("cp.scrape")
 local window = require("cp.window")
+local logger = require("cp.log")
 
 local M = {}
 local config = {}
 
-local function log(msg, level)
-	vim.notify(("[cp.nvim]: %s"):format(msg), level or vim.log.levels.INFO)
-end
-
 if not vim.fn.has("nvim-0.10.0") then
-	log("cp.nvim requires nvim-0.10.0+", vim.log.levels.ERROR)
+	logger.log("cp.nvim requires nvim-0.10.0+", vim.log.levels.ERROR)
 	return M
 end
 
@@ -20,7 +17,7 @@ local competition_types = { "atcoder", "codeforces", "cses" }
 
 local function setup_contest(contest_type)
 	if not vim.tbl_contains(competition_types, contest_type) then
-		log(
+		logger.log(
 			("unknown contest type. Available: [%s]"):format(table.concat(competition_types, ", ")),
 			vim.log.levels.ERROR
 		)
@@ -30,12 +27,12 @@ local function setup_contest(contest_type)
 	vim.g.cp_contest = contest_type
 	vim.fn.mkdir("build", "p")
 	vim.fn.mkdir("io", "p")
-	log(("set up %s contest environment"):format(contest_type))
+	logger.log(("set up %s contest environment"):format(contest_type))
 end
 
 local function setup_problem(problem_id, problem_letter)
 	if not vim.g.cp_contest then
-		log("no contest mode set. run :CP <contest> first", vim.log.levels.ERROR)
+		logger.log("no contest mode set. run :CP <contest> first", vim.log.levels.ERROR)
 		return
 	end
 
@@ -57,10 +54,10 @@ local function setup_problem(problem_id, problem_letter)
 	local scrape_result = scrape.scrape_problem(vim.g.cp_contest, problem_id, problem_letter)
 
 	if not scrape_result.success then
-		log("scraping failed: " .. scrape_result.error, vim.log.levels.WARN)
-		log("you can manually add test cases to io/ directory", vim.log.levels.INFO)
+		logger.log("scraping failed: " .. scrape_result.error, vim.log.levels.WARN)
+		logger.log("you can manually add test cases to io/ directory", vim.log.levels.INFO)
 	else
-		log(("scraped %d test case(s) for %s"):format(scrape_result.test_count, scrape_result.problem_id))
+		logger.log(("scraped %d test case(s) for %s"):format(scrape_result.test_count, scrape_result.problem_id))
 	end
 
 	local full_problem_id = scrape_result.success and scrape_result.problem_id
@@ -115,13 +112,13 @@ local function setup_problem(problem_id, problem_letter)
 	window.clearcol()
 	vim.cmd.wincmd("h")
 
-	log(("switched to problem %s"):format(full_problem_id))
+	logger.log(("switched to problem %s"):format(full_problem_id))
 end
 
 local function get_current_problem()
 	local filename = vim.fn.expand("%:t:r")
 	if filename == "" then
-		log("no file open", vim.log.levels.ERROR)
+		logger.log("no file open", vim.log.levels.ERROR)
 		return nil
 	end
 	return filename
@@ -138,7 +135,7 @@ local function run_problem()
 	end
 
 	if not vim.g.cp_contest then
-		log("no contest mode set", vim.log.levels.ERROR)
+		logger.log("no contest mode set", vim.log.levels.ERROR)
 		return
 	end
 
@@ -161,7 +158,7 @@ local function debug_problem()
 	end
 
 	if not vim.g.cp_contest then
-		log("no contest mode set", vim.log.levels.ERROR)
+		logger.log("no contest mode set", vim.log.levels.ERROR)
 		return
 	end
 
@@ -178,7 +175,7 @@ local function diff_problem()
 		window.restore_layout(vim.g.cp_saved_layout)
 		vim.g.cp_diff_mode = false
 		vim.g.cp_saved_layout = nil
-		log("exited diff mode")
+		logger.log("exited diff mode")
 	else
 		local problem_id = get_current_problem()
 		if not problem_id then
@@ -191,7 +188,7 @@ local function diff_problem()
 		local input = ("%s/io/%s.in"):format(base_fp, problem_id)
 
 		if vim.fn.filereadable(expected) == 0 then
-			log(("No expected output file found: %s"):format(expected), vim.log.levels.ERROR)
+			logger.log(("No expected output file found: %s"):format(expected), vim.log.levels.ERROR)
 			return
 		end
 
@@ -203,7 +200,7 @@ local function diff_problem()
 		window.setup_diff_layout(actual_output, expected, input)
 
 		vim.g.cp_diff_mode = true
-		log("entered diff mode")
+		logger.log("entered diff mode")
 	end
 end
 
@@ -219,6 +216,7 @@ function M.setup(user_config)
 	end
 
 	config = config_module.setup(user_config)
+	logger.set_config(config)
 	snippets.setup(config)
 	initialized = true
 end
@@ -226,7 +224,7 @@ end
 function M.handle_command(opts)
 	local args = opts.fargs
 	if #args == 0 then
-		log("Usage: :CP <contest|problem_id|run|debug|diff>", vim.log.levels.ERROR)
+		logger.log("Usage: :CP <contest|problem_id|run|debug|diff>", vim.log.levels.ERROR)
 		return
 	end
 
@@ -256,7 +254,7 @@ function M.handle_command(opts)
 			setup_problem(cmd)
 		end
 	else
-		log(
+		logger.log(
 			("unknown contest type '%s'. Available: [%s]"):format(cmd, table.concat(competition_types, ", ")),
 			vim.log.levels.ERROR
 		)
