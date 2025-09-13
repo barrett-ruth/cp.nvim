@@ -41,7 +41,7 @@ function M.restore_layout(state, tile_fn)
 		for win, win_state in pairs(state.windows) do
 			if vim.api.nvim_win_is_valid(win) and vim.api.nvim_buf_is_valid(win_state.bufnr) then
 				local bufname = vim.api.nvim_buf_get_name(win_state.bufnr)
-				if bufname:match("%.cc$") then
+				if not bufname:match("%.in$") and not bufname:match("%.out$") and not bufname:match("%.expected$") then
 					problem_id = vim.fn.fnamemodify(bufname, ":t:r")
 					break
 				end
@@ -55,7 +55,12 @@ function M.restore_layout(state, tile_fn)
 		local base_fp = vim.fn.getcwd()
 		local input_file = ("%s/io/%s.in"):format(base_fp, problem_id)
 		local output_file = ("%s/io/%s.out"):format(base_fp, problem_id)
-		local source_file = problem_id .. ".cc"
+		local source_files = vim.fn.glob(problem_id .. ".*")
+		local source_file = source_files ~= "" and vim.split(source_files, "\n")[1] or (problem_id .. ".cc")
+
+		if vim.fn.filereadable(source_file) == 0 then
+			return
+		end
 
 		vim.cmd.edit(source_file)
 		local source_buf = vim.api.nvim_get_current_buf()

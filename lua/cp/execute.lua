@@ -10,16 +10,6 @@ local signal_codes = {
 	[139] = "SIGTERM",
 }
 
-local function get_paths(problem_id)
-	return {
-		source = ("%s.cc"):format(problem_id),
-		binary = ("build/%s"):format(problem_id),
-		input = ("io/%s.in"):format(problem_id),
-		output = ("io/%s.out"):format(problem_id),
-		expected = ("io/%s.expected"):format(problem_id),
-	}
-end
-
 local function ensure_directories()
 	vim.system({ "mkdir", "-p", "build", "io" }):wait()
 end
@@ -85,27 +75,29 @@ local function format_output(exec_result, expected_file, is_debug)
 	return table.concat(lines, "")
 end
 
-function M.run_problem(problem_id, contest_config, is_debug)
+---@param ctx ProblemContext
+---@param contest_config table
+---@param is_debug boolean
+function M.run_problem(ctx, contest_config, is_debug)
 	ensure_directories()
 
-	local paths = get_paths(problem_id)
 	local flags = is_debug and contest_config.debug_flags or contest_config.compile_flags
 
-	local compile_result = compile_cpp(paths.source, paths.binary, flags)
+	local compile_result = compile_cpp(ctx.source_file, ctx.binary_file, flags)
 	if compile_result.code ~= 0 then
-		vim.fn.writefile({ compile_result.stderr }, paths.output)
+		vim.fn.writefile({ compile_result.stderr }, ctx.output_file)
 		return
 	end
 
 	local input_data = ""
-	if vim.fn.filereadable(paths.input) == 1 then
-		input_data = table.concat(vim.fn.readfile(paths.input), "\n") .. "\n"
+	if vim.fn.filereadable(ctx.input_file) == 1 then
+		input_data = table.concat(vim.fn.readfile(ctx.input_file), "\n") .. "\n"
 	end
 
-	local exec_result = execute_binary(paths.binary, input_data, contest_config.timeout_ms)
-	local formatted_output = format_output(exec_result, paths.expected, is_debug)
+	local exec_result = execute_binary(ctx.binary_file, input_data, contest_config.timeout_ms)
+	local formatted_output = format_output(exec_result, ctx.expected_file, is_debug)
 
-	vim.fn.writefile(vim.split(formatted_output, "\n"), paths.output)
+	vim.fn.writefile(vim.split(formatted_output, "\n"), ctx.output_file)
 end
 
 return M

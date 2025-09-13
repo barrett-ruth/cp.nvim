@@ -4,6 +4,7 @@ local execute = require("cp.execute")
 local scrape = require("cp.scrape")
 local window = require("cp.window")
 local logger = require("cp.log")
+local problem = require("cp.problem")
 
 local M = {}
 local config = {}
@@ -51,6 +52,8 @@ local function setup_problem(problem_id, problem_letter)
 
 	vim.cmd("silent only")
 
+	local ctx = problem.create_context(vim.g.cp_contest, problem_id, problem_letter, config)
+
 	local scrape_result = scrape.scrape_problem(vim.g.cp_contest, problem_id, problem_letter)
 
 	if not scrape_result.success then
@@ -60,16 +63,7 @@ local function setup_problem(problem_id, problem_letter)
 		logger.log(("scraped %d test case(s) for %s"):format(scrape_result.test_count, scrape_result.problem_id))
 	end
 
-	local full_problem_id = scrape_result.success and scrape_result.problem_id
-		or (
-			(vim.g.cp_contest == "atcoder" or vim.g.cp_contest == "codeforces")
-				and problem_letter
-				and problem_id .. problem_letter:upper()
-			or problem_id
-		)
-	local filename = full_problem_id .. ".cc"
-
-	vim.cmd.e(filename)
+	vim.cmd.e(ctx.source_file)
 
 	if vim.api.nvim_buf_get_lines(0, 0, -1, true)[1] == "" then
 		local has_luasnip, luasnip = pcall(require, "luasnip")
@@ -97,18 +91,14 @@ local function setup_problem(problem_id, problem_letter)
 
 	vim.diagnostic.enable(false)
 
-	local base_fp = vim.fn.fnamemodify(filename, ":p:h")
-	local input_file = ("%s/io/%s.in"):format(base_fp, full_problem_id)
-	local output_file = ("%s/io/%s.out"):format(base_fp, full_problem_id)
-
 	local source_buf = vim.api.nvim_get_current_buf()
-	local input_buf = vim.fn.bufnr(input_file, true)
-	local output_buf = vim.fn.bufnr(output_file, true)
+	local input_buf = vim.fn.bufnr(ctx.input_file, true)
+	local output_buf = vim.fn.bufnr(ctx.output_file, true)
 
 	local tile_fn = config.tile or window.default_tile
 	tile_fn(source_buf, input_buf, output_buf)
 
-	logger.log(("switched to problem %s"):format(full_problem_id))
+	logger.log(("switched to problem %s"):format(ctx.problem_name))
 end
 
 local function get_current_problem()
@@ -138,7 +128,8 @@ local function run_problem()
 	local contest_config = config.contests[vim.g.cp_contest]
 
 	vim.schedule(function()
-		execute.run_problem(problem_id, contest_config, false)
+		local ctx = problem.create_context(vim.g.cp_contest, problem_id, nil, config)
+		execute.run_problem(ctx, contest_config, false)
 		vim.cmd.checktime()
 	end)
 end
@@ -161,7 +152,8 @@ local function debug_problem()
 	local contest_config = config.contests[vim.g.cp_contest]
 
 	vim.schedule(function()
-		execute.run_problem(problem_id, contest_config, true)
+		local ctx = problem.create_context(vim.g.cp_contest, problem_id, nil, config)
+		execute.run_problem(ctx, contest_config, true)
 		vim.cmd.checktime()
 	end)
 end
@@ -179,22 +171,19 @@ local function diff_problem()
 			return
 		end
 
-		local base_fp = vim.fn.getcwd()
-		local output = ("%s/io/%s.out"):format(base_fp, problem_id)
-		local expected = ("%s/io/%s.expected"):format(base_fp, problem_id)
-		local input = ("%s/io/%s.in"):format(base_fp, problem_id)
+		local ctx = problem.create_context(vim.g.cp_contest, problem_id, nil, config)
 
-		if vim.fn.filereadable(expected) == 0 then
-			logger.log(("No expected output file found: %s"):format(expected), vim.log.levels.ERROR)
+		if vim.fn.filereadable(ctx.expected_file) == 0 then
+			logger.log(("No expected output file found: %s"):format(ctx.expected_file), vim.log.levels.ERROR)
 			return
 		end
 
 		vim.g.cp_saved_layout = window.save_layout()
 
-		local result = vim.system({ "awk", "/^\\[[^]]*\\]:/ {exit} {print}", output }, { text = true }):wait()
+		local result = vim.system({ "awk", "/^\\[[^]]*\\]:/ {exit} {print}", ctx.output_file }, { text = true }):wait()
 		local actual_output = result.stdout
 
-		window.setup_diff_layout(actual_output, expected, input)
+		window.setup_diff_layout(actual_output, ctx.expected_file, ctx.input_file)
 
 		vim.g.cp_diff_mode = true
 		logger.log("entered diff mode")
