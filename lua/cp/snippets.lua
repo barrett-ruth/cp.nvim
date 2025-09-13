@@ -70,12 +70,23 @@ int main() {{
 		),
 	}
 
-	local user_snippets = {}
-	for _, snippet in pairs(config.snippets or {}) do
-		table.insert(user_snippets, snippet)
+	local default_map = {}
+	for _, snippet in pairs(default_snippets) do
+		default_map[snippet.trigger] = snippet
 	end
 
-	local all_snippets = vim.list_extend(default_snippets, user_snippets)
+	local user_map = {}
+	for _, snippet in pairs(config.snippets or {}) do
+		user_map[snippet.trigger] = snippet
+	end
+
+	local merged_map = vim.tbl_extend("force", default_map, user_map)
+
+	local all_snippets = {}
+	for _, snippet in pairs(merged_map) do
+		table.insert(all_snippets, snippet)
+	end
+
 	ls.add_snippets("cpp", all_snippets)
 end
 
