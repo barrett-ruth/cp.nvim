@@ -28,6 +28,7 @@ https://private-user-images.githubusercontent.com/62671086/489116291-391976d1-c2
 
 ## TODO
 
+- finer-tuned problem limits (i.e. per-problem codeforces time, memory)
 - better highlighting
 - test case management
 - USACO support
