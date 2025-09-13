@@ -97,7 +97,15 @@ function M.run_problem(ctx, contest_config, is_debug)
 	local exec_result = execute_binary(ctx.binary_file, input_data, contest_config.timeout_ms)
 	local formatted_output = format_output(exec_result, ctx.expected_file, is_debug)
 
-	vim.fn.writefile(vim.split(formatted_output, "\n"), ctx.output_file)
+	local output_buf = vim.fn.bufnr(ctx.output_file)
+	if output_buf ~= -1 then
+		vim.api.nvim_buf_set_lines(output_buf, 0, -1, false, vim.split(formatted_output, "\n"))
+		vim.api.nvim_buf_call(output_buf, function()
+			vim.cmd.write()
+		end)
+	else
+		vim.fn.writefile(vim.split(formatted_output, "\n"), ctx.output_file)
+	end
 end
 
 return M
