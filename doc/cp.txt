@@ -141,7 +141,7 @@ their round id rather than round number. See below.
 PLATFORM-SPECIFIC USAGE					*cp-platforms*
 
 AtCoder ~
-								*cp-atcoder*
+									*cp-atcoder*
 URL format: https://atcoder.jp/contests/abc123/tasks/abc123_a
 
 In terms of cp.nvim, this corresponds to:
@@ -155,7 +155,7 @@ Usage examples: >
     :CP abc123 a                " Then set up problem (if contest mode is set)
 <
 Codeforces ~
-								*cp-codeforces*
+									*cp-codeforces*
 URL format: https://codeforces.com/contest/1234/problem/A
 
 In terms of cp.nvim, this corresponds to:
@@ -169,7 +169,7 @@ Usage examples: >
     :CP 1234 a                  " Then set up problem (if contest mode is set)
 <
 CSES ~
-								*cp-cses*
+									*cp-cses*
 URL format: https://cses.fi/problemset/task/1068
 
 In terms of cp.nvim, this corresponds to:
