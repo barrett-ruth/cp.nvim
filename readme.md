@@ -26,6 +26,36 @@ https://private-user-images.githubusercontent.com/62671086/489116291-391976d1-c2
 :help cp.nvim
 ```
 
+## Philosophy
+
+This plugin is highly tuned to my workflow and may not fit for you. Personally,
+I believe there are two aspects of a cp workflow:
+
+- local work (i.e. coding, running test cases)
+- site work (i.e. problem reading, submitting)
+
+Namely, I do not like the idea of submitting problems locally - the experience
+will never quite offer what the remote does. Therefore, cp.nvim works as
+follows:
+
+1. Find a problem
+
+- Browse the remote and find it
+- Read it on the remote
+
+2. Set up your local environment with `:CP ...`
+
+- test cases and expected output automatically scraped
+- templates automatically configured
+
+3. Solve the problem locally
+
+- easy to run/debug
+- easy to diff actual vs. expected output
+
+4. Submit the problem (on the remote!)
+
+
 ## TODO
 
 - finer-tuned problem limits (i.e. per-problem codeforces time, memory)

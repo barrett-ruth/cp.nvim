@@ -25,15 +25,14 @@ COMMANDS						*cp-commands*
 :CP {contest}                   Set up contest environment for {contest}.
                                 Available contests: atcoder, codeforces, cses
 
-:CP {contest} {problem}         Set up problem from {contest}. Scrapes test 
-                                cases and creates source file.
+:CP {contest} {contest_id} {problem_letter?}
+                                Set up problem from {contest}. Extract contest_id
+                                and problem_letter (optional) from the problem URL.
+                                Scrapes test cases and creates source file.
 
-:CP {contest} {problem} {letter}
-                                For AtCoder/Codeforces: set up problem with
-                                specific letter (e.g. a, b, c)
-
-:CP {problem}                   Set up {problem} in current contest mode.
-                                Requires contest to be set first.
+:CP {contest_id} {problem_letter}
+                                Set up problem in current contest mode.
+                                Requires contest to be set first with :CP {contest}
 
 :CP run                         Compile and run current problem with test input.
                                 Shows execution time and output comparison.
@@ -135,31 +134,70 @@ filename                        Custom function to generate filenames
 
 WORKFLOW						*cp-workflow*
 
-1. Set up contest environment: >
-    :CP atcoder
-<
-2. Set up specific problem: >
-    :CP abc123 a
-<
-   This creates abc123a.cc and scrapes test cases to io/abc123a.in and
-   io/abc123a.expected. Alternatively, run :CP atcoder abc123 a
+For the sake of consistency and simplicity, cp.nvim extracts contest/problem identifiers from
+URLs. This means that, for example, CodeForces/AtCoder contests are configured by
+their round id rather than round number. See below.
 
-3. Write, test, and view your solution output:
+PLATFORM-SPECIFIC USAGE					*cp-platforms*
 
+AtCoder ~
+								*cp-atcoder*
+URL format: https://atcoder.jp/contests/abc123/tasks/abc123_a
+
+In terms of cp.nvim, this corresponds to:
+
+- Contest ID: abc123
+- Problem letter: a
+
+Usage examples: >
+    :CP atcoder abc123 a        " Set up problem A from contest ABC123
+    :CP atcoder                 " Set up AtCoder contest mode first
+    :CP abc123 a                " Then set up problem (if contest mode is set)
+<
+Codeforces ~
+								*cp-codeforces*
+URL format: https://codeforces.com/contest/1234/problem/A
+
+In terms of cp.nvim, this corresponds to:
+
+- Contest ID: 1234
+- Problem letter: A
+
+Usage examples: >
+    :CP codeforces 1234 a       " Set up problem A from contest id 1234
+    :CP codeforces              " Set up Codeforces contest mode first
+    :CP 1234 a                  " Then set up problem (if contest mode is set)
+<
+CSES ~
+								*cp-cses*
+URL format: https://cses.fi/problemset/task/1068
+
+In terms of cp.nvim, this corresponds to:
+- Problem ID: 1068
+
+Usage examples: >
+    :CP cses 1068               " Set up problem 1068
+    :CP cses                    " Set up CSES contest mode first
+    :CP 1068                    " Then set up problem (if contest mode is set)
+<
+COMPLETE WORKFLOW EXAMPLE					*cp-example*
+
+Example: Setting up AtCoder problem ABC123-A
+
+1. Browse to https://atcoder.jp/contests/abc123/tasks/abc123_a
+2. Read the problem statement on the website
+3. In Neovim, extract identifiers and set up
+    :CP atcoder abc123 a
+<
+   This creates abc123a.cc (or however you've configured the filename in
+   *cp-setup*) and scrapes test cases
+4. Code and test
     :CP run
-<
-   Output appears in vertical split showing execution time, output, and
-   whether it matches expected output.
-
-4. Debug if needed:
-
+5. Debug
     :CP debug
-<
-5. Compare actual vs. expected output visually: >
-
+6. Test: >
     :CP diff
-<
-   Enters 3-way diff mode with actual, expected, and input files.
+7. Submit remote on AtCoder
 
 FILE STRUCTURE						*cp-files*
 
