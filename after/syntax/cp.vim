@@ -2,11 +2,11 @@ if exists("b:current_syntax")
   finish
 endif
 
-syntax match cpOutputCode /^\[code\]: .*/
-syntax match cpOutputTime /^\[time\]: .*/
-syntax match cpOutputDebug /^\[debug\]: .*/
-syntax match cpOutputMatchesTrue /^\[matches\]: true$/
-syntax match cpOutputMatchesFalse /^\[matches\]: false$/
+syntax match cpOutputCode /^\[code\]:/
+syntax match cpOutputTime /^\[time\]:/
+syntax match cpOutputDebug /^\[debug\]:/
+syntax match cpOutputMatchesTrue /^\[matches\]:\ze true$/
+syntax match cpOutputMatchesFalse /^\[matches\]:\ze false$/
 
 highlight default link cpOutputCode DiagnosticInfo
 highlight default link cpOutputTime Comment
