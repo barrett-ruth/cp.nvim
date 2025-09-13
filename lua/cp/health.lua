@@ -79,9 +79,6 @@ function M.check()
 	vim.health.start("cp.nvim health check")
 
 	vim.health.info("Version: " .. version.version)
-	if version.semver then
-		vim.health.info("Semantic version: v" .. version.semver.full)
-	end
 
 	check_nvim_version()
 	check_uv()
