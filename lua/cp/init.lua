@@ -249,22 +249,17 @@ function M.handle_command(opts)
 		debug_problem()
 	elseif cmd == "diff" then
 		diff_problem()
-	else
-		local similar_contests = vim.tbl_filter(function(contest)
-			return contest:find(cmd:sub(1, 3), 1, true) == 1
-		end, competition_types)
-
-		if #similar_contests > 0 then
-			log(
-				("unknown contest type '%s'. Did you mean: %s"):format(cmd, table.concat(similar_contests, ", ")),
-				vim.log.levels.ERROR
-			)
+	elseif vim.g.cp_contest and not vim.tbl_contains(competition_types, cmd) then
+		if (vim.g.cp_contest == "atcoder" or vim.g.cp_contest == "codeforces") and args[2] then
+			setup_problem(cmd, args[2])
 		else
-			log(
-				("unknown contest type '%s'. Available: [%s]"):format(cmd, table.concat(competition_types, ", ")),
-				vim.log.levels.ERROR
-			)
+			setup_problem(cmd)
 		end
+	else
+		log(
+			("unknown contest type '%s'. Available: [%s]"):format(cmd, table.concat(competition_types, ", ")),
+			vim.log.levels.ERROR
+		)
 	end
 end
 

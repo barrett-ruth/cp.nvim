@@ -41,6 +41,24 @@ end
 function M.scrape_problem(contest, problem_id, problem_letter)
 	ensure_io_directory()
 
+	local full_problem_id = problem_id:lower()
+	if contest == "atcoder" or contest == "codeforces" then
+		if problem_letter then
+			full_problem_id = full_problem_id .. problem_letter:upper()
+		end
+	end
+
+	local input_file = "io/" .. full_problem_id .. ".in"
+	local expected_file = "io/" .. full_problem_id .. ".expected"
+
+	if vim.fn.filereadable(input_file) == 1 and vim.fn.filereadable(expected_file) == 1 then
+		return {
+			success = true,
+			problem_id = full_problem_id,
+			test_count = 1,
+		}
+	end
+
 	if not setup_python_env() then
 		return {
 			success = false,
