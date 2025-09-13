@@ -1,0 +1,16 @@
+:CP	cp.txt	/*:CP*
+cp	cp.txt	/*cp*
+cp-atcoder	cp.txt	/*cp-atcoder*
+cp-codeforces	cp.txt	/*cp-codeforces*
+cp-commands	cp.txt	/*cp-commands*
+cp-config	cp.txt	/*cp-config*
+cp-cses	cp.txt	/*cp-cses*
+cp-example	cp.txt	/*cp-example*
+cp-files	cp.txt	/*cp-files*
+cp-health	cp.txt	/*cp-health*
+cp-platforms	cp.txt	/*cp-platforms*
+cp-requirements	cp.txt	/*cp-requirements*
+cp-snippets	cp.txt	/*cp-snippets*
+cp-workflow	cp.txt	/*cp-workflow*
+cp.nvim	cp.txt	/*cp.nvim*
+cp.txt	cp.txt	/*cp.txt*
