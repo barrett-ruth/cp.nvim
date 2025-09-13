@@ -89,7 +89,6 @@ function M.scrape_problem(ctx)
 		return data
 	end
 
-
 	if #data.test_cases > 0 then
 		local all_inputs = {}
 		local all_outputs = {}

@@ -3,12 +3,12 @@ local M = {}
 local function get_git_version()
 	local plugin_path = debug.getinfo(1, "S").source:sub(2)
 	local plugin_root = vim.fn.fnamemodify(plugin_path, ":h:h:h")
-	
-	local result = vim.system({"git", "describe", "--tags", "--always", "--dirty"}, {
+
+	local result = vim.system({ "git", "describe", "--tags", "--always", "--dirty" }, {
 		cwd = plugin_root,
-		text = true
+		text = true,
 	}):wait()
-	
+
 	if result.code == 0 then
 		return result.stdout:gsub("\n", "")
 	else
@@ -24,7 +24,7 @@ local function parse_semver(version_string)
 			full = semver,
 			major = tonumber(major),
 			minor = tonumber(minor),
-			patch = tonumber(patch)
+			patch = tonumber(patch),
 		}
 	end
 	return nil
