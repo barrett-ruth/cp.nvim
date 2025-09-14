@@ -61,8 +61,7 @@ end
 
 local function check_config()
 	local cp = require("cp")
-	if cp.is_initialized() then
-		vim.health.ok("Plugin initialized")
+	vim.health.ok("Plugin ready")
 
 		if vim.g.cp and vim.g.cp.platform then
 			local info = vim.g.cp.platform
@@ -76,9 +75,6 @@ local function check_config()
 		else
 			vim.health.info("No contest context set")
 		end
-	else
-		vim.health.warn("Plugin not initialized - configuration may be incomplete")
-	end
 end
 
 function M.check()

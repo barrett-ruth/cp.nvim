@@ -1,18 +1,25 @@
-local config_module = require("cp.config")
-local snippets = require("cp.snippets")
-local execute = require("cp.execute")
-local scrape = require("cp.scrape")
-local window = require("cp.window")
-local logger = require("cp.log")
-local problem = require("cp.problem")
-local cache = require("cp.cache")
-
 local M = {}
 local config = {}
 
-if not vim.fn.has("nvim-0.10.0") then
-	logger.log("cp.nvim requires nvim-0.10.0+", vim.log.levels.ERROR)
-	return M
+local config_module, snippets, execute, scrape, window, logger, problem, cache
+
+local function lazy_require()
+	if not config_module then
+		if not vim.fn.has("nvim-0.10.0") then
+			vim.notify("[cp.nvim]: requires nvim-0.10.0+", vim.log.levels.ERROR)
+			return false
+		end
+
+		config_module = require("cp.config")
+		snippets = require("cp.snippets")
+		execute = require("cp.execute")
+		scrape = require("cp.scrape")
+		window = require("cp.window")
+		logger = require("cp.log")
+		problem = require("cp.problem")
+		cache = require("cp.cache")
+	end
+	return true
 end
 
 local platforms = { "atcoder", "codeforces", "cses" }
@@ -265,6 +272,10 @@ end
 
 local function ensure_initialized()
 	if config then
+		return
+	end
+
+	if not lazy_require() then
 		return
 	end
 
