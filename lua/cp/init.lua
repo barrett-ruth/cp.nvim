@@ -44,17 +44,17 @@ local function setup_problem(contest_id, problem_id)
 		logger.log("failed to load contest metadata: " .. (metadata_result.error or "unknown error"), vim.log.levels.WARN)
 	end
 
-	if vim.g.cp_diff_mode then
+	if vim.g.cp and vim.g.cp.diff_mode then
 		vim.cmd.diffoff()
-		if vim.g.cp_saved_session then
-			vim.fn.delete(vim.g.cp_saved_session)
-			vim.g.cp_saved_session = nil
+		if vim.g.cp.saved_session then
+			vim.fn.delete(vim.g.cp.saved_session)
+			vim.g.cp.saved_session = nil
 		end
-		if vim.g.cp_temp_output then
-			vim.fn.delete(vim.g.cp_temp_output)
-			vim.g.cp_temp_output = nil
+		if vim.g.cp.temp_output then
+			vim.fn.delete(vim.g.cp.temp_output)
+			vim.g.cp.temp_output = nil
 		end
-		vim.g.cp_diff_mode = false
+		vim.g.cp.diff_mode = false
 	end
 
 	vim.cmd("silent only")
@@ -131,12 +131,12 @@ local function run_problem()
 		config.hooks.before_run(problem_id)
 	end
 
-	if not vim.g.cp_platform then
+	if not vim.g.cp or not vim.g.cp.platform then
 		logger.log("no platform set", vim.log.levels.ERROR)
 		return
 	end
 
-	local contest_config = config.contests[vim.g.cp_platform]
+	local contest_config = config.contests[vim.g.cp.platform]
 
 	vim.schedule(function()
 		local ctx = problem.create_context(vim.g.cp.platform, vim.g.cp.contest_id, vim.g.cp.problem_id, config)
@@ -155,12 +155,12 @@ local function debug_problem()
 		config.hooks.before_debug(problem_id)
 	end
 
-	if not vim.g.cp_platform then
+	if not vim.g.cp or not vim.g.cp.platform then
 		logger.log("no platform set", vim.log.levels.ERROR)
 		return
 	end
 
-	local contest_config = config.contests[vim.g.cp_platform]
+	local contest_config = config.contests[vim.g.cp.platform]
 
 	vim.schedule(function()
 		local ctx = problem.create_context(vim.g.cp.platform, vim.g.cp.contest_id, vim.g.cp.problem_id, config)
@@ -170,11 +170,11 @@ local function debug_problem()
 end
 
 local function diff_problem()
-	if vim.g.cp_diff_mode then
+	if vim.g.cp and vim.g.cp.diff_mode then
 		local tile_fn = config.tile or window.default_tile
-		window.restore_layout(vim.g.cp_saved_layout, tile_fn)
-		vim.g.cp_diff_mode = false
-		vim.g.cp_saved_layout = nil
+		window.restore_layout(vim.g.cp.saved_layout, tile_fn)
+		vim.g.cp.diff_mode = false
+		vim.g.cp.saved_layout = nil
 		logger.log("exited diff mode")
 	else
 		local problem_id = get_current_problem()
@@ -189,14 +189,15 @@ local function diff_problem()
 			return
 		end
 
-		vim.g.cp_saved_layout = window.save_layout()
+		vim.g.cp = vim.g.cp or {}
+		vim.g.cp.saved_layout = window.save_layout()
 
 		local result = vim.system({ "awk", "/^\\[[^]]*\\]:/ {exit} {print}", ctx.output_file }, { text = true }):wait()
 		local actual_output = result.stdout
 
 		window.setup_diff_layout(actual_output, ctx.expected_file, ctx.input_file)
 
-		vim.g.cp_diff_mode = true
+		vim.g.cp.diff_mode = true
 		logger.log("entered diff mode")
 	end
 end

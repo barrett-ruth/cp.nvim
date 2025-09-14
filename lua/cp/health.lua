@@ -64,10 +64,17 @@ local function check_config()
 	if cp.is_initialized() then
 		vim.health.ok("Plugin initialized")
 
-		if vim.g.cp_contest then
-			vim.health.info("Current contest: " .. vim.g.cp_contest)
+		if vim.g.cp and vim.g.cp.platform then
+			local info = vim.g.cp.platform
+			if vim.g.cp.contest_id then
+				info = info .. " " .. vim.g.cp.contest_id
+				if vim.g.cp.problem_id then
+					info = info .. " " .. vim.g.cp.problem_id
+				end
+			end
+			vim.health.info("Current context: " .. info)
 		else
-			vim.health.info("No contest mode set")
+			vim.health.info("No contest context set")
 		end
 	else
 		vim.health.warn("Plugin not initialized - configuration may be incomplete")
