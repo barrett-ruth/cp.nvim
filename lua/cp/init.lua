@@ -41,7 +41,10 @@ local function setup_problem(contest_id, problem_id)
 
 	local metadata_result = scrape.scrape_contest_metadata(vim.g.cp.platform, contest_id)
 	if not metadata_result.success then
-		logger.log("failed to load contest metadata: " .. (metadata_result.error or "unknown error"), vim.log.levels.WARN)
+		logger.log(
+			"failed to load contest metadata: " .. (metadata_result.error or "unknown error"),
+			vim.log.levels.WARN
+		)
 	end
 
 	if vim.g.cp and vim.g.cp.diff_mode then
@@ -340,9 +343,14 @@ function M.handle_command(opts)
 			vim.g.cp.contest_id = cmd.contest
 			local metadata_result = scrape.scrape_contest_metadata(cmd.platform, cmd.contest)
 			if not metadata_result.success then
-				logger.log("failed to load contest metadata: " .. (metadata_result.error or "unknown error"), vim.log.levels.WARN)
+				logger.log(
+					"failed to load contest metadata: " .. (metadata_result.error or "unknown error"),
+					vim.log.levels.WARN
+				)
 			else
-				logger.log(("loaded %d problems for %s %s"):format(#metadata_result.problems, cmd.platform, cmd.contest))
+				logger.log(
+					("loaded %d problems for %s %s"):format(#metadata_result.problems, cmd.platform, cmd.contest)
+				)
 			end
 		end
 		return
