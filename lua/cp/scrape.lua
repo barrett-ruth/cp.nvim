@@ -59,7 +59,13 @@ function M.scrape_contest_metadata(platform, contest_id)
 
 	local plugin_path = get_plugin_path()
 	local scraper_path = plugin_path .. "/scrapers/" .. platform .. ".py"
-	local args = { "uv", "run", scraper_path, "metadata", contest_id }
+
+	local args
+	if platform == "cses" then
+		args = { "uv", "run", scraper_path, "metadata" }
+	else
+		args = { "uv", "run", scraper_path, "metadata", contest_id }
+	end
 
 	local result = vim.system(args, {
 		cwd = plugin_path,

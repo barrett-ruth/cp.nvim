@@ -68,6 +68,24 @@ int main() {{
 				{ i(1) }
 			)
 		),
+
+		s(
+			"cses",
+			fmt(
+				[[#include <bits/stdc++.h>
+
+using namespace std;
+
+int main() {{
+  std::cin.tie(nullptr)->sync_with_stdio(false);
+
+  {}
+
+  return 0;
+}}]],
+				{ i(1) }
+			)
+		),
 	}
 
 	local default_map = {}
