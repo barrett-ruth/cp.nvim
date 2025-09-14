@@ -36,13 +36,13 @@ local function setup_python_env()
 	return true
 end
 
----@param contest_type string
+---@param platform string
 ---@param contest_id string
 ---@return {success: boolean, problems?: table[], error?: string}
-function M.scrape_contest_metadata(contest_type, contest_id)
+function M.scrape_contest_metadata(platform, contest_id)
 	cache.load()
 
-	local cached_data = cache.get_contest_data(contest_type, contest_id)
+	local cached_data = cache.get_contest_data(platform, contest_id)
 	if cached_data then
 		return {
 			success = true,
@@ -58,7 +58,7 @@ function M.scrape_contest_metadata(contest_type, contest_id)
 	end
 
 	local plugin_path = get_plugin_path()
-	local scraper_path = plugin_path .. "/scrapers/" .. contest_type .. ".py"
+	local scraper_path = plugin_path .. "/scrapers/" .. platform .. ".py"
 	local args = { "uv", "run", scraper_path, "metadata", contest_id }
 
 	local result = vim.system(args, {
@@ -87,13 +87,13 @@ function M.scrape_contest_metadata(contest_type, contest_id)
 	end
 
 	local problems_list
-	if contest_type == "cses" then
+	if platform == "cses" then
 		problems_list = data.categories and data.categories["CSES Problem Set"] or {}
 	else
 		problems_list = data.problems or {}
 	end
 
-	cache.set_contest_data(contest_type, contest_id, problems_list)
+	cache.set_contest_data(platform, contest_id, problems_list)
 	return {
 		success = true,
 		problems = problems_list,
