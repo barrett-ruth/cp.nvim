@@ -60,21 +60,20 @@ local function check_luasnip()
 end
 
 local function check_config()
-	local cp = require("cp")
 	vim.health.ok("Plugin ready")
 
-		if vim.g.cp and vim.g.cp.platform then
-			local info = vim.g.cp.platform
-			if vim.g.cp.contest_id then
-				info = info .. " " .. vim.g.cp.contest_id
-				if vim.g.cp.problem_id then
-					info = info .. " " .. vim.g.cp.problem_id
-				end
+	if vim.g.cp and vim.g.cp.platform then
+		local info = vim.g.cp.platform
+		if vim.g.cp.contest_id then
+			info = info .. " " .. vim.g.cp.contest_id
+			if vim.g.cp.problem_id then
+				info = info .. " " .. vim.g.cp.problem_id
 			end
-			vim.health.info("Current context: " .. info)
-		else
-			vim.health.info("No contest context set")
 		end
+		vim.health.info("Current context: " .. info)
+	else
+		vim.health.info("No contest context set")
+	end
 end
 
 function M.check()

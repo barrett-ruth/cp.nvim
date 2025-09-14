@@ -7,14 +7,14 @@ import cloudscraper
 from bs4 import BeautifulSoup
 
 
-def scrape(url: str):
+def scrape(url: str) -> list[tuple[str, str]]:
     try:
         scraper = cloudscraper.create_scraper()
         response = scraper.get(url, timeout=10)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
-        tests = []
+        tests: list[tuple[str, str]] = []
 
         input_sections = soup.find_all("div", class_="input")
         output_sections = soup.find_all("div", class_="output")
@@ -24,8 +24,8 @@ def scrape(url: str):
             out_pre = out_section.find("pre")
 
             if inp_pre and out_pre:
-                input_lines = []
-                output_lines = []
+                input_lines: list[str] = []
+                output_lines: list[str] = []
 
                 for line_div in inp_pre.find_all("div", class_="test-example-line"):
                     input_lines.append(line_div.get_text().strip())
@@ -60,33 +60,33 @@ def parse_problem_url(contest_id: str, problem_letter: str) -> str:
     )
 
 
-def scrape_contest_problems(contest_id: str):
+def scrape_contest_problems(contest_id: str) -> list[dict[str, str]]:
     try:
-        contest_url = f"https://codeforces.com/contest/{contest_id}"
+        contest_url: str = f"https://codeforces.com/contest/{contest_id}"
         scraper = cloudscraper.create_scraper()
         response = scraper.get(contest_url, timeout=10)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
-        problems = []
+        problems: list[dict[str, str]] = []
 
         problem_links = soup.find_all(
             "a", href=lambda x: x and f"/contest/{contest_id}/problem/" in x
         )
 
         for link in problem_links:
-            href = link.get("href", "")
+            href: str = link.get("href", "")
             if f"/contest/{contest_id}/problem/" in href:
-                problem_letter = href.split("/")[-1].lower()
-                problem_name = link.get_text(strip=True)
+                problem_letter: str = href.split("/")[-1].lower()
+                problem_name: str = link.get_text(strip=True)
 
                 if problem_letter and problem_name and len(problem_letter) == 1:
                     problems.append({"id": problem_letter, "name": problem_name})
 
         problems.sort(key=lambda x: x["id"])
 
-        seen = set()
-        unique_problems = []
+        seen: set[str] = set()
+        unique_problems: list[dict[str, str]] = []
         for p in problems:
             if p["id"] not in seen:
                 seen.add(p["id"])
@@ -99,21 +99,21 @@ def scrape_contest_problems(contest_id: str):
         return []
 
 
-def scrape_sample_tests(url: str):
+def scrape_sample_tests(url: str) -> list[tuple[str, str]]:
     print(f"Scraping: {url}", file=sys.stderr)
     return scrape(url)
 
 
-def main():
+def main() -> None:
     if len(sys.argv) < 2:
-        result = {
+        result: dict[str, str | bool] = {
             "success": False,
             "error": "Usage: codeforces.py metadata <contest_id> OR codeforces.py tests <contest_id> <problem_letter>",
         }
         print(json.dumps(result))
         sys.exit(1)
 
-    mode = sys.argv[1]
+    mode: str = sys.argv[1]
 
     if mode == "metadata":
         if len(sys.argv) != 3:
@@ -124,8 +124,8 @@ def main():
             print(json.dumps(result))
             sys.exit(1)
 
-        contest_id = sys.argv[2]
-        problems = scrape_contest_problems(contest_id)
+        contest_id: str = sys.argv[2]
+        problems: list[dict[str, str]] = scrape_contest_problems(contest_id)
 
         if not problems:
             result = {
@@ -151,12 +151,12 @@ def main():
             print(json.dumps(result))
             sys.exit(1)
 
-        contest_id = sys.argv[2]
-        problem_letter = sys.argv[3]
-        problem_id = contest_id + problem_letter.lower()
+        contest_id: str = sys.argv[2]
+        problem_letter: str = sys.argv[3]
+        problem_id: str = contest_id + problem_letter.lower()
 
-        url = parse_problem_url(contest_id, problem_letter)
-        tests = scrape_sample_tests(url)
+        url: str = parse_problem_url(contest_id, problem_letter)
+        tests: list[tuple[str, str]] = scrape_sample_tests(url)
 
         if not tests:
             result = {
@@ -168,7 +168,7 @@ def main():
             print(json.dumps(result))
             sys.exit(1)
 
-        test_cases = []
+        test_cases: list[dict[str, str]] = []
         for input_data, output_data in tests:
             test_cases.append({"input": input_data, "output": output_data})
 

@@ -15,10 +15,10 @@ def parse_problem_url(problem_input: str) -> str | None:
     return None
 
 
-def scrape_all_problems():
+def scrape_all_problems() -> dict[str, list[dict[str, str]]]:
     try:
-        problemset_url = "https://cses.fi/problemset/"
-        headers = {
+        problemset_url: str = "https://cses.fi/problemset/"
+        headers: dict[str, str] = {
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
 
@@ -26,32 +26,29 @@ def scrape_all_problems():
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
-        all_categories = {}
+        all_categories: dict[str, list[dict[str, str]]] = {}
 
-        # Find all problem links first
         problem_links = soup.find_all(
             "a", href=lambda x: x and "/problemset/task/" in x
         )
         print(f"Found {len(problem_links)} problem links", file=sys.stderr)
 
-        # Group by categories - look for h1 elements that precede problem lists
-        current_category = None
+        current_category: str | None = None
         for element in soup.find_all(["h1", "a"]):
             if element.name == "h1":
                 current_category = element.get_text().strip()
                 if current_category not in all_categories:
                     all_categories[current_category] = []
             elif element.name == "a" and "/problemset/task/" in element.get("href", ""):
-                href = element.get("href", "")
-                problem_id = href.split("/")[-1]
-                problem_name = element.get_text(strip=True)
+                href: str = element.get("href", "")
+                problem_id: str = href.split("/")[-1]
+                problem_name: str = element.get_text(strip=True)
 
                 if problem_id.isdigit() and problem_name and current_category:
                     all_categories[current_category].append(
                         {"id": problem_id, "name": problem_name}
                     )
 
-        # Sort problems in each category
         for category in all_categories:
             all_categories[category].sort(key=lambda x: int(x["id"]))
 
@@ -65,7 +62,7 @@ def scrape_all_problems():
 
 def scrape(url: str) -> list[tuple[str, str]]:
     try:
-        headers = {
+        headers: dict[str, str] = {
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
 
@@ -74,13 +71,13 @@ def scrape(url: str) -> list[tuple[str, str]]:
 
         soup = BeautifulSoup(response.text, "html.parser")
 
-        tests = []
+        tests: list[tuple[str, str]] = []
         example_header = soup.find("h1", string="Example")
 
         if example_header:
             current = example_header.find_next_sibling()
-            input_text = None
-            output_text = None
+            input_text: str | None = None
+            output_text: str | None = None
 
             while current:
                 if current.name == "p" and "Input:" in current.get_text():
@@ -104,16 +101,16 @@ def scrape(url: str) -> list[tuple[str, str]]:
         return []
 
 
-def main():
+def main() -> None:
     if len(sys.argv) < 2:
-        result = {
+        result: dict[str, str | bool] = {
             "success": False,
             "error": "Usage: cses.py metadata OR cses.py tests <problem_id_or_url>",
         }
         print(json.dumps(result))
         sys.exit(1)
 
-    mode = sys.argv[1]
+    mode: str = sys.argv[1]
 
     if mode == "metadata":
         if len(sys.argv) != 2:
@@ -124,7 +121,7 @@ def main():
             print(json.dumps(result))
             sys.exit(1)
 
-        all_categories = scrape_all_problems()
+        all_categories: dict[str, list[dict[str, str]]] = scrape_all_problems()
 
         if not all_categories:
             result = {
@@ -149,8 +146,8 @@ def main():
             print(json.dumps(result))
             sys.exit(1)
 
-        problem_input = sys.argv[2]
-        url = parse_problem_url(problem_input)
+        problem_input: str = sys.argv[2]
+        url: str | None = parse_problem_url(problem_input)
 
         if not url:
             result = {
@@ -161,9 +158,9 @@ def main():
             print(json.dumps(result))
             sys.exit(1)
 
-        tests = scrape(url)
+        tests: list[tuple[str, str]] = scrape(url)
 
-        problem_id = (
+        problem_id: str = (
             problem_input if problem_input.isdigit() else problem_input.split("/")[-1]
         )
 
@@ -177,7 +174,7 @@ def main():
             print(json.dumps(result))
             sys.exit(1)
 
-        test_cases = []
+        test_cases: list[dict[str, str]] = []
         for input_data, output_data in tests:
             test_cases.append({"input": input_data, "output": output_data})
 
