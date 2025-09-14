@@ -25,10 +25,10 @@ end, {
 			local candidates = {}
 			vim.list_extend(candidates, platforms)
 			vim.list_extend(candidates, actions)
-			if vim.g.cp_platform and vim.g.cp_contest_id then
+			if vim.g.cp and vim.g.cp.platform and vim.g.cp.contest_id then
 				local cache = require("cp.cache")
 				cache.load()
-				local contest_data = cache.get_contest_data(vim.g.cp_platform, vim.g.cp_contest_id)
+				local contest_data = cache.get_contest_data(vim.g.cp.platform, vim.g.cp.contest_id)
 				if contest_data and contest_data.problems then
 					for _, problem in ipairs(contest_data.problems) do
 						table.insert(candidates, problem.id)

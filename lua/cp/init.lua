@@ -139,7 +139,7 @@ local function run_problem()
 	local contest_config = config.contests[vim.g.cp_platform]
 
 	vim.schedule(function()
-		local ctx = problem.create_context(vim.g.cp_contest, vim.g.cp_contest_id, vim.g.cp_problem_id, config)
+		local ctx = problem.create_context(vim.g.cp.platform, vim.g.cp.contest_id, vim.g.cp.problem_id, config)
 		execute.run_problem(ctx, contest_config, false)
 		vim.cmd.checktime()
 	end)
@@ -163,7 +163,7 @@ local function debug_problem()
 	local contest_config = config.contests[vim.g.cp_platform]
 
 	vim.schedule(function()
-		local ctx = problem.create_context(vim.g.cp_contest, vim.g.cp_contest_id, vim.g.cp_problem_id, config)
+		local ctx = problem.create_context(vim.g.cp.platform, vim.g.cp.contest_id, vim.g.cp.problem_id, config)
 		execute.run_problem(ctx, contest_config, true)
 		vim.cmd.checktime()
 	end)
@@ -182,7 +182,7 @@ local function diff_problem()
 			return
 		end
 
-		local ctx = problem.create_context(vim.g.cp_contest, vim.g.cp_contest_id, vim.g.cp_problem_id, config)
+		local ctx = problem.create_context(vim.g.cp.platform, vim.g.cp.contest_id, vim.g.cp.problem_id, config)
 
 		if vim.fn.filereadable(ctx.expected_file) == 0 then
 			logger.log(("No expected output file found: %s"):format(ctx.expected_file), vim.log.levels.ERROR)
@@ -203,13 +203,13 @@ end
 
 ---@param delta number 1 for next, -1 for prev
 local function navigate_problem(delta)
-	if not vim.g.cp_platform or not vim.g.cp_contest_id then
+	if not vim.g.cp or not vim.g.cp.platform or not vim.g.cp.contest_id then
 		logger.log("no contest set. run :CP <platform> <contest> first", vim.log.levels.ERROR)
 		return
 	end
 
 	cache.load()
-	local contest_data = cache.get_contest_data(vim.g.cp_platform, vim.g.cp_contest_id)
+	local contest_data = cache.get_contest_data(vim.g.cp.platform, vim.g.cp.contest_id)
 	if not contest_data or not contest_data.problems then
 		logger.log("no contest metadata found. set up a problem first to cache contest data", vim.log.levels.ERROR)
 		return
@@ -218,10 +218,10 @@ local function navigate_problem(delta)
 	local problems = contest_data.problems
 	local current_problem_id
 
-	if vim.g.cp_platform == "cses" then
-		current_problem_id = vim.g.cp_contest_id
+	if vim.g.cp.platform == "cses" then
+		current_problem_id = vim.g.cp.contest_id
 	else
-		current_problem_id = vim.g.cp_problem_id
+		current_problem_id = vim.g.cp.problem_id
 	end
 
 	if not current_problem_id then
@@ -252,10 +252,10 @@ local function navigate_problem(delta)
 
 	local new_problem = problems[new_index]
 
-	if vim.g.cp_platform == "cses" then
+	if vim.g.cp.platform == "cses" then
 		setup_problem(new_problem.id)
 	else
-		setup_problem(vim.g.cp_contest_id, new_problem.id)
+		setup_problem(vim.g.cp.contest_id, new_problem.id)
 	end
 end
 
