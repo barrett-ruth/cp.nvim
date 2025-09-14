@@ -59,9 +59,9 @@ function M.scrape_problem(ctx)
 
 	local args
 	if ctx.contest == "cses" then
-		args = { "uv", "run", scraper_path, ctx.problem_id }
+		args = { "uv", "run", scraper_path, ctx.contest_id }
 	else
-		args = { "uv", "run", scraper_path, ctx.problem_id, ctx.problem_letter }
+		args = { "uv", "run", scraper_path, ctx.contest_id, ctx.problem_id }
 	end
 
 	local result = vim.system(args, {
