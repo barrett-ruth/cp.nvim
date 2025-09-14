@@ -11,7 +11,7 @@ vim.api.nvim_create_user_command("CP", function(opts)
 	cp.handle_command(opts)
 end, {
 	nargs = "*",
-	complete = function(ArgLead, CmdLine, CursorPos)
+	complete = function(ArgLead, CmdLine, _)
 		local args = vim.split(vim.trim(CmdLine), "%s+")
 		local num_args = #args
 		if CmdLine:sub(-1) == " " then
