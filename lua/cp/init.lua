@@ -139,7 +139,6 @@ local function get_current_problem()
 end
 
 local function run_problem()
-
 	local problem_id = get_current_problem()
 	if not problem_id then
 		return
@@ -164,7 +163,6 @@ local function run_problem()
 end
 
 local function debug_problem()
-
 	local problem_id = get_current_problem()
 	if not problem_id then
 		return
@@ -189,7 +187,6 @@ local function debug_problem()
 end
 
 local function diff_problem()
-
 	if state.diff_mode then
 		local tile_fn = config.tile or window.default_tile
 		window.restore_layout(state.saved_layout, tile_fn)
@@ -223,7 +220,6 @@ end
 
 ---@param delta number 1 for next, -1 for prev
 local function navigate_problem(delta)
-
 	if not state.platform or not state.contest_id then
 		logger.log("no contest set. run :CP <platform> <contest> first", vim.log.levels.ERROR)
 		return
@@ -403,7 +399,6 @@ function M.handle_command(opts)
 		return
 	end
 end
-
 
 function M.setup(opts)
 	opts = opts or {}
