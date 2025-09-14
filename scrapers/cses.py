@@ -29,7 +29,9 @@ def scrape_all_problems():
         all_categories = {}
 
         # Find all problem links first
-        problem_links = soup.find_all("a", href=lambda x: x and "/problemset/task/" in x)
+        problem_links = soup.find_all(
+            "a", href=lambda x: x and "/problemset/task/" in x
+        )
         print(f"Found {len(problem_links)} problem links", file=sys.stderr)
 
         # Group by categories - look for h1 elements that precede problem lists
@@ -45,10 +47,9 @@ def scrape_all_problems():
                 problem_name = element.get_text(strip=True)
 
                 if problem_id.isdigit() and problem_name and current_category:
-                    all_categories[current_category].append({
-                        "id": problem_id,
-                        "name": problem_name
-                    })
+                    all_categories[current_category].append(
+                        {"id": problem_id, "name": problem_name}
+                    )
 
         # Sort problems in each category
         for category in all_categories:

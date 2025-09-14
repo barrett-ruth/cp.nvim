@@ -42,13 +42,12 @@ def scrape_contest_problems(contest_id: str):
                     # Extract problem letter from task name or URL
                     task_id = task_href.split("/")[-1] if task_href else ""
                     if task_id.startswith(contest_id + "_"):
-                        problem_letter = task_id[len(contest_id) + 1:]
+                        problem_letter = task_id[len(contest_id) + 1 :]
 
                         if problem_letter and task_name:
-                            problems.append({
-                                "id": problem_letter.lower(),
-                                "name": task_name
-                            })
+                            problems.append(
+                                {"id": problem_letter.lower(), "name": task_name}
+                            )
 
         problems.sort(key=lambda x: x["id"])
         return problems
@@ -174,7 +173,9 @@ def main():
 
         if test_cases:
             combined_input = (
-                str(len(test_cases)) + "\n" + "\n".join(tc["input"] for tc in test_cases)
+                str(len(test_cases))
+                + "\n"
+                + "\n".join(tc["input"] for tc in test_cases)
             )
             combined_output = "\n".join(tc["output"] for tc in test_cases)
             test_cases = [{"input": combined_input, "output": combined_output}]

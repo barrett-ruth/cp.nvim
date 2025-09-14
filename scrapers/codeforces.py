@@ -70,7 +70,9 @@ def scrape_contest_problems(contest_id: str):
         soup = BeautifulSoup(response.text, "html.parser")
         problems = []
 
-        problem_links = soup.find_all("a", href=lambda x: x and f"/contest/{contest_id}/problem/" in x)
+        problem_links = soup.find_all(
+            "a", href=lambda x: x and f"/contest/{contest_id}/problem/" in x
+        )
 
         for link in problem_links:
             href = link.get("href", "")
@@ -79,10 +81,7 @@ def scrape_contest_problems(contest_id: str):
                 problem_name = link.get_text(strip=True)
 
                 if problem_letter and problem_name and len(problem_letter) == 1:
-                    problems.append({
-                        "id": problem_letter,
-                        "name": problem_name
-                    })
+                    problems.append({"id": problem_letter, "name": problem_name})
 
         problems.sort(key=lambda x: x["id"])
 
