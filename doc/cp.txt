@@ -66,30 +66,27 @@ CONFIGURATION						*cp-config*
 
 cp.nvim works out of the box. No setup required.
 
-Optional: >
-    vim.g.cp = {
-      config = {
-        debug = false,
-        contests = {
-          default = {
-            cpp_version = 20,
-            compile_flags = { "-O2", "-DLOCAL", "-Wall", "-Wextra" },
-            debug_flags = { "-g3", "-fsanitize=address,undefined", "-DLOCAL" },
-            timeout_ms = 2000,
-          },
-          atcoder = { cpp_version = 23 },
+Optional configuration: >
+    require('cp').setup({
+      debug = false,
+      contests = {
+        default = {
+          cpp_version = 20,
+          compile_flags = { "-O2", "-DLOCAL", "-Wall", "-Wextra" },
+          debug_flags = { "-g3", "-fsanitize=address,undefined", "-DLOCAL" },
+          timeout_ms = 2000,
         },
-        hooks = {
-          before_run = function(problem_id) vim.cmd.w() end,
-        },
-        tile = function(source_buf, input_buf, output_buf)
-          -- custom window layout
-        end,
-        filename = function(contest, problem_id, problem_letter)
-          -- custom filename generation
-        end,
-      }
-    }
+        atcoder = { cpp_version = 23 },
+      },
+      hooks = {
+        before_run = function(problem_id) vim.cmd.w() end,
+        before_debug = function(problem_id) ... end,
+      },
+      tile = function(source_buf, input_buf, output_buf)
+      end,
+      filename = function(contest, problem_id, problem_letter)
+      end,
+    })
 <
 
 Configuration options:
