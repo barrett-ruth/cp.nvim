@@ -8,13 +8,58 @@ from bs4 import BeautifulSoup
 
 
 def parse_problem_url(contest_id: str, problem_letter: str) -> str:
-    task_id = f"{contest_id}_{problem_letter}"
+    task_id: str = f"{contest_id}_{problem_letter}"
     return f"https://atcoder.jp/contests/{contest_id}/tasks/{task_id}"
+
+
+def scrape_contest_problems(contest_id: str) -> list[dict[str, str]]:
+    try:
+        contest_url: str = f"https://atcoder.jp/contests/{contest_id}/tasks"
+        headers: dict[str, str] = {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+
+        response = requests.get(contest_url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        problems: list[dict[str, str]] = []
+
+        task_table = soup.find("table", class_="table")
+        if not task_table:
+            return []
+
+        rows = task_table.find_all("tr")[1:]  # Skip header row
+
+        for row in rows:
+            cells = row.find_all("td")
+            if len(cells) >= 2:
+                task_link = cells[1].find("a")
+                if task_link:
+                    task_name: str = task_link.get_text(strip=True)
+                    task_href: str = task_link.get("href", "")
+
+                    # Extract problem letter from task name or URL
+                    task_id: str = task_href.split("/")[-1] if task_href else ""
+                    if task_id.startswith(contest_id + "_"):
+                        problem_letter: str = task_id[len(contest_id) + 1 :]
+
+                        if problem_letter and task_name:
+                            problems.append(
+                                {"id": problem_letter.lower(), "name": task_name}
+                            )
+
+        problems.sort(key=lambda x: x["id"])
+        return problems
+
+    except Exception as e:
+        print(f"Failed to scrape AtCoder contest problems: {e}", file=sys.stderr)
+        return []
 
 
 def scrape(url: str) -> list[tuple[str, str]]:
     try:
-        headers = {
+        headers: dict[str, str] = {
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
 
@@ -23,7 +68,7 @@ def scrape(url: str) -> list[tuple[str, str]]:
 
         soup = BeautifulSoup(response.text, "html.parser")
 
-        tests = []
+        tests: list[tuple[str, str]] = []
 
         sample_headers = soup.find_all(
             "h3", string=lambda x: x and "sample" in x.lower() if x else False
@@ -39,8 +84,10 @@ def scrape(url: str) -> list[tuple[str, str]]:
                     if "output" in next_header.get_text().lower():
                         output_pre = next_header.find_next("pre")
                         if output_pre:
-                            input_text = input_pre.get_text().strip().replace("\r", "")
-                            output_text = (
+                            input_text: str = (
+                                input_pre.get_text().strip().replace("\r", "")
+                            )
+                            output_text: str = (
                                 output_pre.get_text().strip().replace("\r", "")
                             )
                             if input_text and output_text:
@@ -56,54 +103,100 @@ def scrape(url: str) -> list[tuple[str, str]]:
         return []
 
 
-def main():
-    if len(sys.argv) != 3:
-        result = {
+def main() -> None:
+    if len(sys.argv) < 2:
+        result: dict[str, str | bool] = {
             "success": False,
-            "error": "Usage: atcoder.py <contest_id> <problem_letter>",
-            "problem_id": None,
+            "error": "Usage: atcoder.py metadata <contest_id> OR atcoder.py tests <contest_id> <problem_letter>",
         }
         print(json.dumps(result))
         sys.exit(1)
 
-    contest_id = sys.argv[1]
-    problem_letter = sys.argv[2]
-    problem_id = contest_id + problem_letter.lower()
+    mode: str = sys.argv[1]
 
-    url = parse_problem_url(contest_id, problem_letter)
-    print(f"Scraping: {url}", file=sys.stderr)
+    if mode == "metadata":
+        if len(sys.argv) != 3:
+            result = {
+                "success": False,
+                "error": "Usage: atcoder.py metadata <contest_id>",
+            }
+            print(json.dumps(result))
+            sys.exit(1)
 
-    tests = scrape(url)
+        contest_id: str = sys.argv[2]
+        problems: list[dict[str, str]] = scrape_contest_problems(contest_id)
 
-    if not tests:
+        if not problems:
+            result = {
+                "success": False,
+                "error": f"No problems found for contest {contest_id}",
+            }
+            print(json.dumps(result))
+            sys.exit(1)
+
         result = {
-            "success": False,
-            "error": f"No tests found for {contest_id} {problem_letter}",
+            "success": True,
+            "contest_id": contest_id,
+            "problems": problems,
+        }
+        print(json.dumps(result))
+
+    elif mode == "tests":
+        if len(sys.argv) != 4:
+            result = {
+                "success": False,
+                "error": "Usage: atcoder.py tests <contest_id> <problem_letter>",
+            }
+            print(json.dumps(result))
+            sys.exit(1)
+
+        contest_id: str = sys.argv[2]
+        problem_letter: str = sys.argv[3]
+        problem_id: str = contest_id + problem_letter.lower()
+
+        url: str = parse_problem_url(contest_id, problem_letter)
+        print(f"Scraping: {url}", file=sys.stderr)
+
+        tests: list[tuple[str, str]] = scrape(url)
+
+        if not tests:
+            result = {
+                "success": False,
+                "error": f"No tests found for {contest_id} {problem_letter}",
+                "problem_id": problem_id,
+                "url": url,
+            }
+            print(json.dumps(result))
+            sys.exit(1)
+
+        test_cases: list[dict[str, str]] = []
+        for input_data, output_data in tests:
+            test_cases.append({"input": input_data, "output": output_data})
+
+        if test_cases:
+            combined_input: str = (
+                str(len(test_cases))
+                + "\n"
+                + "\n".join(tc["input"] for tc in test_cases)
+            )
+            combined_output: str = "\n".join(tc["output"] for tc in test_cases)
+            test_cases = [{"input": combined_input, "output": combined_output}]
+
+        result = {
+            "success": True,
             "problem_id": problem_id,
             "url": url,
+            "test_cases": test_cases,
+        }
+        print(json.dumps(result))
+
+    else:
+        result = {
+            "success": False,
+            "error": f"Unknown mode: {mode}. Use 'metadata' or 'tests'",
         }
         print(json.dumps(result))
         sys.exit(1)
-
-    test_cases = []
-    for input_data, output_data in tests:
-        test_cases.append({"input": input_data, "output": output_data})
-
-    if test_cases:
-        combined_input = (
-            str(len(test_cases)) + "\n" + "\n".join(tc["input"] for tc in test_cases)
-        )
-        combined_output = "\n".join(tc["output"] for tc in test_cases)
-        test_cases = [{"input": combined_input, "output": combined_output}]
-
-    result = {
-        "success": True,
-        "problem_id": problem_id,
-        "url": url,
-        "test_cases": test_cases,
-    }
-
-    print(json.dumps(result))
 
 
 if __name__ == "__main__":

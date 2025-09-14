@@ -3,7 +3,7 @@
 ---@field contest_id string Contest ID (e.g. "abc123", "1933")
 ---@field problem_id? string Problem ID for AtCoder/Codeforces (e.g. "a", "b")
 ---@field source_file string Source filename (e.g. "abc123a.cpp")
----@field binary_file string Binary output path (e.g. "build/abc123a")
+---@field binary_file string Binary output path (e.g. "build/abc123a.run")
 ---@field input_file string Input test file path (e.g. "io/abc123a.in")
 ---@field output_file string Output file path (e.g. "io/abc123a.out")
 ---@field expected_file string Expected output path (e.g. "io/abc123a.expected")
@@ -26,7 +26,7 @@ function M.create_context(contest, contest_id, problem_id, config)
 		contest_id = contest_id,
 		problem_id = problem_id,
 		source_file = source_file,
-		binary_file = ("build/%s"):format(base_name),
+		binary_file = ("build/%s.run"):format(base_name),
 		input_file = ("io/%s.in"):format(base_name),
 		output_file = ("io/%s.out"):format(base_name),
 		expected_file = ("io/%s.expected"):format(base_name),

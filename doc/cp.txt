@@ -22,17 +22,28 @@ Optional:
 COMMANDS						*cp-commands*
 
 								*:CP*
-:CP {contest}                   Set up contest environment for {contest}.
-                                Available contests: atcoder, codeforces, cses
+cp.nvim uses a single :CP command with intelligent argument parsing:
 
-:CP {contest} {contest_id} {problem_letter?}
-                                Set up problem from {contest}. Extract contest_id
-                                and problem_letter (optional) from the problem URL.
-                                Scrapes test cases and creates source file.
+Setup Commands ~
 
-:CP {contest_id} {problem_letter}
-                                Set up problem in current contest mode.
-                                Requires contest to be set first with :CP {contest}
+:CP {platform} {contest_id} {problem_id}
+                                Full setup: set platform, load contest metadata,
+                                and set up specific problem. Scrapes test cases
+                                and creates source file.
+                                Example: :CP codeforces 1933 a
+
+:CP {platform} {contest_id}     Contest setup: set platform and load contest
+                                metadata for navigation. Caches problem list.
+                                Example: :CP atcoder abc324
+
+:CP {platform}                  Platform setup: set platform only.
+                                Example: :CP cses
+
+:CP {problem_id}                Problem switch: switch to different problem
+                                within current contest context.
+                                Example: :CP b (switch to problem b)
+
+Action Commands ~
 
 :CP run                         Compile and run current problem with test input.
                                 Shows execution time and output comparison.
@@ -43,64 +54,43 @@ COMMANDS						*cp-commands*
 :CP diff                        Enter diff mode to compare actual vs expected
                                 output. Run again to exit diff mode.
 
+Navigation Commands ~
+
+:CP next                        Navigate to next problem in current contest.
+                                Stops at last problem (no wrapping).
+
+:CP prev                        Navigate to previous problem in current contest.
+                                Stops at first problem (no wrapping).
+
 CONFIGURATION						*cp-config*
 
-cp.nvim is automatically lazy-loaded - no config/setup is required.
+cp.nvim works out of the box. No setup required.
 
-Provide extra options via a setup() function with your package manager. For
-example, with lazy.nvim (https://github.com/folke/lazy.nvim):
-
-    {
-      'barrett-ruth/cp.nvim',
-      config = function()
-        local ls = require('luasnip')
-        local s = ls.snippet
-
-        require('cp').setup({
-          debug = false,
-          contests = {
-            default = {
-              cpp_version = 20,
-              compile_flags = { "-O2", "-DLOCAL", "-Wall", "-Wextra" },
-              debug_flags = { "-g3", "-fsanitize=address,undefined", "-DLOCAL" },
-              timeout_ms = 2000,
-            },
-            atcoder = {
-              cpp_version = 23,
-            },
+Optional: >
+    vim.g.cp = {
+      config = {
+        debug = false,
+        contests = {
+          default = {
+            cpp_version = 20,
+            compile_flags = { "-O2", "-DLOCAL", "-Wall", "-Wextra" },
+            debug_flags = { "-g3", "-fsanitize=address,undefined", "-DLOCAL" },
+            timeout_ms = 2000,
           },
-          snippets = {
-            cses = {
-              s("cses", "#include <iostream>\nusing namespace std;\n\nint main() {\n\t$0\n}")
-            },
-          },
-          hooks = {
-            before_run = function(problem_id)
-              vim.cmd.w()
-              vim.lsp.buf.format()
-            end,
-            before_debug = function(problem_id)
-              ...
-            end
-          },
-          tile = function(source_buf, input_buf, output_buf)
-            vim.api.nvim_set_current_buf(source_buf)
-            vim.cmd.vsplit()
-            vim.api.nvim_set_current_buf(output_buf)
-            vim.cmd.vsplit()
-            vim.api.nvim_set_current_buf(input_buf)
-            vim.cmd('wincmd h | wincmd h')
-          end,
-          filename = function(contest, problem_id, problem_letter)
-            if contest == "atcoder" then
-              return problem_id:lower() .. (problem_letter or "") .. ".cpp"
-            else
-              return problem_id:lower() .. (problem_letter or "") .. ".cc"
-            end
-          end,
-        })
-      end
+          atcoder = { cpp_version = 23 },
+        },
+        hooks = {
+          before_run = function(problem_id) vim.cmd.w() end,
+        },
+        tile = function(source_buf, input_buf, output_buf)
+          -- custom window layout
+        end,
+        filename = function(contest, problem_id, problem_letter)
+          -- custom filename generation
+        end,
+      }
     }
+<
 
 Configuration options:
 
@@ -145,70 +135,96 @@ AtCoder ~
 URL format: https://atcoder.jp/contests/abc123/tasks/abc123_a
 
 In terms of cp.nvim, this corresponds to:
-
+- Platform: atcoder
 - Contest ID: abc123
-- Problem letter: a
+- Problem ID: a
 
 Usage examples: >
-    :CP atcoder abc123 a        " Set up problem A from contest ABC123
-    :CP atcoder                 " Set up AtCoder contest mode first
-    :CP abc123 a                " Then set up problem (if contest mode is set)
+    :CP atcoder abc123 a        " Full setup: problem A from contest ABC123
+    :CP atcoder abc123          " Contest setup: load contest metadata only
+    :CP b                       " Switch to problem B (if contest loaded)
+    :CP next                    " Navigate to next problem in contest
 <
 Codeforces ~
 									*cp-codeforces*
 URL format: https://codeforces.com/contest/1234/problem/A
 
 In terms of cp.nvim, this corresponds to:
-
+- Platform: codeforces
 - Contest ID: 1234
-- Problem letter: A
+- Problem ID: a (lowercase)
 
 Usage examples: >
-    :CP codeforces 1234 a       " Set up problem A from contest id 1234
-    :CP codeforces              " Set up Codeforces contest mode first
-    :CP 1234 a                  " Then set up problem (if contest mode is set)
+    :CP codeforces 1934 a       " Full setup: problem A from contest 1934
+    :CP codeforces 1934         " Contest setup: load contest metadata only
+    :CP c                       " Switch to problem C (if contest loaded)
+    :CP prev                    " Navigate to previous problem in contest
 <
 CSES ~
 									*cp-cses*
 URL format: https://cses.fi/problemset/task/1068
 
+CSES is organized by categories rather than contests. Currently all problems
+are grouped under "CSES Problem Set" category.
+
 In terms of cp.nvim, this corresponds to:
-- Problem ID: 1068
+- Platform: cses
+- Contest ID: "CSES Problem Set" (category)
+- Problem ID: 1068 (numeric)
 
 Usage examples: >
-    :CP cses 1068               " Set up problem 1068
-    :CP cses                    " Set up CSES contest mode first
-    :CP 1068                    " Then set up problem (if contest mode is set)
+    :CP cses 1068               " Set up problem 1068 from CSES
+    :CP 1070                    " Switch to problem 1070 (if CSES loaded)
+    :CP next                    " Navigate to next problem in CSES
 <
 COMPLETE WORKFLOW EXAMPLE					*cp-example*
 
-Example: Setting up AtCoder problem ABC123-A
+Example: Setting up and solving AtCoder contest ABC324
 
-1. Browse to https://atcoder.jp/contests/abc123/tasks/abc123_a
-2. Read the problem statement on the website
-3. In Neovim, extract identifiers and set up
-    :CP atcoder abc123 a
-<
-   This creates abc123a.cc (or however you've configured the filename in
-   *cp-setup*) and scrapes test cases
-4. Code and test
+1. Browse to https://atcoder.jp/contests/abc324
+2. Set up contest and load metadata: >
+    :CP atcoder abc324
+<   This caches all problems (A, B, C, D, E, F, G) for navigation
+
+3. Start with problem A: >
+    :CP a
+<   This creates abc324a.cc and scrapes test cases
+
+4. Code your solution, then test: >
     :CP run
-5. Debug
+<
+5. If needed, debug: >
     :CP debug
-6. Test: >
+<
+6. Compare output visually: >
     :CP diff
-7. Submit remote on AtCoder
+<
+7. Move to next problem: >
+    :CP next
+<   This automatically sets up problem B
+
+8. Continue solving problems with :CP next/:CP prev navigation
+9. Submit solutions on AtCoder website
+
+Example: Quick setup for single Codeforces problem >
+    :CP codeforces 1933 a       " One command setup
+    :CP run                     " Test immediately
+<
 
 FILE STRUCTURE						*cp-files*
 
-cp.nvim creates the following file structure upon setup:
+cp.nvim creates the following file structure upon problem setup:
 
-    problem.cc
-    build/*.{run,debug}
+    {contest_id}{problem_id}.cc     " Source file (e.g. abc324a.cc)
+    build/
+      {contest_id}{problem_id}.run  " Compiled binary
     io/
-      problem.in
-      problem.out
-      problem.expected
+      {contest_id}{problem_id}.in       " Test input
+      {contest_id}{problem_id}.out      " Program output
+      {contest_id}{problem_id}.expected " Expected output
+
+The plugin automatically manages this structure and navigation between problems
+maintains proper file associations.
 
 SNIPPETS						*cp-snippets*
 
