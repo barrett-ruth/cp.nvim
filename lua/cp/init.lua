@@ -263,21 +263,15 @@ local function navigate_problem(delta)
 	end
 end
 
-local initialized = false
-
-function M.is_initialized()
-	return initialized
-end
-
-function M.setup(user_config)
-	if initialized and not user_config then
+local function ensure_initialized()
+	if config then
 		return
 	end
 
-	config = config_module.setup(user_config)
+	vim.g.cp = vim.g.cp or {}
+	config = config_module.setup(vim.g.cp.config)
 	logger.set_config(config)
 	snippets.setup(config)
-	initialized = true
 end
 
 local function parse_command(args)
@@ -311,6 +305,7 @@ local function parse_command(args)
 end
 
 function M.handle_command(opts)
+	ensure_initialized()
 	local cmd = parse_command(opts.fargs)
 
 	if cmd.type == "error" then
@@ -372,6 +367,10 @@ function M.handle_command(opts)
 		end
 		return
 	end
+end
+
+function M.is_initialized()
+	return config ~= nil
 end
 
 return M

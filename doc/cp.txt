@@ -64,62 +64,33 @@ Navigation Commands ~
 
 CONFIGURATION						*cp-config*
 
-cp.nvim is automatically lazy-loaded - no config/setup is required.
+cp.nvim works out of the box. No setup required.
 
-Provide extra options via a setup() function with your package manager. For
-example, with lazy.nvim (https://github.com/folke/lazy.nvim):
-
-    {
-      'barrett-ruth/cp.nvim',
-      config = function()
-        local ls = require('luasnip')
-        local s = ls.snippet
-
-        require('cp').setup({
-          debug = false,
-          contests = {
-            default = {
-              cpp_version = 20,
-              compile_flags = { "-O2", "-DLOCAL", "-Wall", "-Wextra" },
-              debug_flags = { "-g3", "-fsanitize=address,undefined", "-DLOCAL" },
-              timeout_ms = 2000,
-            },
-            atcoder = {
-              cpp_version = 23,
-            },
+Optional: >
+    vim.g.cp = {
+      config = {
+        debug = false,
+        contests = {
+          default = {
+            cpp_version = 20,
+            compile_flags = { "-O2", "-DLOCAL", "-Wall", "-Wextra" },
+            debug_flags = { "-g3", "-fsanitize=address,undefined", "-DLOCAL" },
+            timeout_ms = 2000,
           },
-          snippets = {
-            cses = {
-              s("cses", "#include <iostream>\nusing namespace std;\n\nint main() {\n\t$0\n}")
-            },
-          },
-          hooks = {
-            before_run = function(problem_id)
-              vim.cmd.w()
-              vim.lsp.buf.format()
-            end,
-            before_debug = function(problem_id)
-              ...
-            end
-          },
-          tile = function(source_buf, input_buf, output_buf)
-            vim.api.nvim_set_current_buf(source_buf)
-            vim.cmd.vsplit()
-            vim.api.nvim_set_current_buf(output_buf)
-            vim.cmd.vsplit()
-            vim.api.nvim_set_current_buf(input_buf)
-            vim.cmd('wincmd h | wincmd h')
-          end,
-          filename = function(contest, problem_id, problem_letter)
-            if contest == "atcoder" then
-              return problem_id:lower() .. (problem_letter or "") .. ".cpp"
-            else
-              return problem_id:lower() .. (problem_letter or "") .. ".cc"
-            end
-          end,
-        })
-      end
+          atcoder = { cpp_version = 23 },
+        },
+        hooks = {
+          before_run = function(problem_id) vim.cmd.w() end,
+        },
+        tile = function(source_buf, input_buf, output_buf)
+          -- custom window layout
+        end,
+        filename = function(contest, problem_id, problem_letter)
+          -- custom filename generation
+        end,
+      }
     }
+<
 
 Configuration options:
 

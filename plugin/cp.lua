@@ -8,9 +8,6 @@ local actions = { "run", "debug", "diff", "next", "prev" }
 
 vim.api.nvim_create_user_command("CP", function(opts)
 	local cp = require("cp")
-	if not cp.is_initialized() then
-		cp.setup()
-	end
 	cp.handle_command(opts)
 end, {
 	nargs = "*",
