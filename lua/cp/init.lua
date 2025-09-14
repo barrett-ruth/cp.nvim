@@ -241,8 +241,8 @@ local function navigate_problem(delta)
 	end
 
 	local current_index = nil
-	for i, problem in ipairs(problems) do
-		if problem.id == current_problem_id then
+	for i, prob in ipairs(problems) do
+		if prob.id == current_problem_id then
 			current_index = i
 			break
 		end
