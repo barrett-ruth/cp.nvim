@@ -2,12 +2,20 @@ local M = {}
 
 local signal_codes = {
 	[128] = "SIGILL",
-	[130] = "SIGABRT",
-	[131] = "SIGBUS",
+	[130] = "SIGINT",
+	[131] = "SIGQUIT",
+	[132] = "SIGILL",
+	[133] = "SIGTRAP",
+	[134] = "SIGABRT",
+	[135] = "SIGBUS",
 	[136] = "SIGFPE",
-	[135] = "SIGSEGV",
-	[137] = "SIGPIPE",
-	[139] = "SIGTERM",
+	[137] = "SIGKILL",
+	[138] = "SIGUSR1",
+	[139] = "SIGSEGV",
+	[140] = "SIGUSR2",
+	[141] = "SIGPIPE",
+	[142] = "SIGALRM",
+	[143] = "SIGTERM",
 }
 
 local function ensure_directories()
@@ -31,33 +39,40 @@ local function execute_binary(binary_path, input_data, timeout_ms)
 	local end_time = vim.loop.hrtime()
 	local execution_time = (end_time - start_time) / 1000000
 
+	local actual_code = result.code or 0
+
 	return {
 		stdout = result.stdout or "",
 		stderr = result.stderr or "",
-		code = result.code,
+		code = actual_code,
 		time_ms = execution_time,
 		timed_out = result.code == 124,
 	}
 end
 
 local function format_output(exec_result, expected_file, is_debug)
-	local lines = { exec_result.stdout }
+	local output_lines = { exec_result.stdout }
+	local metadata_lines = {}
 
 	if exec_result.timed_out then
-		table.insert(lines, "\n[code]: 124 (TIMEOUT)")
+		table.insert(metadata_lines, "[code]: 124 (TIMEOUT)")
 	elseif exec_result.code >= 128 then
 		local signal_name = signal_codes[exec_result.code] or "SIGNAL"
-		table.insert(lines, ("\n[code]: %d (%s)"):format(exec_result.code, signal_name))
+		table.insert(metadata_lines, ("[code]: %d (%s)"):format(exec_result.code, signal_name))
 	else
-		table.insert(lines, ("\n[code]: %d"):format(exec_result.code))
+		table.insert(metadata_lines, ("[code]: %d"):format(exec_result.code))
 	end
 
-	table.insert(lines, ("\n[time]: %.2f ms"):format(exec_result.time_ms))
-	table.insert(lines, ("\n[debug]: %s"):format(is_debug and "true" or "false"))
+	table.insert(metadata_lines, ("[time]: %.2f ms"):format(exec_result.time_ms))
+	table.insert(metadata_lines, ("[debug]: %s"):format(is_debug and "true" or "false"))
 
 	if vim.fn.filereadable(expected_file) == 1 and exec_result.code == 0 then
 		local expected_content = vim.fn.readfile(expected_file)
 		local actual_lines = vim.split(exec_result.stdout, "\n")
+
+		while #actual_lines > 0 and actual_lines[#actual_lines] == "" do
+			table.remove(actual_lines)
+		end
 
 		local matches = #actual_lines == #expected_content
 		if matches then
@@ -69,10 +84,10 @@ local function format_output(exec_result, expected_file, is_debug)
 			end
 		end
 
-		table.insert(lines, ("\n[matches]: %s"):format(matches and "true" or "false"))
+		table.insert(metadata_lines, ("[matches]: %s"):format(matches and "true" or "false"))
 	end
 
-	return table.concat(lines, "")
+	return table.concat(output_lines, "") .. "\n" .. table.concat(metadata_lines, "\n")
 end
 
 ---@param ctx ProblemContext

@@ -44,8 +44,8 @@ local function extend_contest_config(base_config, contest_config)
 	local result = vim.tbl_deep_extend("force", base_config, contest_config)
 
 	local std_flag = ("-std=c++%d"):format(result.cpp_version)
-	table.insert(result.compile_flags, 1, std_flag)
-	table.insert(result.debug_flags, 1, std_flag)
+	result.compile_flags = vim.list_extend({ std_flag }, result.compile_flags)
+	result.debug_flags = vim.list_extend({ std_flag }, result.debug_flags)
 
 	return result
 end

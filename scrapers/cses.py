@@ -15,6 +15,53 @@ def parse_problem_url(problem_input: str) -> str | None:
     return None
 
 
+def scrape_all_problems():
+    try:
+        problemset_url = "https://cses.fi/problemset/"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+
+        response = requests.get(problemset_url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        all_categories = {}
+
+        # Find all problem links first
+        problem_links = soup.find_all("a", href=lambda x: x and "/problemset/task/" in x)
+        print(f"Found {len(problem_links)} problem links", file=sys.stderr)
+
+        # Group by categories - look for h1 elements that precede problem lists
+        current_category = None
+        for element in soup.find_all(["h1", "a"]):
+            if element.name == "h1":
+                current_category = element.get_text().strip()
+                if current_category not in all_categories:
+                    all_categories[current_category] = []
+            elif element.name == "a" and "/problemset/task/" in element.get("href", ""):
+                href = element.get("href", "")
+                problem_id = href.split("/")[-1]
+                problem_name = element.get_text(strip=True)
+
+                if problem_id.isdigit() and problem_name and current_category:
+                    all_categories[current_category].append({
+                        "id": problem_id,
+                        "name": problem_name
+                    })
+
+        # Sort problems in each category
+        for category in all_categories:
+            all_categories[category].sort(key=lambda x: int(x["id"]))
+
+        print(f"Found {len(all_categories)} categories", file=sys.stderr)
+        return all_categories
+
+    except Exception as e:
+        print(f"Failed to scrape CSES problems: {e}", file=sys.stderr)
+        return {}
+
+
 def scrape(url: str) -> list[tuple[str, str]]:
     try:
         headers = {
@@ -57,55 +104,97 @@ def scrape(url: str) -> list[tuple[str, str]]:
 
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 2:
         result = {
             "success": False,
-            "error": "Usage: cses.py <problem_id_or_url>",
-            "problem_id": None,
+            "error": "Usage: cses.py metadata OR cses.py tests <problem_id_or_url>",
         }
         print(json.dumps(result))
         sys.exit(1)
 
-    problem_input = sys.argv[1]
-    url = parse_problem_url(problem_input)
+    mode = sys.argv[1]
 
-    if not url:
+    if mode == "metadata":
+        if len(sys.argv) != 2:
+            result = {
+                "success": False,
+                "error": "Usage: cses.py metadata",
+            }
+            print(json.dumps(result))
+            sys.exit(1)
+
+        all_categories = scrape_all_problems()
+
+        if not all_categories:
+            result = {
+                "success": False,
+                "error": "Failed to scrape CSES problem categories",
+            }
+            print(json.dumps(result))
+            sys.exit(1)
+
         result = {
-            "success": False,
-            "error": f"Invalid problem input: {problem_input}. Use either problem ID (e.g., 1068) or full URL",
-            "problem_id": problem_input if problem_input.isdigit() else None,
+            "success": True,
+            "categories": all_categories,
         }
         print(json.dumps(result))
-        sys.exit(1)
 
-    tests = scrape(url)
+    elif mode == "tests":
+        if len(sys.argv) != 3:
+            result = {
+                "success": False,
+                "error": "Usage: cses.py tests <problem_id_or_url>",
+            }
+            print(json.dumps(result))
+            sys.exit(1)
 
-    problem_id = (
-        problem_input if problem_input.isdigit() else problem_input.split("/")[-1]
-    )
+        problem_input = sys.argv[2]
+        url = parse_problem_url(problem_input)
 
-    if not tests:
+        if not url:
+            result = {
+                "success": False,
+                "error": f"Invalid problem input: {problem_input}. Use either problem ID (e.g., 1068) or full URL",
+                "problem_id": problem_input if problem_input.isdigit() else None,
+            }
+            print(json.dumps(result))
+            sys.exit(1)
+
+        tests = scrape(url)
+
+        problem_id = (
+            problem_input if problem_input.isdigit() else problem_input.split("/")[-1]
+        )
+
+        if not tests:
+            result = {
+                "success": False,
+                "error": f"No tests found for {problem_input}",
+                "problem_id": problem_id,
+                "url": url,
+            }
+            print(json.dumps(result))
+            sys.exit(1)
+
+        test_cases = []
+        for input_data, output_data in tests:
+            test_cases.append({"input": input_data, "output": output_data})
+
         result = {
-            "success": False,
-            "error": f"No tests found for {problem_input}",
+            "success": True,
             "problem_id": problem_id,
             "url": url,
+            "test_cases": test_cases,
+        }
+        print(json.dumps(result))
+
+    else:
+        result = {
+            "success": False,
+            "error": f"Unknown mode: {mode}. Use 'metadata' or 'tests'",
         }
         print(json.dumps(result))
         sys.exit(1)
-
-    test_cases = []
-    for input_data, output_data in tests:
-        test_cases.append({"input": input_data, "output": output_data})
-
-    result = {
-        "success": True,
-        "problem_id": problem_id,
-        "url": url,
-        "test_cases": test_cases,
-    }
-
-    print(json.dumps(result))
 
 
 if __name__ == "__main__":
