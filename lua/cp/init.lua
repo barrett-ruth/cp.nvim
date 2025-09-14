@@ -31,7 +31,7 @@ local function setup_contest(contest_type)
 	logger.log(("set up %s contest environment"):format(contest_type))
 end
 
-local function setup_problem(problem_id, problem_letter)
+local function setup_problem(contest_id, problem_id)
 	if not vim.g.cp_contest then
 		logger.log("no contest mode set. run :CP <contest> first", vim.log.levels.ERROR)
 		return
@@ -52,7 +52,10 @@ local function setup_problem(problem_id, problem_letter)
 
 	vim.cmd("silent only")
 
-	local ctx = problem.create_context(vim.g.cp_contest, problem_id, problem_letter, config)
+	vim.g.cp_contest_id = contest_id
+	vim.g.cp_problem_id = problem_id
+
+	local ctx = problem.create_context(vim.g.cp_contest, contest_id, problem_id, config)
 
 	local scrape_result = scrape.scrape_problem(ctx)
 
@@ -128,7 +131,7 @@ local function run_problem()
 	local contest_config = config.contests[vim.g.cp_contest]
 
 	vim.schedule(function()
-		local ctx = problem.create_context(vim.g.cp_contest, problem_id, nil, config)
+		local ctx = problem.create_context(vim.g.cp_contest, vim.g.cp_contest_id, vim.g.cp_problem_id, config)
 		execute.run_problem(ctx, contest_config, false)
 		vim.cmd.checktime()
 	end)
@@ -152,7 +155,7 @@ local function debug_problem()
 	local contest_config = config.contests[vim.g.cp_contest]
 
 	vim.schedule(function()
-		local ctx = problem.create_context(vim.g.cp_contest, problem_id, nil, config)
+		local ctx = problem.create_context(vim.g.cp_contest, vim.g.cp_contest_id, vim.g.cp_problem_id, config)
 		execute.run_problem(ctx, contest_config, true)
 		vim.cmd.checktime()
 	end)
@@ -171,7 +174,7 @@ local function diff_problem()
 			return
 		end
 
-		local ctx = problem.create_context(vim.g.cp_contest, problem_id, nil, config)
+		local ctx = problem.create_context(vim.g.cp_contest, vim.g.cp_contest_id, vim.g.cp_problem_id, config)
 
 		if vim.fn.filereadable(ctx.expected_file) == 0 then
 			logger.log(("No expected output file found: %s"):format(ctx.expected_file), vim.log.levels.ERROR)

@@ -1,7 +1,7 @@
 ---@class ProblemContext
 ---@field contest string Contest name (e.g. "atcoder", "codeforces")
----@field problem_id string Raw problem ID (e.g. "abc123", "1933")
----@field problem_letter? string Problem letter for AtCoder/Codeforces (e.g. "a", "b")
+---@field contest_id string Contest ID (e.g. "abc123", "1933")
+---@field problem_id? string Problem ID for AtCoder/Codeforces (e.g. "a", "b")
 ---@field source_file string Source filename (e.g. "abc123a.cpp")
 ---@field binary_file string Binary output path (e.g. "build/abc123a")
 ---@field input_file string Input test file path (e.g. "io/abc123a.in")
@@ -12,19 +12,19 @@
 local M = {}
 
 ---@param contest string
----@param problem_id string
----@param problem_letter? string
+---@param contest_id string
+---@param problem_id? string
 ---@param config cp.Config
 ---@return ProblemContext
-function M.create_context(contest, problem_id, problem_letter, config)
+function M.create_context(contest, contest_id, problem_id, config)
 	local filename_fn = config.filename or require("cp.config").default_filename
-	local source_file = filename_fn(contest, problem_id, problem_letter)
+	local source_file = filename_fn(contest, contest_id, problem_id)
 	local base_name = vim.fn.fnamemodify(source_file, ":t:r")
 
 	return {
 		contest = contest,
+		contest_id = contest_id,
 		problem_id = problem_id,
-		problem_letter = problem_letter,
 		source_file = source_file,
 		binary_file = ("build/%s"):format(base_name),
 		input_file = ("io/%s.in"):format(base_name),

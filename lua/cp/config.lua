@@ -87,11 +87,11 @@ function M.setup(user_config)
 	return config
 end
 
-local function default_filename(contest, problem_id, problem_letter)
-	local full_problem_id = problem_id:lower()
+local function default_filename(contest, contest_id, problem_id)
+	local full_problem_id = contest_id:lower()
 	if contest == "atcoder" or contest == "codeforces" then
-		if problem_letter then
-			full_problem_id = full_problem_id .. problem_letter:lower()
+		if problem_id then
+			full_problem_id = full_problem_id .. problem_id:lower()
 		end
 	end
 	return full_problem_id .. ".cc"
