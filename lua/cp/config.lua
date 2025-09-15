@@ -58,13 +58,7 @@
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 
 local M = {}
-
-local filetype_to_language = {
-	cc = "cpp",
-	c = "cpp",
-	py = "python",
-	py3 = "python",
-}
+local languages = require("cp.languages")
 
 ---@type cp.Config
 M.defaults = {
@@ -109,13 +103,13 @@ function M.setup(user_config)
 			for contest_name, contest_config in pairs(user_config.contests) do
 				for lang_name, lang_config in pairs(contest_config) do
 					if type(lang_config) == "table" and lang_config.extension then
-						if not vim.tbl_contains(vim.tbl_keys(filetype_to_language), lang_config.extension) then
+						if not vim.tbl_contains(vim.tbl_keys(languages.filetype_to_language), lang_config.extension) then
 							error(
 								("Invalid extension '%s' for language '%s' in contest '%s'. Valid extensions: %s"):format(
 									lang_config.extension,
 									lang_name,
 									contest_name,
-									table.concat(vim.tbl_keys(filetype_to_language), ", ")
+									table.concat(vim.tbl_keys(languages.filetype_to_language), ", ")
 								)
 							)
 						end
@@ -129,45 +123,20 @@ function M.setup(user_config)
 	return config
 end
 
----@param contest string
 ---@param contest_id string
 ---@param problem_id? string
----@param config cp.Config
----@param language? string
 ---@return string
-local function default_filename(contest, contest_id, problem_id, config, language)
+local function default_filename(contest_id, problem_id)
 	vim.validate({
-		contest = { contest, "string" },
 		contest_id = { contest_id, "string" },
 		problem_id = { problem_id, { "string", "nil" }, true },
-		config = { config, "table" },
-		language = { language, { "string", "nil" }, true },
 	})
 
-	local full_problem_id = contest_id:lower()
-	if contest == "atcoder" or contest == "codeforces" then
-		if problem_id then
-			full_problem_id = full_problem_id .. problem_id:lower()
-		end
+	if problem_id then
+		return problem_id:lower()
+	else
+		return contest_id:lower()
 	end
-
-	local contest_config = config.contests[contest]
-	if not contest_config then
-		error(("No contest config found for '%s'"):format(contest))
-	end
-
-	local target_language = language or contest_config.default_language
-	local language_config = contest_config[target_language]
-
-	if not language_config then
-		error(("No language config found for '%s' in contest '%s'"):format(target_language, contest))
-	end
-
-	if not language_config.extension then
-		error(("No extension configured for language '%s' in contest '%s'"):format(target_language, contest))
-	end
-
-	return full_problem_id .. "." .. language_config.extension
 end
 
 M.default_filename = default_filename

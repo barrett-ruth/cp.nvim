@@ -26,9 +26,30 @@ function M.create_context(contest, contest_id, problem_id, config, language)
 		language = { language, { "string", "nil" }, true },
 	})
 
-	local filename_fn = config.filename or require("cp.config").default_filename
-	local source_file = filename_fn(contest, contest_id, problem_id, config, language)
-	local base_name = vim.fn.fnamemodify(source_file, ":t:r")
+	local contest_config = config.contests[contest]
+	if not contest_config then
+		error(("No contest config found for '%s'"):format(contest))
+	end
+
+	local target_language = language or contest_config.default_language
+	local language_config = contest_config[target_language]
+	if not language_config then
+		error(("No language config found for '%s' in contest '%s'"):format(target_language, contest))
+	end
+	if not language_config.extension then
+		error(("No extension configured for language '%s' in contest '%s'"):format(target_language, contest))
+	end
+
+	local base_name
+	if config.filename then
+		local source_file = config.filename(contest, contest_id, problem_id, config, language)
+		base_name = vim.fn.fnamemodify(source_file, ":t:r")
+	else
+		local default_filename = require("cp.config").default_filename
+		base_name = default_filename(contest_id, problem_id)
+	end
+
+	local source_file = base_name .. "." .. language_config.extension
 
 	return {
 		contest = contest,
