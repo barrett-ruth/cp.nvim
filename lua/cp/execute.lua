@@ -1,4 +1,41 @@
 local M = {}
+local logger = require("cp.log")
+
+local filetype_to_language = {
+	cpp = "cpp",
+	cxx = "cpp",
+	cc = "cpp",
+	c = "cpp",
+	py = "python",
+	py3 = "python",
+}
+
+local function get_language_from_file(source_file)
+	local extension = vim.fn.fnamemodify(source_file, ":e")
+	local language = filetype_to_language[extension] or "cpp"
+	logger.log(("detected language: %s (extension: %s)"):format(language, extension))
+	return language
+end
+
+local function substitute_template(cmd_template, substitutions)
+	local result = {}
+	for _, arg in ipairs(cmd_template) do
+		local substituted = arg
+		for key, value in pairs(substitutions) do
+			substituted = substituted:gsub("{" .. key .. "}", value)
+		end
+		table.insert(result, substituted)
+	end
+	return result
+end
+
+local function build_command(cmd_template, executable, substitutions)
+	local cmd = substitute_template(cmd_template, substitutions)
+	if executable then
+		table.insert(cmd, 1, executable)
+	end
+	return cmd
+end
 
 local signal_codes = {
 	[128] = "SIGILL",
@@ -22,15 +59,34 @@ local function ensure_directories()
 	vim.system({ "mkdir", "-p", "build", "io" }):wait()
 end
 
-local function compile_cpp(source_path, binary_path, flags)
-	local compile_cmd = { "g++", unpack(flags), source_path, "-o", binary_path }
-	return vim.system(compile_cmd, { text = true }):wait()
+local function compile_generic(language_config, substitutions)
+	if not language_config.compile then
+		logger.log("no compilation step required")
+		return { code = 0, stderr = "" }
+	end
+
+	local compile_cmd = substitute_template(language_config.compile, substitutions)
+	logger.log(("compiling: %s"):format(table.concat(compile_cmd, " ")))
+
+	local start_time = vim.loop.hrtime()
+	local result = vim.system(compile_cmd, { text = true }):wait()
+	local compile_time = (vim.loop.hrtime() - start_time) / 1000000
+
+	if result.code == 0 then
+		logger.log(("compilation successful (%.1fms)"):format(compile_time))
+	else
+		logger.log(("compilation failed (%.1fms): %s"):format(compile_time, result.stderr), vim.log.levels.WARN)
+	end
+
+	return result
 end
 
-local function execute_binary(binary_path, input_data, timeout_ms)
+local function execute_command(cmd, input_data, timeout_ms)
+	logger.log(("executing: %s"):format(table.concat(cmd, " ")))
+
 	local start_time = vim.loop.hrtime()
 
-	local result = vim.system({ binary_path }, {
+	local result = vim.system(cmd, {
 		stdin = input_data,
 		timeout = timeout_ms,
 		text = true,
@@ -40,6 +96,14 @@ local function execute_binary(binary_path, input_data, timeout_ms)
 	local execution_time = (end_time - start_time) / 1000000
 
 	local actual_code = result.code or 0
+
+	if result.code == 124 then
+		logger.log(("execution timed out after %.1fms"):format(execution_time), vim.log.levels.WARN)
+	elseif actual_code ~= 0 then
+		logger.log(("execution failed (exit code %d, %.1fms)"):format(actual_code, execution_time), vim.log.levels.WARN)
+	else
+		logger.log(("execution successful (%.1fms)"):format(execution_time))
+	end
 
 	return {
 		stdout = result.stdout or "",
@@ -96,12 +160,27 @@ end
 function M.run_problem(ctx, contest_config, is_debug)
 	ensure_directories()
 
-	local flags = is_debug and contest_config.debug_flags or contest_config.compile_flags
+	local language = get_language_from_file(ctx.source_file)
+	local language_config = contest_config[language]
 
-	local compile_result = compile_cpp(ctx.source_file, ctx.binary_file, flags)
-	if compile_result.code ~= 0 then
-		vim.fn.writefile({ compile_result.stderr }, ctx.output_file)
+	if not language_config then
+		vim.fn.writefile({ "Error: No configuration for language: " .. language }, ctx.output_file)
 		return
+	end
+
+	local substitutions = {
+		source = ctx.source_file,
+		binary = ctx.binary_file,
+		version = tostring(language_config.version or ""),
+	}
+
+	local compile_cmd = is_debug and language_config.debug or language_config.compile
+	if compile_cmd then
+		local compile_result = compile_generic(language_config, substitutions)
+		if compile_result.code ~= 0 then
+			vim.fn.writefile({ compile_result.stderr }, ctx.output_file)
+			return
+		end
 	end
 
 	local input_data = ""
@@ -109,7 +188,8 @@ function M.run_problem(ctx, contest_config, is_debug)
 		input_data = table.concat(vim.fn.readfile(ctx.input_file), "\n") .. "\n"
 	end
 
-	local exec_result = execute_binary(ctx.binary_file, input_data, contest_config.timeout_ms)
+	local run_cmd = build_command(language_config.run, language_config.executable, substitutions)
+	local exec_result = execute_command(run_cmd, input_data, contest_config.timeout_ms)
 	local formatted_output = format_output(exec_result, ctx.expected_file, is_debug)
 
 	local output_buf = vim.fn.bufnr(ctx.output_file)

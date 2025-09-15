@@ -87,4 +87,26 @@ function M.clear_contest_data(platform, contest_id)
 	end
 end
 
+function M.get_test_cases(platform, contest_id, problem_id)
+	local problem_key = problem_id and (contest_id .. "_" .. problem_id) or contest_id
+	if not cache_data[platform] or not cache_data[platform][problem_key] then
+		return nil
+	end
+	return cache_data[platform][problem_key].test_cases
+end
+
+function M.set_test_cases(platform, contest_id, problem_id, test_cases)
+	local problem_key = problem_id and (contest_id .. "_" .. problem_id) or contest_id
+	if not cache_data[platform] then
+		cache_data[platform] = {}
+	end
+	if not cache_data[platform][problem_key] then
+		cache_data[platform][problem_key] = {}
+	end
+
+	cache_data[platform][problem_key].test_cases = test_cases
+	cache_data[platform][problem_key].test_cases_cached_at = os.time()
+	M.save()
+end
+
 return M

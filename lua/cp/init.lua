@@ -14,7 +14,6 @@ if not vim.fn.has("nvim-0.10.0") then
 	return {}
 end
 
-vim.g.cp = vim.g.cp or {}
 local user_config = {}
 local config = config_module.setup(user_config)
 logger.set_config(config)
@@ -28,6 +27,8 @@ local state = {
 	saved_layout = nil,
 	saved_session = nil,
 	temp_output = nil,
+	test_cases = nil,
+	test_states = {},
 }
 
 local platforms = { "atcoder", "codeforces", "cses" }
@@ -52,6 +53,9 @@ local function setup_problem(contest_id, problem_id)
 		logger.log("no platform set. run :CP <platform> <contest> first", vim.log.levels.ERROR)
 		return
 	end
+
+	local problem_name = state.platform == "cses" and contest_id or (contest_id .. (problem_id or ""))
+	logger.log(("setting up problem: %s"):format(problem_name))
 
 	local metadata_result = scrape.scrape_contest_metadata(state.platform, contest_id)
 	if not metadata_result.success then
@@ -79,6 +83,11 @@ local function setup_problem(contest_id, problem_id)
 	state.contest_id = contest_id
 	state.problem_id = problem_id
 
+	local cached_test_cases = cache.get_test_cases(state.platform, contest_id, problem_id)
+	if cached_test_cases then
+		state.test_cases = cached_test_cases
+	end
+
 	local ctx = problem.create_context(state.platform, contest_id, problem_id, config)
 
 	local scrape_result = scrape.scrape_problem(ctx)
@@ -86,9 +95,15 @@ local function setup_problem(contest_id, problem_id)
 	if not scrape_result.success then
 		logger.log("scraping failed: " .. (scrape_result.error or "unknown error"), vim.log.levels.WARN)
 		logger.log("you can manually add test cases to io/ directory", vim.log.levels.INFO)
+		state.test_cases = nil
 	else
 		local test_count = scrape_result.test_count or 0
 		logger.log(("scraped %d test case(s) for %s"):format(test_count, scrape_result.problem_id))
+		state.test_cases = scrape_result.test_cases
+
+		if scrape_result.test_cases then
+			cache.set_test_cases(state.platform, contest_id, problem_id, scrape_result.test_cases)
+		end
 	end
 
 	vim.cmd.e(ctx.source_file)
@@ -144,6 +159,8 @@ local function run_problem()
 		return
 	end
 
+	logger.log(("running problem: %s"):format(problem_id))
+
 	if config.hooks and config.hooks.before_run then
 		config.hooks.before_run(problem_id)
 	end
@@ -188,34 +205,44 @@ end
 
 local function diff_problem()
 	if state.diff_mode then
-		local tile_fn = config.tile or window.default_tile
-		window.restore_layout(state.saved_layout, tile_fn)
+		vim.cmd.diffoff()
+		if state.saved_session then
+			vim.fn.delete(state.saved_session)
+			state.saved_session = nil
+		end
+		if state.temp_output then
+			vim.fn.delete(state.temp_output)
+			state.temp_output = nil
+		end
 		state.diff_mode = false
-		state.saved_layout = nil
-		logger.log("exited diff mode")
-	else
-		local problem_id = get_current_problem()
-		if not problem_id then
-			return
-		end
-
-		local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
-
-		if vim.fn.filereadable(ctx.expected_file) == 0 then
-			logger.log(("No expected output file found: %s"):format(ctx.expected_file), vim.log.levels.ERROR)
-			return
-		end
-
-		state.saved_layout = window.save_layout()
-
-		local result = vim.system({ "awk", "/^\\[[^]]*\\]:/ {exit} {print}", ctx.output_file }, { text = true }):wait()
-		local actual_output = result.stdout
-
-		window.setup_diff_layout(actual_output, ctx.expected_file, ctx.input_file)
-
-		state.diff_mode = true
-		logger.log("entered diff mode")
+		return
 	end
+
+	local problem_id = get_current_problem()
+	if not problem_id then
+		return
+	end
+
+	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
+
+	if vim.fn.filereadable(ctx.expected_file) == 0 then
+		logger.log("no expected output file found", vim.log.levels.WARN)
+		return
+	end
+
+	if vim.fn.filereadable(ctx.output_file) == 0 then
+		logger.log("no output file found. run the problem first", vim.log.levels.WARN)
+		return
+	end
+
+	state.saved_session = vim.fn.tempname()
+	vim.cmd(("mksession! %s"):format(state.saved_session))
+
+	vim.cmd("silent only")
+	vim.cmd(("edit %s"):format(ctx.expected_file))
+	vim.cmd.diffthis()
+	vim.cmd(("vertical diffsplit %s"):format(ctx.output_file))
+	state.diff_mode = true
 end
 
 ---@param delta number 1 for next, -1 for prev
@@ -409,6 +436,14 @@ function M.setup(opts)
 		snippets.setup(config)
 		snippets_initialized = true
 	end
+end
+
+function M.get_current_context()
+	return {
+		platform = state.platform,
+		contest_id = state.contest_id,
+		problem_id = state.problem_id,
+	}
 end
 
 function M.is_initialized()

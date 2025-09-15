@@ -19,28 +19,35 @@ def scrape(url: str) -> list[tuple[str, str]]:
         input_sections = soup.find_all("div", class_="input")
         output_sections = soup.find_all("div", class_="output")
 
-        for inp_section, out_section in zip(input_sections, output_sections):
+        all_inputs = []
+        all_outputs = []
+
+        for inp_section in input_sections:
             inp_pre = inp_section.find("pre")
+            if inp_pre:
+                divs = inp_pre.find_all("div")
+                if divs:
+                    lines = [div.get_text().strip() for div in divs]
+                    text = "\n".join(lines)
+                else:
+                    text = inp_pre.get_text().replace("\r", "")
+                all_inputs.append(text)
+
+        for out_section in output_sections:
             out_pre = out_section.find("pre")
+            if out_pre:
+                divs = out_pre.find_all("div")
+                if divs:
+                    lines = [div.get_text().strip() for div in divs]
+                    text = "\n".join(lines)
+                else:
+                    text = out_pre.get_text().replace("\r", "")
+                all_outputs.append(text)
 
-            if inp_pre and out_pre:
-                input_lines: list[str] = []
-                output_lines: list[str] = []
-
-                input_text_raw = inp_pre.get_text().strip().replace("\r", "")
-                input_lines = [
-                    line.strip() for line in input_text_raw.split("\n") if line.strip()
-                ]
-
-                output_text_raw = out_pre.get_text().strip().replace("\r", "")
-                output_lines = [
-                    line.strip() for line in output_text_raw.split("\n") if line.strip()
-                ]
-
-                if input_lines and output_lines:
-                    input_text = "\n".join(input_lines)
-                    output_text = "\n".join(output_lines)
-                    tests.append((input_text, output_text))
+        if all_inputs and all_outputs:
+            combined_input = "\n".join(all_inputs)
+            combined_output = "\n".join(all_outputs)
+            tests.append((combined_input, combined_output))
 
         return tests
 
@@ -112,7 +119,7 @@ def main() -> None:
 
     if mode == "metadata":
         if len(sys.argv) != 3:
-            result = {
+            result: dict[str, str | bool] = {
                 "success": False,
                 "error": "Usage: codeforces.py metadata <contest_id>",
             }
@@ -123,14 +130,14 @@ def main() -> None:
         problems: list[dict[str, str]] = scrape_contest_problems(contest_id)
 
         if not problems:
-            result = {
+            result: dict[str, str | bool] = {
                 "success": False,
                 "error": f"No problems found for contest {contest_id}",
             }
             print(json.dumps(result))
             sys.exit(1)
 
-        result = {
+        result: dict[str, str | bool | list] = {
             "success": True,
             "contest_id": contest_id,
             "problems": problems,
@@ -139,7 +146,7 @@ def main() -> None:
 
     elif mode == "tests":
         if len(sys.argv) != 4:
-            result = {
+            result: dict[str, str | bool] = {
                 "success": False,
                 "error": "Usage: codeforces.py tests <contest_id> <problem_letter>",
             }
@@ -154,7 +161,7 @@ def main() -> None:
         tests: list[tuple[str, str]] = scrape_sample_tests(url)
 
         if not tests:
-            result = {
+            result: dict[str, str | bool] = {
                 "success": False,
                 "error": f"No tests found for {contest_id} {problem_letter}",
                 "problem_id": problem_id,
@@ -167,7 +174,7 @@ def main() -> None:
         for input_data, output_data in tests:
             test_cases.append({"input": input_data, "output": output_data})
 
-        result = {
+        result: dict[str, str | bool | list] = {
             "success": True,
             "problem_id": problem_id,
             "url": url,
@@ -176,7 +183,7 @@ def main() -> None:
         print(json.dumps(result))
 
     else:
-        result = {
+        result: dict[str, str | bool] = {
             "success": False,
             "error": f"Unknown mode: {mode}. Use 'metadata' or 'tests'",
         }

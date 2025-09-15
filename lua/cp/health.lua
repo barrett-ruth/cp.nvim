@@ -62,12 +62,14 @@ end
 local function check_config()
 	vim.health.ok("Plugin ready")
 
-	if vim.g.cp and vim.g.cp.platform then
-		local info = vim.g.cp.platform
-		if vim.g.cp.contest_id then
-			info = info .. " " .. vim.g.cp.contest_id
-			if vim.g.cp.problem_id then
-				info = info .. " " .. vim.g.cp.problem_id
+	local cp = require("cp")
+	local context = cp.get_current_context()
+	if context.platform then
+		local info = context.platform
+		if context.contest_id then
+			info = info .. " " .. context.contest_id
+			if context.problem_id then
+				info = info .. " " .. context.problem_id
 			end
 		end
 		vim.health.info("Current context: " .. info)

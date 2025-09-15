@@ -74,9 +74,9 @@ function M.scrape_contest_metadata(platform, contest_id)
 
 	local args
 	if platform == "cses" then
-		args = { "uv", "run", scraper_path, "metadata" }
+		args = { "uv", "run", "--directory", plugin_path, scraper_path, "metadata" }
 	else
-		args = { "uv", "run", scraper_path, "metadata", contest_id }
+		args = { "uv", "run", "--directory", plugin_path, scraper_path, "metadata", contest_id }
 	end
 
 	local result = vim.system(args, {
@@ -119,7 +119,7 @@ function M.scrape_contest_metadata(platform, contest_id)
 end
 
 ---@param ctx ProblemContext
----@return {success: boolean, problem_id: string, test_count?: number, url?: string, error?: string}
+---@return {success: boolean, problem_id: string, test_count?: number, test_cases?: table[], url?: string, error?: string}
 function M.scrape_problem(ctx)
 	ensure_io_directory()
 
@@ -152,9 +152,9 @@ function M.scrape_problem(ctx)
 
 	local args
 	if ctx.contest == "cses" then
-		args = { "uv", "run", scraper_path, "tests", ctx.contest_id }
+		args = { "uv", "run", "--directory", plugin_path, scraper_path, "tests", ctx.contest_id }
 	else
-		args = { "uv", "run", scraper_path, "tests", ctx.contest_id, ctx.problem_id }
+		args = { "uv", "run", "--directory", plugin_path, scraper_path, "tests", ctx.contest_id, ctx.problem_id }
 	end
 
 	local result = vim.system(args, {
@@ -185,30 +185,18 @@ function M.scrape_problem(ctx)
 	end
 
 	if data.test_cases and #data.test_cases > 0 then
-		local all_inputs = {}
-		local all_outputs = {}
+		local combined_input = data.test_cases[1].input:gsub("\r", "")
+		local combined_output = data.test_cases[1].output:gsub("\r", "")
 
-		for _, test_case in ipairs(data.test_cases) do
-			local input_lines = vim.split(test_case.input:gsub("\r", ""):gsub("\n+$", ""), "\n")
-			local output_lines = vim.split(test_case.output:gsub("\r", ""):gsub("\n+$", ""), "\n")
-
-			for _, line in ipairs(input_lines) do
-				table.insert(all_inputs, line)
-			end
-
-			for _, line in ipairs(output_lines) do
-				table.insert(all_outputs, line)
-			end
-		end
-
-		vim.fn.writefile(all_inputs, ctx.input_file)
-		vim.fn.writefile(all_outputs, ctx.expected_file)
+		vim.fn.writefile(vim.split(combined_input, "\n", true), ctx.input_file)
+		vim.fn.writefile(vim.split(combined_output, "\n", true), ctx.expected_file)
 	end
 
 	return {
 		success = true,
 		problem_id = ctx.problem_name,
 		test_count = data.test_cases and #data.test_cases or 0,
+		test_cases = data.test_cases,
 		url = data.url,
 	}
 end
