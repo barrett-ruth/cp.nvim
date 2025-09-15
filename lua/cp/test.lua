@@ -148,7 +148,7 @@ local function run_single_test_case(ctx, contest_config, test_case)
 	}
 end
 
----@param ctx table
+---@param ctx ProblemContext
 ---@param state table
 ---@return boolean
 function M.load_test_cases(ctx, state)
@@ -165,8 +165,8 @@ function M.load_test_cases(ctx, state)
 	return #test_cases > 0
 end
 
----@param ctx table
----@param contest_config table
+---@param ctx ProblemContext
+---@param contest_config ContestConfig
 ---@param index number
 ---@return boolean
 function M.run_test_case(ctx, contest_config, index)
