@@ -122,7 +122,6 @@ function M.restore_layout(state, tile_fn)
 	end
 end
 
-
 ---@param source_buf integer
 ---@param input_buf integer
 ---@param output_buf integer

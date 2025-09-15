@@ -192,7 +192,6 @@ local function debug_problem()
 	end)
 end
 
-
 ---@param delta number 1 for next, -1 for prev
 ---@param language? string
 local function navigate_problem(delta, language)
