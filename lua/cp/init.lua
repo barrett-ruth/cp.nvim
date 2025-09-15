@@ -456,7 +456,6 @@ function M.handle_command(opts)
 	end
 end
 
-
 function M.setup(opts)
 	opts = opts or {}
 	user_config = opts

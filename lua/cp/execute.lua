@@ -203,5 +203,4 @@ function M.run_problem(ctx, contest_config, is_debug)
 	end
 end
 
-
 return M
