@@ -115,7 +115,6 @@ def main() -> None:
         print(json.dumps(result))
         sys.exit(1)
 
-
     mode: str = sys.argv[1]
 
     if mode == "metadata":
