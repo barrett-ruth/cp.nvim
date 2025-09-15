@@ -10,102 +10,113 @@ function M.setup(config)
 
 	local s, i, fmt = ls.snippet, ls.insert_node, require("luasnip.extras.fmt").fmt
 
-	local default_snippets = {
-		s(
-			"codeforces",
-			fmt(
-				[[#include <bits/stdc++.h>
+	local filetype_to_language = {
+		cc = "cpp",
+		c = "cpp",
+		py = "python",
+		py3 = "python",
+	}
+
+	local language_to_filetype = {}
+	for ext, lang in pairs(filetype_to_language) do
+		language_to_filetype[lang] = ext
+	end
+
+	local template_definitions = {
+		cpp = {
+			codeforces = [[#include <bits/stdc++.h>
 
 using namespace std;
 
-void solve() {{
+void solve() {
   {}
-}}
+}
 
-int main() {{
+int main() {
   std::cin.tie(nullptr)->sync_with_stdio(false);
 
   int tc = 1;
   std::cin >> tc;
 
-  for (int t = 0; t < tc; ++t) {{
+  for (int t = 0; t < tc; ++t) {
     solve();
-  }}
+  }
 
   return 0;
-}}]],
-				{ i(1) }
-			)
-		),
+}]],
 
-		s(
-			"atcoder",
-			fmt(
-				[[#include <bits/stdc++.h>
+			atcoder = [[#include <bits/stdc++.h>
 
 using namespace std;
 
-void solve() {{
+void solve() {
   {}
-}}
+}
 
-int main() {{
+int main() {
   std::cin.tie(nullptr)->sync_with_stdio(false);
 
 #ifdef LOCAL
   int tc;
   std::cin >> tc;
 
-  for (int t = 0; t < tc; ++t) {{
+  for (int t = 0; t < tc; ++t) {
     solve();
-  }}
+  }
 #else
   solve();
 #endif
 
   return 0;
-}}]],
-				{ i(1) }
-			)
-		),
+}]],
 
-		s(
-			"cses",
-			fmt(
-				[[#include <bits/stdc++.h>
+			cses = [[#include <bits/stdc++.h>
 
 using namespace std;
 
-int main() {{
+int main() {
   std::cin.tie(nullptr)->sync_with_stdio(false);
 
   {}
 
   return 0;
-}}]],
-				{ i(1) }
-			)
-		),
+}]],
+		},
+
+		python = {
+			codeforces = [[def solve():
+    {}
+
+if __name__ == "__main__":
+    tc = int(input())
+    for _ in range(tc):
+        solve()]],
+
+			atcoder = [[def solve():
+    {}
+
+if __name__ == "__main__":
+    solve()]],
+
+			cses = [[{}]],
+		},
 	}
 
-	local default_map = {}
-	for _, snippet in pairs(default_snippets) do
-		default_map[snippet.trigger] = snippet
+	for language, filetype in pairs(language_to_filetype) do
+		local snippets = {}
+
+		for contest, template in pairs(template_definitions[language] or {}) do
+			table.insert(snippets, s(contest, fmt(template, { i(1) })))
+		end
+
+		for _, snippet in ipairs(config.snippets or {}) do
+			if snippet.filetype == filetype then
+				table.insert(snippets, snippet)
+			end
+		end
+
+		ls.add_snippets(filetype, snippets)
 	end
-
-	local user_map = {}
-	for _, snippet in pairs(config.snippets or {}) do
-		user_map[snippet.trigger] = snippet
-	end
-
-	local merged_map = vim.tbl_extend("force", default_map, user_map)
-
-	local all_snippets = {}
-	for _, snippet in pairs(merged_map) do
-		table.insert(all_snippets, snippet)
-	end
-
-	ls.add_snippets("cpp", all_snippets)
 end
 
 return M

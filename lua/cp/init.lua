@@ -48,7 +48,8 @@ end
 
 ---@param contest_id string
 ---@param problem_id? string
-local function setup_problem(contest_id, problem_id)
+---@param language? string
+local function setup_problem(contest_id, problem_id, language)
 	if not state.platform then
 		logger.log("no platform set. run :CP <platform> <contest> first", vim.log.levels.ERROR)
 		return
@@ -88,7 +89,7 @@ local function setup_problem(contest_id, problem_id)
 		state.test_cases = cached_test_cases
 	end
 
-	local ctx = problem.create_context(state.platform, contest_id, problem_id, config)
+	local ctx = problem.create_context(state.platform, contest_id, problem_id, config, language)
 
 	local scrape_result = scrape.scrape_problem(ctx)
 
@@ -305,33 +306,52 @@ end
 
 local function parse_command(args)
 	if #args == 0 then
-		return { type = "error", message = "Usage: :CP <platform> <contest> [problem] | :CP <action> | :CP <problem>" }
+		return { type = "error", message = "Usage: :CP <platform> <contest> [problem] [--lang=<language>] | :CP <action> | :CP <problem>" }
 	end
 
-	local first = args[1]
+	local language = nil
+
+	for i, arg in ipairs(args) do
+		local lang_match = arg:match("^--lang=(.+)$")
+		if lang_match then
+			language = lang_match
+		elseif arg == "--lang" then
+			if i + 1 <= #args then
+				language = args[i + 1]
+			else
+				return { type = "error", message = "--lang requires a value" }
+			end
+		end
+	end
+
+	local filtered_args = vim.tbl_filter(function(arg)
+		return not (arg:match("^--lang") or arg == language)
+	end, args)
+
+	local first = filtered_args[1]
 
 	if vim.tbl_contains(actions, first) then
 		return { type = "action", action = first }
 	end
 
 	if vim.tbl_contains(platforms, first) then
-		if #args == 1 then
-			return { type = "platform_only", platform = first }
-		elseif #args == 2 then
+		if #filtered_args == 1 then
+			return { type = "platform_only", platform = first, language = language }
+		elseif #filtered_args == 2 then
 			if first == "cses" then
-				return { type = "cses_problem", platform = first, problem = args[2] }
+				return { type = "cses_problem", platform = first, problem = filtered_args[2], language = language }
 			else
-				return { type = "contest_setup", platform = first, contest = args[2] }
+				return { type = "contest_setup", platform = first, contest = filtered_args[2], language = language }
 			end
-		elseif #args == 3 then
-			return { type = "full_setup", platform = first, contest = args[2], problem = args[3] }
+		elseif #filtered_args == 3 then
+			return { type = "full_setup", platform = first, contest = filtered_args[2], problem = filtered_args[3], language = language }
 		else
 			return { type = "error", message = "Too many arguments" }
 		end
 	end
 
 	if state.platform and state.contest_id then
-		return { type = "problem_switch", problem = first }
+		return { type = "problem_switch", problem = first, language = language }
 	end
 
 	return { type = "error", message = "Unknown command or no contest context" }
@@ -398,7 +418,7 @@ function M.handle_command(opts)
 				)
 			end
 
-			setup_problem(cmd.contest, cmd.problem)
+			setup_problem(cmd.contest, cmd.problem, cmd.language)
 		end
 		return
 	end
@@ -412,16 +432,16 @@ function M.handle_command(opts)
 					vim.log.levels.WARN
 				)
 			end
-			setup_problem(cmd.problem)
+			setup_problem(cmd.problem, nil, cmd.language)
 		end
 		return
 	end
 
 	if cmd.type == "problem_switch" then
 		if state.platform == "cses" then
-			setup_problem(cmd.problem)
+			setup_problem(cmd.problem, nil, cmd.language)
 		else
-			setup_problem(state.contest_id, cmd.problem)
+			setup_problem(state.contest_id, cmd.problem, cmd.language)
 		end
 		return
 	end
