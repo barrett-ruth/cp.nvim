@@ -278,6 +278,17 @@ function M.run_individual_tests(ctx, test_cases, contest_config, is_debug)
 		})
 	end
 
+	local passed = 0
+	local total_time = 0
+	for _, result in ipairs(results) do
+		if result.status == "PASS" then
+			passed = passed + 1
+		end
+		total_time = total_time + result.time_ms
+	end
+
+	logger.log(("test results: %d/%d passed, total execution time %.1fms"):format(passed, #results, total_time))
+
 	return {
 		compile_error = nil,
 		results = results,

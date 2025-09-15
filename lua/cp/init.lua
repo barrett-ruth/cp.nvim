@@ -83,6 +83,9 @@ local function setup_problem(contest_id, problem_id)
 		return
 	end
 
+	local problem_name = state.platform == "cses" and contest_id or (contest_id .. (problem_id or ""))
+	logger.log(("setting up problem: %s"):format(problem_name))
+
 	local metadata_result = scrape.scrape_contest_metadata(state.platform, contest_id)
 	if not metadata_result.success then
 		logger.log(
@@ -185,6 +188,8 @@ local function run_problem()
 		return
 	end
 
+	logger.log(("running problem: %s"):format(problem_id))
+
 	if config.hooks and config.hooks.before_run then
 		config.hooks.before_run(problem_id)
 	end
@@ -232,6 +237,8 @@ local function test_problem()
 	if not problem_id then
 		return
 	end
+
+	logger.log(("opening test viewer for problem: %s"):format(problem_id))
 
 	if not state.test_cases then
 		logger.log("No test case data available. Try scraping the problem first.", vim.log.levels.ERROR)
