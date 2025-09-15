@@ -18,129 +18,129 @@
 
 local M = {}
 
-local cache_file = vim.fn.stdpath('data') .. '/cp-nvim.json'
+local cache_file = vim.fn.stdpath("data") .. "/cp-nvim.json"
 local cache_data = {}
 
 ---@param platform string
 ---@return number?
 local function get_expiry_date(platform)
-    vim.validate({
-        platform = { platform, 'string' },
-    })
+	vim.validate({
+		platform = { platform, "string" },
+	})
 
-    if platform == 'cses' then
-        return os.time() + (30 * 24 * 60 * 60)
-    end
-    return nil
+	if platform == "cses" then
+		return os.time() + (30 * 24 * 60 * 60)
+	end
+	return nil
 end
 
 ---@param contest_data ContestData
 ---@param platform string
 ---@return boolean
 local function is_cache_valid(contest_data, platform)
-    vim.validate({
-        contest_data = { contest_data, 'table' },
-        platform = { platform, 'string' },
-    })
+	vim.validate({
+		contest_data = { contest_data, "table" },
+		platform = { platform, "string" },
+	})
 
-    if platform ~= 'cses' then
-        return true
-    end
+	if platform ~= "cses" then
+		return true
+	end
 
-    local expires_at = contest_data.expires_at
-    if not expires_at then
-        return false
-    end
+	local expires_at = contest_data.expires_at
+	if not expires_at then
+		return false
+	end
 
-    return os.time() < expires_at
+	return os.time() < expires_at
 end
 
 function M.load()
-    if vim.fn.filereadable(cache_file) == 0 then
-        cache_data = {}
-        return
-    end
+	if vim.fn.filereadable(cache_file) == 0 then
+		cache_data = {}
+		return
+	end
 
-    local content = vim.fn.readfile(cache_file)
-    if #content == 0 then
-        cache_data = {}
-        return
-    end
+	local content = vim.fn.readfile(cache_file)
+	if #content == 0 then
+		cache_data = {}
+		return
+	end
 
-    local ok, decoded = pcall(vim.json.decode, table.concat(content, '\n'))
-    if ok then
-        cache_data = decoded
-    else
-        cache_data = {}
-    end
+	local ok, decoded = pcall(vim.json.decode, table.concat(content, "\n"))
+	if ok then
+		cache_data = decoded
+	else
+		cache_data = {}
+	end
 end
 
 function M.save()
-    vim.fn.mkdir(vim.fn.fnamemodify(cache_file, ':h'), 'p')
-    local encoded = vim.json.encode(cache_data)
-    vim.fn.writefile(vim.split(encoded, '\n'), cache_file)
+	vim.fn.mkdir(vim.fn.fnamemodify(cache_file, ":h"), "p")
+	local encoded = vim.json.encode(cache_data)
+	vim.fn.writefile(vim.split(encoded, "\n"), cache_file)
 end
 
 ---@param platform string
 ---@param contest_id string
 ---@return ContestData?
 function M.get_contest_data(platform, contest_id)
-    vim.validate({
-        platform = { platform, 'string' },
-        contest_id = { contest_id, 'string' },
-    })
+	vim.validate({
+		platform = { platform, "string" },
+		contest_id = { contest_id, "string" },
+	})
 
-    if not cache_data[platform] then
-        return nil
-    end
+	if not cache_data[platform] then
+		return nil
+	end
 
-    local contest_data = cache_data[platform][contest_id]
-    if not contest_data then
-        return nil
-    end
+	local contest_data = cache_data[platform][contest_id]
+	if not contest_data then
+		return nil
+	end
 
-    if not is_cache_valid(contest_data, platform) then
-        return nil
-    end
+	if not is_cache_valid(contest_data, platform) then
+		return nil
+	end
 
-    return contest_data
+	return contest_data
 end
 
 ---@param platform string
 ---@param contest_id string
 ---@param problems Problem[]
 function M.set_contest_data(platform, contest_id, problems)
-    vim.validate({
-        platform = { platform, 'string' },
-        contest_id = { contest_id, 'string' },
-        problems = { problems, 'table' },
-    })
+	vim.validate({
+		platform = { platform, "string" },
+		contest_id = { contest_id, "string" },
+		problems = { problems, "table" },
+	})
 
-    if not cache_data[platform] then
-        cache_data[platform] = {}
-    end
+	if not cache_data[platform] then
+		cache_data[platform] = {}
+	end
 
-    cache_data[platform][contest_id] = {
-        problems = problems,
-        scraped_at = os.date('%Y-%m-%d'),
-        expires_at = get_expiry_date(platform),
-    }
+	cache_data[platform][contest_id] = {
+		problems = problems,
+		scraped_at = os.date("%Y-%m-%d"),
+		expires_at = get_expiry_date(platform),
+	}
 
-    M.save()
+	M.save()
 end
 
 ---@param platform string
 ---@param contest_id string
 function M.clear_contest_data(platform, contest_id)
-    vim.validate({
-        platform = { platform, 'string' },
-        contest_id = { contest_id, 'string' },
-    })
+	vim.validate({
+		platform = { platform, "string" },
+		contest_id = { contest_id, "string" },
+	})
 
-    if cache_data[platform] and cache_data[platform][contest_id] then
-        cache_data[platform][contest_id] = nil
-        M.save()
-    end
+	if cache_data[platform] and cache_data[platform][contest_id] then
+		cache_data[platform][contest_id] = nil
+		M.save()
+	end
 end
 
 ---@param platform string
@@ -148,18 +148,17 @@ end
 ---@param problem_id? string
 ---@return TestCase[]?
 function M.get_test_cases(platform, contest_id, problem_id)
-    vim.validate({
-        platform = { platform, 'string' },
-        contest_id = { contest_id, 'string' },
-        problem_id = { problem_id, { 'string', 'nil' }, true },
-    })
+	vim.validate({
+		platform = { platform, "string" },
+		contest_id = { contest_id, "string" },
+		problem_id = { problem_id, { "string", "nil" }, true },
+	})
 
-    local problem_key = problem_id and (contest_id .. '_' .. problem_id)
-        or contest_id
-    if not cache_data[platform] or not cache_data[platform][problem_key] then
-        return nil
-    end
-    return cache_data[platform][problem_key].test_cases
+	local problem_key = problem_id and (contest_id .. "_" .. problem_id) or contest_id
+	if not cache_data[platform] or not cache_data[platform][problem_key] then
+		return nil
+	end
+	return cache_data[platform][problem_key].test_cases
 end
 
 ---@param platform string
@@ -167,25 +166,24 @@ end
 ---@param problem_id? string
 ---@param test_cases TestCase[]
 function M.set_test_cases(platform, contest_id, problem_id, test_cases)
-    vim.validate({
-        platform = { platform, 'string' },
-        contest_id = { contest_id, 'string' },
-        problem_id = { problem_id, { 'string', 'nil' }, true },
-        test_cases = { test_cases, 'table' },
-    })
+	vim.validate({
+		platform = { platform, "string" },
+		contest_id = { contest_id, "string" },
+		problem_id = { problem_id, { "string", "nil" }, true },
+		test_cases = { test_cases, "table" },
+	})
 
-    local problem_key = problem_id and (contest_id .. '_' .. problem_id)
-        or contest_id
-    if not cache_data[platform] then
-        cache_data[platform] = {}
-    end
-    if not cache_data[platform][problem_key] then
-        cache_data[platform][problem_key] = {}
-    end
+	local problem_key = problem_id and (contest_id .. "_" .. problem_id) or contest_id
+	if not cache_data[platform] then
+		cache_data[platform] = {}
+	end
+	if not cache_data[platform][problem_key] then
+		cache_data[platform][problem_key] = {}
+	end
 
-    cache_data[platform][problem_key].test_cases = test_cases
-    cache_data[platform][problem_key].test_cases_cached_at = os.time()
-    M.save()
+	cache_data[platform][problem_key].test_cases = test_cases
+	cache_data[platform][problem_key].test_cases_cached_at = os.time()
+	M.save()
 end
 
 return M

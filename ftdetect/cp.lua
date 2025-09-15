@@ -1,6 +1,6 @@
 vim.filetype.add({
-    extension = {
-        cpin = 'cpin',
-        cpout = 'cpout',
-    },
+	extension = {
+		cpin = "cpin",
+		cpout = "cpout",
+	},
 })
