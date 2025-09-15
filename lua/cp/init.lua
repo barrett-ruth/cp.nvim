@@ -252,8 +252,7 @@ local function toggle_test_panel()
 		local time_text = test_case.time_ms and string.format("%.0fms", test_case.time_ms) or ""
 		local prefix = i == test_state.current_index and "> " or "  "
 
-		table.insert(test_lines, string.format("%s%d  %s %s    %s",
-			prefix, i, status_icon, status_text, time_text))
+		table.insert(test_lines, string.format("%s%d  %s %s    %s", prefix, i, status_icon, status_text, time_text))
 	end
 
 	table.insert(test_lines, "")

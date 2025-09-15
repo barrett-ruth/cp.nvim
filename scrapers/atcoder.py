@@ -171,11 +171,9 @@ def main() -> None:
 
         individual_test_cases: list[dict[str, str]] = []
         for index, (input_data, output_data) in enumerate(tests, 1):
-            individual_test_cases.append({
-                "index": index,
-                "input": input_data,
-                "output": output_data
-            })
+            individual_test_cases.append(
+                {"index": index, "input": input_data, "output": output_data}
+            )
 
         combined_input = "\n".join(tc["input"] for tc in individual_test_cases)
         combined_output = "\n".join(tc["output"] for tc in individual_test_cases)
@@ -185,10 +183,7 @@ def main() -> None:
             "problem_id": problem_id,
             "url": url,
             "test_cases": individual_test_cases,
-            "combined": {
-                "input": combined_input,
-                "output": combined_output
-            }
+            "combined": {"input": combined_input, "output": combined_output},
         }
         print(json.dumps(result))
 
