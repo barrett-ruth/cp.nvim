@@ -28,6 +28,10 @@ local test_panel_state = {
 	saved_layout = nil,
 }
 
+---@param index number
+---@param input string
+---@param expected string
+---@return TestCase
 local function create_test_case(index, input, expected)
 	return {
 		index = index,
@@ -40,6 +44,10 @@ local function create_test_case(index, input, expected)
 	}
 end
 
+---@param platform string
+---@param contest_id string
+---@param problem_id string?
+---@return TestCase[]
 local function parse_test_cases_from_cache(platform, contest_id, problem_id)
 	local cache = require("cp.cache")
 	cache.load()
@@ -59,6 +67,9 @@ local function parse_test_cases_from_cache(platform, contest_id, problem_id)
 	return test_cases
 end
 
+---@param input_file string
+---@param expected_file string
+---@return TestCase[]
 local function parse_test_cases_from_files(input_file, expected_file)
 	if vim.fn.filereadable(input_file) == 0 or vim.fn.filereadable(expected_file) == 0 then
 		return {}
@@ -70,6 +81,10 @@ local function parse_test_cases_from_files(input_file, expected_file)
 	return { create_test_case(1, input_content, expected_content) }
 end
 
+---@param ctx table
+---@param contest_config table
+---@param test_case TestCase
+---@return table
 local function run_single_test_case(ctx, contest_config, test_case)
 	local language = vim.fn.fnamemodify(ctx.source_file, ":e")
 	local constants = require("cp.constants")
@@ -133,6 +148,9 @@ local function run_single_test_case(ctx, contest_config, test_case)
 	}
 end
 
+---@param ctx table
+---@param state table
+---@return boolean
 function M.load_test_cases(ctx, state)
 	local test_cases = parse_test_cases_from_cache(state.platform, state.contest_id, state.problem_id)
 
@@ -147,6 +165,10 @@ function M.load_test_cases(ctx, state)
 	return #test_cases > 0
 end
 
+---@param ctx table
+---@param contest_config table
+---@param index number
+---@return boolean
 function M.run_test_case(ctx, contest_config, index)
 	local test_case = test_panel_state.test_cases[index]
 	if not test_case then
@@ -166,6 +188,9 @@ function M.run_test_case(ctx, contest_config, index)
 	return true
 end
 
+---@param ctx table
+---@param contest_config table
+---@return TestCase[]
 function M.run_all_test_cases(ctx, contest_config)
 	local results = {}
 	for i, _ in ipairs(test_panel_state.test_cases) do
@@ -175,6 +200,7 @@ function M.run_all_test_cases(ctx, contest_config)
 	return results
 end
 
+---@return TestPanelState
 function M.get_test_panel_state()
 	return test_panel_state
 end
