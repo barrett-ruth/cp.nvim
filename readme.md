@@ -56,6 +56,10 @@ follows:
 4. Submit the problem (on the remote!)
 
 
+## Similar Projects
+
+- [competitest.nvim](https://github.com/xeluxee/competitest.nvim)
+
 ## TODO
 
 - finer-tuned problem limits (i.e. per-problem codeforces time, memory)
