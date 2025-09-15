@@ -119,7 +119,7 @@ function M.scrape_contest_metadata(platform, contest_id)
 end
 
 ---@param ctx ProblemContext
----@return {success: boolean, problem_id: string, test_count?: number, url?: string, error?: string}
+---@return {success: boolean, problem_id: string, test_count?: number, test_cases?: table[], url?: string, error?: string}
 function M.scrape_problem(ctx)
 	ensure_io_directory()
 
