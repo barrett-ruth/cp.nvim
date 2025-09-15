@@ -258,10 +258,16 @@ local function toggle_test_panel()
 		toggle_test_panel()
 	end
 
-	vim.keymap.set("n", "j", function() navigate_test(1) end, { buffer = test_buf, silent = true })
-	vim.keymap.set("n", "k", function() navigate_test(-1) end, { buffer = test_buf, silent = true })
+	vim.keymap.set("n", "j", function()
+		navigate_test(1)
+	end, { buffer = test_buf, silent = true })
+	vim.keymap.set("n", "k", function()
+		navigate_test(-1)
+	end, { buffer = test_buf, silent = true })
 	vim.keymap.set("n", "<CR>", run_current_test, { buffer = test_buf, silent = true })
-	vim.keymap.set("n", "q", function() toggle_test_panel() end, { buffer = test_buf, silent = true })
+	vim.keymap.set("n", "q", function()
+		toggle_test_panel()
+	end, { buffer = test_buf, silent = true })
 
 	local test_state = test_module.get_test_panel_state()
 	local test_lines = {}
