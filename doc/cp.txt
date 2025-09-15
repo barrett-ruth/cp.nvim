@@ -52,8 +52,8 @@ Action Commands ~
 :CP debug                       Compile with debug flags and run current problem.
                                 Includes sanitizers and debug symbols.
 
-:CP test                        Open enhanced test viewer showing individual
-                                test case results with pass/fail status.
+:CP diff                        Enter diff mode to compare actual vs expected
+                                output. Run again to exit diff mode.
 
 Navigation Commands ~
 

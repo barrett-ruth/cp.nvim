@@ -19,28 +19,23 @@ def scrape(url: str) -> list[tuple[str, str]]:
         input_sections = soup.find_all("div", class_="input")
         output_sections = soup.find_all("div", class_="output")
 
-        for inp_section, out_section in zip(input_sections, output_sections):
+        all_inputs = []
+        all_outputs = []
+
+        for inp_section in input_sections:
             inp_pre = inp_section.find("pre")
+            if inp_pre:
+                all_inputs.append(inp_pre.get_text().strip().replace("\r", ""))
+
+        for out_section in output_sections:
             out_pre = out_section.find("pre")
+            if out_pre:
+                all_outputs.append(out_pre.get_text().strip().replace("\r", ""))
 
-            if inp_pre and out_pre:
-                input_lines: list[str] = []
-                output_lines: list[str] = []
-
-                input_text_raw = inp_pre.get_text().strip().replace("\r", "")
-                input_lines = [
-                    line.strip() for line in input_text_raw.split("\n") if line.strip()
-                ]
-
-                output_text_raw = out_pre.get_text().strip().replace("\r", "")
-                output_lines = [
-                    line.strip() for line in output_text_raw.split("\n") if line.strip()
-                ]
-
-                if input_lines and output_lines:
-                    input_text = "\n".join(input_lines)
-                    output_text = "\n".join(output_lines)
-                    tests.append((input_text, output_text))
+        if all_inputs and all_outputs:
+            combined_input = "\n".join(all_inputs)
+            combined_output = "\n".join(all_outputs)
+            tests.append((combined_input, combined_output))
 
         return tests
 

@@ -32,7 +32,7 @@ local state = {
 }
 
 local platforms = { "atcoder", "codeforces", "cses" }
-local actions = { "run", "debug", "test", "next", "prev" }
+local actions = { "run", "debug", "diff", "next", "prev" }
 
 local function get_current_problem_key()
 	if not state.platform or not state.contest_id then
@@ -232,91 +232,46 @@ local function debug_problem()
 	end)
 end
 
-local function test_problem()
+local function diff_problem()
+	if state.diff_mode then
+		vim.cmd.diffoff()
+		if state.saved_session then
+			vim.fn.delete(state.saved_session)
+			state.saved_session = nil
+		end
+		if state.temp_output then
+			vim.fn.delete(state.temp_output)
+			state.temp_output = nil
+		end
+		state.diff_mode = false
+		return
+	end
+
 	local problem_id = get_current_problem()
 	if not problem_id then
 		return
 	end
 
-	logger.log(("opening test viewer for problem: %s"):format(problem_id))
-
-	if not state.test_cases then
-		logger.log("No test case data available. Try scraping the problem first.", vim.log.levels.ERROR)
-		return
-	end
-
 	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
-	local contest_config = config.contests[state.platform]
 
-	local test_results = execute.run_individual_tests(ctx, state.test_cases, contest_config, false)
-
-	if test_results.compile_error then
-		logger.log("Compilation failed: " .. test_results.compile_error, vim.log.levels.ERROR)
+	if vim.fn.filereadable(ctx.expected_file) == 0 then
+		logger.log("no expected output file found", vim.log.levels.WARN)
 		return
 	end
 
-	local buf_name = ("cp-test://%s"):format(problem_id)
-	local existing_buf = vim.fn.bufnr(buf_name)
-	local buf
-
-	if existing_buf ~= -1 then
-		buf = existing_buf
-	else
-		buf = vim.api.nvim_create_buf(false, true)
-		vim.api.nvim_buf_set_name(buf, buf_name)
+	if vim.fn.filereadable(ctx.output_file) == 0 then
+		logger.log("no output file found. run the problem first", vim.log.levels.WARN)
+		return
 	end
 
-	local lines = {}
-	local passed = 0
-	local total = #test_results.results
+	state.saved_session = vim.fn.tempname()
+	vim.cmd(("mksession! %s"):format(state.saved_session))
 
-	local test_states = get_test_states()
-
-	for _, result in ipairs(test_results.results) do
-		local status_icon = result.status == "PASS" and "✓" or "✗"
-		local enabled_icon = test_states[result.id] and "[x]" or "[ ]"
-		local time_str = ("%.1fms"):format(result.time_ms)
-
-		table.insert(
-			lines,
-			("%s Test %d %s %s (%s) {{{"):format(enabled_icon, result.id, status_icon, result.status, time_str)
-		)
-		table.insert(lines, "    Input:")
-		for _, line in ipairs(vim.split(result.input, "\n")) do
-			table.insert(lines, "      " .. line)
-		end
-
-		if result.status == "PASS" then
-			table.insert(lines, "    Output:")
-			for _, line in ipairs(vim.split(result.actual, "\n")) do
-				table.insert(lines, "      " .. line)
-			end
-			passed = passed + 1
-		else
-			table.insert(lines, "    Expected:")
-			for _, line in ipairs(vim.split(result.expected, "\n")) do
-				table.insert(lines, "      " .. line)
-			end
-			table.insert(lines, "    Got:")
-			for _, line in ipairs(vim.split(result.actual, "\n")) do
-				table.insert(lines, "      " .. line)
-			end
-		end
-
-		table.insert(lines, "}}}")
-		table.insert(lines, "")
-	end
-
-	table.insert(lines, ("Summary: %d/%d passed"):format(passed, total))
-
-	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-	vim.bo[buf].filetype = "cp-test"
-	vim.bo[buf].modifiable = false
-
-	vim.cmd.split()
-	vim.api.nvim_set_current_buf(buf)
-
-	logger.log(("Test results: %d/%d passed"):format(passed, total))
+	vim.cmd("silent only")
+	vim.cmd(("edit %s"):format(ctx.expected_file))
+	vim.cmd.diffthis()
+	vim.cmd(("vertical diffsplit %s"):format(ctx.output_file))
+	state.diff_mode = true
 end
 
 ---@param delta number 1 for next, -1 for prev
@@ -424,8 +379,8 @@ function M.handle_command(opts)
 			run_problem()
 		elseif cmd.action == "debug" then
 			debug_problem()
-		elseif cmd.action == "test" then
-			test_problem()
+		elseif cmd.action == "diff" then
+			diff_problem()
 		elseif cmd.action == "next" then
 			navigate_problem(1)
 		elseif cmd.action == "prev" then
@@ -501,80 +456,6 @@ function M.handle_command(opts)
 	end
 end
 
-function M.toggle_test(test_id)
-	local test_states = get_test_states()
-	test_states[test_id] = not test_states[test_id]
-
-	local problem_key = get_current_problem_key()
-	if problem_key then
-		state.test_states[problem_key] = test_states
-	end
-
-	test_problem()
-end
-
-function M.run_single_test(test_id)
-	if not state.test_cases or not state.test_cases[test_id] then
-		logger.log("Test case not found", vim.log.levels.ERROR)
-		return
-	end
-
-	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
-	local contest_config = config.contests[state.platform]
-
-	local single_test = { state.test_cases[test_id] }
-	local test_results = execute.run_individual_tests(ctx, single_test, contest_config, false)
-
-	if test_results.compile_error then
-		logger.log("Compilation failed: " .. test_results.compile_error, vim.log.levels.ERROR)
-		return
-	end
-
-	local result = test_results.results[1]
-	if result then
-		logger.log(("Test %d: %s (%.1fms)"):format(test_id, result.status, result.time_ms))
-	end
-end
-
-function M.run_all_enabled_tests()
-	if not state.test_cases then
-		logger.log("No test cases available", vim.log.levels.ERROR)
-		return
-	end
-
-	local test_states = get_test_states()
-	local enabled_tests = {}
-
-	for i, test_case in ipairs(state.test_cases) do
-		if test_states[i] then
-			table.insert(enabled_tests, test_case)
-		end
-	end
-
-	if #enabled_tests == 0 then
-		logger.log("No tests enabled", vim.log.levels.WARN)
-		return
-	end
-
-	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
-	local contest_config = config.contests[state.platform]
-
-	local test_results = execute.run_individual_tests(ctx, enabled_tests, contest_config, false)
-
-	if test_results.compile_error then
-		logger.log("Compilation failed: " .. test_results.compile_error, vim.log.levels.ERROR)
-		return
-	end
-
-	local passed = 0
-	for _, result in ipairs(test_results.results) do
-		if result.status == "PASS" then
-			passed = passed + 1
-		end
-	end
-
-	logger.log(("Enabled tests: %d/%d passed"):format(passed, #enabled_tests))
-end
 
 function M.setup(opts)
 	opts = opts or {}

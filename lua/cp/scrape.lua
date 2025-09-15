@@ -185,29 +185,11 @@ function M.scrape_problem(ctx)
 	end
 
 	if data.test_cases and #data.test_cases > 0 then
-		local all_inputs = {}
-		local all_outputs = {}
+		local combined_input = data.test_cases[1].input:gsub("\r", "")
+		local combined_output = data.test_cases[1].output:gsub("\r", "")
 
-		for i, test_case in ipairs(data.test_cases) do
-			local input_lines = vim.split(test_case.input:gsub("\r", ""):gsub("\n+$", ""), "\n")
-			local output_lines = vim.split(test_case.output:gsub("\r", ""):gsub("\n+$", ""), "\n")
-
-			for _, line in ipairs(input_lines) do
-				table.insert(all_inputs, line)
-			end
-
-			for _, line in ipairs(output_lines) do
-				table.insert(all_outputs, line)
-			end
-
-			if i < #data.test_cases then
-				table.insert(all_inputs, "")
-				table.insert(all_outputs, "")
-			end
-		end
-
-		vim.fn.writefile(all_inputs, ctx.input_file)
-		vim.fn.writefile(all_outputs, ctx.expected_file)
+		vim.fn.writefile(vim.split(combined_input, "\n"), ctx.input_file)
+		vim.fn.writefile(vim.split(combined_output, "\n"), ctx.expected_file)
 	end
 
 	return {
