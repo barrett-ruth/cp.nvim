@@ -188,7 +188,7 @@ function M.scrape_problem(ctx)
 		local all_inputs = {}
 		local all_outputs = {}
 
-		for _, test_case in ipairs(data.test_cases) do
+		for i, test_case in ipairs(data.test_cases) do
 			local input_lines = vim.split(test_case.input:gsub("\r", ""):gsub("\n+$", ""), "\n")
 			local output_lines = vim.split(test_case.output:gsub("\r", ""):gsub("\n+$", ""), "\n")
 
@@ -198,6 +198,11 @@ function M.scrape_problem(ctx)
 
 			for _, line in ipairs(output_lines) do
 				table.insert(all_outputs, line)
+			end
+
+			if i < #data.test_cases then
+				table.insert(all_inputs, "")
+				table.insert(all_outputs, "")
 			end
 		end
 
