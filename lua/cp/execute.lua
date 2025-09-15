@@ -8,8 +8,8 @@
 local M = {}
 local logger = require("cp.log")
 
-local languages = require("cp.languages")
-local filetype_to_language = languages.filetype_to_language
+local constants = require("cp.constants")
+local filetype_to_language = constants.filetype_to_language
 
 ---@param source_file string
 ---@param contest_config table
