@@ -81,8 +81,8 @@ local function parse_test_cases_from_files(input_file, expected_file)
 	return { create_test_case(1, input_content, expected_content) }
 end
 
----@param ctx table
----@param contest_config table
+---@param ctx ProblemContext
+---@param contest_config ContestConfig
 ---@param test_case TestCase
 ---@return table
 local function run_single_test_case(ctx, contest_config, test_case)
