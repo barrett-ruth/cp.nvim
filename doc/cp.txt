@@ -102,8 +102,11 @@ Optional configuration with lazy.nvim: >
             codeforces = { cpp = { version = 23 } },
           },
           hooks = {
-            before_run = function(problem_id) vim.cmd.w() end,
-            before_debug = function(problem_id) ... end,
+            before_run = function(ctx) vim.cmd.w() end,
+            before_debug = function(ctx)
+              -- ctx.problem_id, ctx.platform, ctx.source_file, etc.
+              vim.cmd.w()
+            end,
           },
           snippets = { ... },  -- LuaSnip snippets
           tile = function(source_buf, input_buf, output_buf) ... end,
@@ -136,10 +139,20 @@ snippets                        LuaSnip snippets by contest type
 
 hooks                           Functions called at specific events
   before_run                    Called before :CP run
-                                  function(problem_id)
+                                  function(ctx)
+                                ctx contains:
+                                  - problem_id: string
+                                  - platform: string (atcoder/codeforces/cses)
+                                  - contest_id: string
+                                  - source_file: string (path to source)
+                                  - input_file: string (path to .cpin)
+                                  - output_file: string (path to .cpout)
+                                  - expected_file: string (path to .expected)
+                                  - contest_config: table (language configs)
                                 (default: nil, do nothing)
   before_debug                  Called before :CP debug
-                                  function(problem_id)
+                                  function(ctx)
+                                Same ctx as before_run
                                 (default: nil, do nothing)
 
 debug                           Show info messages during operation

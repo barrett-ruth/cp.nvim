@@ -162,19 +162,28 @@ local function run_problem()
 
 	logger.log(("running problem: %s"):format(problem_id))
 
-	if config.hooks and config.hooks.before_run then
-		config.hooks.before_run(problem_id)
-	end
-
 	if not state.platform then
 		logger.log("no platform set", vim.log.levels.ERROR)
 		return
 	end
 
 	local contest_config = config.contests[state.platform]
+	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
+
+	if config.hooks and config.hooks.before_run then
+		config.hooks.before_run({
+			problem_id = problem_id,
+			platform = state.platform,
+			contest_id = state.contest_id,
+			source_file = ctx.source_file,
+			input_file = ctx.input_file,
+			output_file = ctx.output_file,
+			expected_file = ctx.expected_file,
+			contest_config = contest_config,
+		})
+	end
 
 	vim.schedule(function()
-		local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
 		execute.run_problem(ctx, contest_config, false)
 		vim.cmd.checktime()
 	end)
@@ -186,19 +195,28 @@ local function debug_problem()
 		return
 	end
 
-	if config.hooks and config.hooks.before_debug then
-		config.hooks.before_debug(problem_id)
-	end
-
 	if not state.platform then
 		logger.log("no platform set", vim.log.levels.ERROR)
 		return
 	end
 
 	local contest_config = config.contests[state.platform]
+	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
+
+	if config.hooks and config.hooks.before_debug then
+		config.hooks.before_debug({
+			problem_id = problem_id,
+			platform = state.platform,
+			contest_id = state.contest_id,
+			source_file = ctx.source_file,
+			input_file = ctx.input_file,
+			output_file = ctx.output_file,
+			expected_file = ctx.expected_file,
+			contest_config = contest_config,
+		})
+	end
 
 	vim.schedule(function()
-		local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
 		execute.run_problem(ctx, contest_config, true)
 		vim.cmd.checktime()
 	end)

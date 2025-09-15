@@ -18,6 +18,14 @@ local M = {}
 ---@param language? string
 ---@return ProblemContext
 function M.create_context(contest, contest_id, problem_id, config, language)
+	vim.validate({
+		contest = { contest, "string" },
+		contest_id = { contest_id, "string" },
+		problem_id = { problem_id, { "string", "nil" }, true },
+		config = { config, "table" },
+		language = { language, { "string", "nil" }, true },
+	})
+
 	local filename_fn = config.filename or require("cp.config").default_filename
 	local source_file = filename_fn(contest, contest_id, problem_id, config, language)
 	local base_name = vim.fn.fnamemodify(source_file, ":t:r")

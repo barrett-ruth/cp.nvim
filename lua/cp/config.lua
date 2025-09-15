@@ -12,10 +12,24 @@
 ---@field default_language string
 ---@field timeout_ms number
 
+---@class HookContext
+---@field problem_id string
+---@field platform string
+---@field contest_id string
+---@field source_file string
+---@field input_file string
+---@field output_file string
+---@field expected_file string
+---@field contest_config table
+
+---@class Hooks
+---@field before_run? fun(ctx: HookContext)
+---@field before_debug? fun(ctx: HookContext)
+
 ---@class cp.Config
 ---@field contests table<string, ContestConfig>
 ---@field snippets table[]
----@field hooks table
+---@field hooks Hooks
 ---@field debug boolean
 ---@field tile? fun(source_buf: number, input_buf: number, output_buf: number)
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
