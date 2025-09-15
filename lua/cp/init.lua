@@ -112,9 +112,6 @@ local function setup_problem(contest_id, problem_id, language)
 	if vim.api.nvim_buf_get_lines(0, 0, -1, true)[1] == "" then
 		local has_luasnip, luasnip = pcall(require, "luasnip")
 		if has_luasnip then
-			local languages = require("cp.languages")
-			local file_ext = vim.fn.expand("%:e")
-			local language = languages.filetype_to_language[file_ext] or "cpp"
 			local prefixed_trigger = ("cp.nvim/%s.%s"):format(state.platform, language)
 
 			vim.api.nvim_buf_set_lines(0, 0, -1, false, { prefixed_trigger })
