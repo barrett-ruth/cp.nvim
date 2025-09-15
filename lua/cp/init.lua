@@ -192,60 +192,6 @@ local function debug_problem()
 	end)
 end
 
-local function diff_problem()
-	if state.diff_mode then
-		vim.cmd.diffoff()
-		if state.saved_session then
-			vim.cmd(("source %s"):format(state.saved_session))
-			vim.fn.delete(state.saved_session)
-			state.saved_session = nil
-		end
-		if state.temp_output then
-			vim.fn.delete(state.temp_output)
-			state.temp_output = nil
-		end
-		state.diff_mode = false
-		return
-	end
-
-	local problem_id = get_current_problem()
-	if not problem_id then
-		return
-	end
-
-	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
-
-	if vim.fn.filereadable(ctx.expected_file) == 0 then
-		logger.log("no expected output file found", vim.log.levels.WARN)
-		return
-	end
-
-	if vim.fn.filereadable(ctx.output_file) == 0 then
-		logger.log("no output file found. run the problem first", vim.log.levels.WARN)
-		return
-	end
-
-	local output_lines = vim.fn.readfile(ctx.output_file)
-	local actual_output = {}
-	for i = 1, #output_lines do
-		if output_lines[i]:match("^%[code%]:") then
-			break
-		end
-		table.insert(actual_output, output_lines[i])
-	end
-
-	state.temp_output = vim.fn.tempname()
-	vim.fn.writefile(actual_output, state.temp_output)
-
-	state.saved_session = vim.fn.tempname()
-	vim.cmd(("mksession! %s"):format(state.saved_session))
-
-	vim.cmd("silent only")
-	vim.cmd(("edit %s"):format(state.temp_output))
-	vim.cmd.diffthis()
-	vim.cmd(("vertical diffsplit %s"):format(ctx.expected_file))
-	state.diff_mode = true
-end
 
 ---@param delta number 1 for next, -1 for prev
 ---@param language? string
@@ -381,8 +327,6 @@ function M.handle_command(opts)
 			run_problem()
 		elseif cmd.action == "debug" then
 			debug_problem()
-		elseif cmd.action == "diff" then
-			diff_problem()
 		elseif cmd.action == "next" then
 			navigate_problem(1, cmd.language)
 		elseif cmd.action == "prev" then
