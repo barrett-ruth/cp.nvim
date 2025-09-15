@@ -9,9 +9,10 @@ https://private-user-images.githubusercontent.com/62671086/489116291-391976d1-c2
 ## Features
 
 - Support for multiple online judges ([AtCoder](https://atcoder.jp/), [Codeforces](https://codeforces.com/), [CSES](https://cses.fi))
+- Multi-language support (C++, Python)
 - Automatic problem scraping and test case management
 - Integrated build, run, and debug commands
-- Diff mode for comparing output with expected results
+- Enhanced test viewer with individual test case management
 - LuaSnip integration for contest-specific snippets
 
 ## Requirements

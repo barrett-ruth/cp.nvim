@@ -9,12 +9,13 @@ cp.nvim is a competitive programming plugin that automates problem setup,
 compilation, and testing workflow for online judges.
 
 Supported platforms: AtCoder, Codeforces, CSES
+Supported languages: C++, Python
 
 REQUIREMENTS						*cp-requirements*
 
 - Neovim 0.10.0+
 - uv package manager (https://docs.astral.sh/uv/)
-- C++ compiler (g++/clang++)
+- Language runtime/compiler (g++, python3)
 
 Optional:
 - LuaSnip for template expansion (https://github.com/L3MON4D3/LuaSnip)
@@ -51,8 +52,8 @@ Action Commands ~
 :CP debug                       Compile with debug flags and run current problem.
                                 Includes sanitizers and debug symbols.
 
-:CP diff                        Enter diff mode to compare actual vs expected
-                                output. Run again to exit diff mode.
+:CP test                        Open enhanced test viewer showing individual
+                                test case results with pass/fail status.
 
 Navigation Commands ~
 

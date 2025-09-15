@@ -7,10 +7,6 @@ local filetype_to_language = {
 	c = "cpp",
 	py = "python",
 	py3 = "python",
-	rs = "rust",
-	java = "java",
-	js = "javascript",
-	go = "go",
 }
 
 local function get_language_from_file(source_file)
@@ -138,12 +134,27 @@ end
 function M.run_problem(ctx, contest_config, is_debug)
 	ensure_directories()
 
-	local flags = is_debug and contest_config.debug_flags or contest_config.compile_flags
+	local language = get_language_from_file(ctx.source_file)
+	local language_config = contest_config[language]
 
-	local compile_result = compile_cpp(ctx.source_file, ctx.binary_file, flags)
-	if compile_result.code ~= 0 then
-		vim.fn.writefile({ compile_result.stderr }, ctx.output_file)
+	if not language_config then
+		vim.fn.writefile({ "Error: No configuration for language: " .. language }, ctx.output_file)
 		return
+	end
+
+	local substitutions = {
+		source = ctx.source_file,
+		binary = ctx.binary_file,
+		version = tostring(language_config.version or ""),
+	}
+
+	local compile_cmd = is_debug and language_config.debug or language_config.compile
+	if compile_cmd then
+		local compile_result = compile_generic(language_config, substitutions)
+		if compile_result.code ~= 0 then
+			vim.fn.writefile({ compile_result.stderr }, ctx.output_file)
+			return
+		end
 	end
 
 	local input_data = ""
@@ -151,7 +162,8 @@ function M.run_problem(ctx, contest_config, is_debug)
 		input_data = table.concat(vim.fn.readfile(ctx.input_file), "\n") .. "\n"
 	end
 
-	local exec_result = execute_binary(ctx.binary_file, input_data, contest_config.timeout_ms)
+	local run_cmd = build_command(language_config.run, language_config.executable, substitutions)
+	local exec_result = execute_command(run_cmd, input_data, contest_config.timeout_ms)
 	local formatted_output = format_output(exec_result, ctx.expected_file, is_debug)
 
 	local output_buf = vim.fn.bufnr(ctx.output_file)
@@ -172,18 +184,38 @@ function M.run_individual_tests(ctx, test_cases, contest_config, is_debug)
 		return {}
 	end
 
-	local flags = is_debug and contest_config.debug_flags or contest_config.compile_flags
-	local compile_result = compile_cpp(ctx.source_file, ctx.binary_file, flags)
-	if compile_result.code ~= 0 then
+	local language = get_language_from_file(ctx.source_file)
+	local language_config = contest_config[language]
+
+	if not language_config then
 		return {
-			compile_error = compile_result.stderr,
+			compile_error = "Error: No configuration for language: " .. language,
 			results = {},
 		}
 	end
 
+	local substitutions = {
+		source = ctx.source_file,
+		binary = ctx.binary_file,
+		version = tostring(language_config.version or ""),
+	}
+
+	local compile_cmd = is_debug and language_config.debug or language_config.compile
+	if compile_cmd then
+		local compile_result = compile_generic(language_config, substitutions)
+		if compile_result.code ~= 0 then
+			return {
+				compile_error = compile_result.stderr,
+				results = {},
+			}
+		end
+	end
+
+	local run_cmd = build_command(language_config.run, language_config.executable, substitutions)
+
 	local results = {}
 	for i, test_case in ipairs(test_cases) do
-		local exec_result = execute_binary(ctx.binary_file, test_case.input, contest_config.timeout_ms)
+		local exec_result = execute_command(run_cmd, test_case.input, contest_config.timeout_ms)
 
 		local actual_lines = vim.split(exec_result.stdout, "\n")
 		while #actual_lines > 0 and actual_lines[#actual_lines] == "" do
