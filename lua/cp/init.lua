@@ -135,8 +135,9 @@ local function setup_problem(contest_id, problem_id, language)
 		end
 	end
 
+	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config, language)
+
 	if config.hooks and config.hooks.setup_code then
-		local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
 		config.hooks.setup_code(ctx)
 	end
 
