@@ -214,6 +214,7 @@ local function diff_problem()
 	if state.diff_mode then
 		vim.cmd.diffoff()
 		if state.saved_session then
+			vim.cmd(("source %s"):format(state.saved_session))
 			vim.fn.delete(state.saved_session)
 			state.saved_session = nil
 		end
@@ -242,13 +243,25 @@ local function diff_problem()
 		return
 	end
 
+	local output_lines = vim.fn.readfile(ctx.output_file)
+	local actual_output = {}
+	for i = 1, #output_lines do
+		if output_lines[i]:match("^%[code%]:") then
+			break
+		end
+		table.insert(actual_output, output_lines[i])
+	end
+
+	state.temp_output = vim.fn.tempname()
+	vim.fn.writefile(actual_output, state.temp_output)
+
 	state.saved_session = vim.fn.tempname()
 	vim.cmd(("mksession! %s"):format(state.saved_session))
 
 	vim.cmd("silent only")
-	vim.cmd(("edit %s"):format(ctx.expected_file))
+	vim.cmd(("edit %s"):format(state.temp_output))
 	vim.cmd.diffthis()
-	vim.cmd(("vertical diffsplit %s"):format(ctx.output_file))
+	vim.cmd(("vertical diffsplit %s"):format(ctx.expected_file))
 	state.diff_mode = true
 end
 
