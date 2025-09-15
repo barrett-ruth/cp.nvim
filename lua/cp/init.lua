@@ -206,8 +206,21 @@ local function toggle_test_panel()
 		return
 	end
 
+	if state.platform == "codeforces" then
+		logger.log("test panel not yet supported for codeforces", vim.log.levels.ERROR)
+		return
+	end
+
 	local problem_id = get_current_problem()
 	if not problem_id then
+		return
+	end
+
+	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
+	local test_module = require("cp.test")
+
+	if not test_module.load_test_cases(ctx, state) then
+		logger.log("no test cases found", vim.log.levels.WARN)
 		return
 	end
 
@@ -221,24 +234,59 @@ local function toggle_test_panel()
 	vim.bo.filetype = "cptest"
 	vim.bo.bufhidden = "wipe"
 
-	local test_lines = {
-		"  1  ✓ PASS    12ms",
-		"  2  ✗ FAIL    45ms",
-		"> 3  ✓ PASS     8ms",
-		"  4  ? PENDING",
-		"",
-		"── Test 3 ──",
-		"Input:     │ Expected:   │ Actual:",
-		"5 3        │ 8           │ 8",
-		"",
-		"j/k: navigate  <space>: toggle  <enter>: run  q: quit",
-	}
+	local test_state = test_module.get_test_panel_state()
+	local test_lines = {}
+
+	for i, test_case in ipairs(test_state.test_cases) do
+		local status_icon = "?"
+		local status_text = "PENDING"
+
+		if test_case.status == "pass" then
+			status_icon = "✓"
+			status_text = "PASS"
+		elseif test_case.status == "fail" then
+			status_icon = "✗"
+			status_text = "FAIL"
+		end
+
+		local time_text = test_case.time_ms and string.format("%.0fms", test_case.time_ms) or ""
+		local prefix = i == test_state.current_index and "> " or "  "
+
+		table.insert(test_lines, string.format("%s%d  %s %s    %s",
+			prefix, i, status_icon, status_text, time_text))
+	end
+
+	table.insert(test_lines, "")
+
+	local current_test = test_state.test_cases[test_state.current_index]
+	if current_test then
+		table.insert(test_lines, string.format("── Test %d ──", test_state.current_index))
+		table.insert(test_lines, "Input:")
+		for line in current_test.input:gmatch("[^\n]*") do
+			table.insert(test_lines, "  " .. line)
+		end
+
+		table.insert(test_lines, "Expected:")
+		for line in current_test.expected:gmatch("[^\n]*") do
+			table.insert(test_lines, "  " .. line)
+		end
+
+		if current_test.actual then
+			table.insert(test_lines, "Actual:")
+			for line in current_test.actual:gmatch("[^\n]*") do
+				table.insert(test_lines, "  " .. line)
+			end
+		end
+	end
+
+	table.insert(test_lines, "")
+	table.insert(test_lines, "j/k: navigate  <space>: toggle  <enter>: run  q: quit")
 
 	vim.api.nvim_buf_set_lines(test_buf, 0, -1, false, test_lines)
 	vim.bo.modifiable = false
 
 	state.test_panel_active = true
-	logger.log("test panel opened")
+	logger.log(string.format("test panel opened (%d test cases)", #test_state.test_cases))
 end
 
 ---@param delta number 1 for next, -1 for prev

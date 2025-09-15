@@ -45,10 +45,10 @@ end, {
 
 		if num_args == 2 then
 			local candidates = { "--lang" }
-			vim.list_extend(candidates, actions)
 			local cp = require("cp")
 			local context = cp.get_current_context()
 			if context.platform and context.contest_id then
+				vim.list_extend(candidates, actions)
 				local cache = require("cp.cache")
 				cache.load()
 				local contest_data = cache.get_contest_data(context.platform, context.contest_id)

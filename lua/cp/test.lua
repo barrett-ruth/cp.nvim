@@ -1,7 +1,24 @@
+---@class TestCase
+---@field index number
+---@field input string
+---@field expected string
+---@field status "pending"|"pass"|"fail"|"running"
+---@field actual string?
+---@field time_ms number?
+---@field error string?
+
+---@class TestPanelState
+---@field test_cases TestCase[]
+---@field current_index number
+---@field buffer number?
+---@field namespace number?
+---@field is_active boolean
+---@field saved_layout table?
+
 local M = {}
 local logger = require("cp.log")
-local execute = require("cp.execute")
 
+---@type TestPanelState
 local test_panel_state = {
 	test_cases = {},
 	current_index = 1,
@@ -33,8 +50,10 @@ local function parse_test_cases_from_cache(platform, contest_id, problem_id)
 	end
 
 	local test_cases = {}
+
 	for i, test_case in ipairs(cached_test_cases) do
-		table.insert(test_cases, create_test_case(i, test_case.input, test_case.output))
+		local index = test_case.index or i
+		table.insert(test_cases, create_test_case(index, test_case.input, test_case.output))
 	end
 
 	return test_cases

@@ -225,7 +225,13 @@ function M.scrape_problem(ctx)
 		return data
 	end
 
-	if data.test_cases and #data.test_cases > 0 then
+	if data.combined then
+		local combined_input = data.combined.input:gsub("\r", "")
+		local combined_output = data.combined.output:gsub("\r", "")
+
+		vim.fn.writefile(vim.split(combined_input, "\n", true), ctx.input_file)
+		vim.fn.writefile(vim.split(combined_output, "\n", true), ctx.expected_file)
+	elseif data.test_cases and #data.test_cases > 0 then
 		local combined_input = data.test_cases[1].input:gsub("\r", "")
 		local combined_output = data.test_cases[1].output:gsub("\r", "")
 
