@@ -270,7 +270,10 @@ local function test_problem()
 		local enabled_icon = test_states[result.id] and "[x]" or "[ ]"
 		local time_str = ("%.1fms"):format(result.time_ms)
 
-		table.insert(lines, ("%s Test %d %s %s (%s) {{{"):format(enabled_icon, result.id, status_icon, result.status, time_str))
+		table.insert(
+			lines,
+			("%s Test %d %s %s (%s) {{{"):format(enabled_icon, result.id, status_icon, result.status, time_str)
+		)
 		table.insert(lines, "    Input:")
 		for _, line in ipairs(vim.split(result.input, "\n")) do
 			table.insert(lines, "      " .. line)

@@ -12,19 +12,48 @@ local M = {}
 M.defaults = {
 	contests = {
 		default = {
-			cpp_version = 20,
-			compile_flags = { "-O2", "-DLOCAL", "-Wall", "-Wextra" },
-			debug_flags = { "-g3", "-fsanitize=address,undefined", "-DLOCAL" },
+			cpp = {
+				compile = {
+					"g++",
+					"-std=c++{version}",
+					"-O2",
+					"-DLOCAL",
+					"-Wall",
+					"-Wextra",
+					"{source}",
+					"-o",
+					"{binary}",
+				},
+				run = { "{binary}" },
+				debug = {
+					"g++",
+					"-std=c++{version}",
+					"-g3",
+					"-fsanitize=address,undefined",
+					"-DLOCAL",
+					"{source}",
+					"-o",
+					"{binary}",
+				},
+				executable = nil,
+				version = 20,
+			},
+			python = {
+				compile = nil,
+				run = { "{source}" },
+				debug = { "{source}" },
+				executable = "python3",
+			},
 			timeout_ms = 2000,
 		},
 		atcoder = {
-			cpp_version = 23,
+			cpp = { version = 23 },
 		},
 		codeforces = {
-			cpp_version = 23,
+			cpp = { version = 23 },
 		},
 		cses = {
-			cpp_version = 20,
+			cpp = { version = 20 },
 		},
 	},
 	snippets = {},
@@ -42,11 +71,6 @@ M.defaults = {
 ---@return table
 local function extend_contest_config(base_config, contest_config)
 	local result = vim.tbl_deep_extend("force", base_config, contest_config)
-
-	local std_flag = ("-std=c++%d"):format(result.cpp_version)
-	result.compile_flags = vim.list_extend({ std_flag }, result.compile_flags)
-	result.debug_flags = vim.list_extend({ std_flag }, result.debug_flags)
-
 	return result
 end
 

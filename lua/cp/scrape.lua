@@ -209,6 +209,7 @@ function M.scrape_problem(ctx)
 		success = true,
 		problem_id = ctx.problem_name,
 		test_count = data.test_cases and #data.test_cases or 0,
+		test_cases = data.test_cases,
 		url = data.url,
 	}
 end

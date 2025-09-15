@@ -1,5 +1,43 @@
 local M = {}
 
+local filetype_to_language = {
+	cpp = "cpp",
+	cxx = "cpp",
+	cc = "cpp",
+	c = "cpp",
+	py = "python",
+	py3 = "python",
+	rs = "rust",
+	java = "java",
+	js = "javascript",
+	go = "go",
+}
+
+local function get_language_from_file(source_file)
+	local extension = vim.fn.fnamemodify(source_file, ":e")
+	return filetype_to_language[extension] or "cpp"
+end
+
+local function substitute_template(cmd_template, substitutions)
+	local result = {}
+	for _, arg in ipairs(cmd_template) do
+		local substituted = arg
+		for key, value in pairs(substitutions) do
+			substituted = substituted:gsub("{" .. key .. "}", value)
+		end
+		table.insert(result, substituted)
+	end
+	return result
+end
+
+local function build_command(cmd_template, executable, substitutions)
+	local cmd = substitute_template(cmd_template, substitutions)
+	if executable then
+		table.insert(cmd, 1, executable)
+	end
+	return cmd
+end
+
 local signal_codes = {
 	[128] = "SIGILL",
 	[130] = "SIGINT",
@@ -22,15 +60,19 @@ local function ensure_directories()
 	vim.system({ "mkdir", "-p", "build", "io" }):wait()
 end
 
-local function compile_cpp(source_path, binary_path, flags)
-	local compile_cmd = { "g++", unpack(flags), source_path, "-o", binary_path }
+local function compile_generic(language_config, substitutions)
+	if not language_config.compile then
+		return { code = 0, stderr = "" }
+	end
+
+	local compile_cmd = substitute_template(language_config.compile, substitutions)
 	return vim.system(compile_cmd, { text = true }):wait()
 end
 
-local function execute_binary(binary_path, input_data, timeout_ms)
+local function execute_command(cmd, input_data, timeout_ms)
 	local start_time = vim.loop.hrtime()
 
-	local result = vim.system({ binary_path }, {
+	local result = vim.system(cmd, {
 		stdin = input_data,
 		timeout = timeout_ms,
 		text = true,
@@ -121,6 +163,65 @@ function M.run_problem(ctx, contest_config, is_debug)
 	else
 		vim.fn.writefile(vim.split(formatted_output, "\n"), ctx.output_file)
 	end
+end
+
+function M.run_individual_tests(ctx, test_cases, contest_config, is_debug)
+	ensure_directories()
+
+	if not test_cases or #test_cases == 0 then
+		return {}
+	end
+
+	local flags = is_debug and contest_config.debug_flags or contest_config.compile_flags
+	local compile_result = compile_cpp(ctx.source_file, ctx.binary_file, flags)
+	if compile_result.code ~= 0 then
+		return {
+			compile_error = compile_result.stderr,
+			results = {},
+		}
+	end
+
+	local results = {}
+	for i, test_case in ipairs(test_cases) do
+		local exec_result = execute_binary(ctx.binary_file, test_case.input, contest_config.timeout_ms)
+
+		local actual_lines = vim.split(exec_result.stdout, "\n")
+		while #actual_lines > 0 and actual_lines[#actual_lines] == "" do
+			table.remove(actual_lines)
+		end
+
+		local expected_lines = vim.split(test_case.output, "\n")
+		while #expected_lines > 0 and expected_lines[#expected_lines] == "" do
+			table.remove(expected_lines)
+		end
+
+		local matches = #actual_lines == #expected_lines
+		if matches then
+			for j, line in ipairs(actual_lines) do
+				if line ~= expected_lines[j] then
+					matches = false
+					break
+				end
+			end
+		end
+
+		table.insert(results, {
+			id = i,
+			status = exec_result.code == 0 and (matches and "PASS" or "FAIL") or "ERROR",
+			time_ms = exec_result.time_ms,
+			input = test_case.input,
+			expected = test_case.output,
+			actual = exec_result.stdout,
+			exit_code = exec_result.code,
+			timed_out = exec_result.timed_out,
+			enabled = true,
+		})
+	end
+
+	return {
+		compile_error = nil,
+		results = results,
+	}
 end
 
 return M
