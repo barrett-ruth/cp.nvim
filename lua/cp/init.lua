@@ -45,24 +45,6 @@ local function get_current_problem_key()
 	end
 end
 
-local function get_test_states()
-	local problem_key = get_current_problem_key()
-	if not problem_key then
-		return {}
-	end
-
-	if not state.test_states[problem_key] then
-		state.test_states[problem_key] = {}
-		if state.test_cases then
-			for i = 1, #state.test_cases do
-				state.test_states[problem_key][i] = true
-			end
-		end
-	end
-
-	return state.test_states[problem_key]
-end
-
 local function set_platform(platform)
 	if not vim.tbl_contains(platforms, platform) then
 		logger.log(("unknown platform. Available: [%s]"):format(table.concat(platforms, ", ")), vim.log.levels.ERROR)
