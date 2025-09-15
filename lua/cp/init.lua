@@ -95,12 +95,13 @@ local function setup_problem(contest_id, problem_id, language)
 	end
 
 	vim.cmd.e(scrape_ctx.source_file)
+	local source_buf = vim.api.nvim_get_current_buf()
 
-	if vim.api.nvim_buf_get_lines(0, 0, -1, true)[1] == "" then
+	if vim.api.nvim_buf_get_lines(source_buf, 0, -1, true)[1] == "" then
 		local has_luasnip, luasnip = pcall(require, "luasnip")
 		if has_luasnip then
 			local constants = require("cp.constants")
-			local filetype = vim.api.nvim_get_option_value("filetype", { buf = 0 })
+			local filetype = vim.api.nvim_get_option_value("filetype", { buf = source_buf })
 			local language_name = constants.filetype_to_language[filetype]
 			local canonical_language = constants.canonical_filetypes[language_name] or language_name
 			local prefixed_trigger = ("cp.nvim/%s.%s"):format(state.platform, canonical_language)
