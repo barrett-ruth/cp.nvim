@@ -77,7 +77,7 @@ Optional configuration with lazy.nvim: >
         opts = {
           debug = false,
           contests = {
-            default = {
+            codeforces = {
               cpp = {
                 compile = {
                   'g++', '-std=c++{version}', '-O2', '-Wall', '-Wextra',
@@ -89,7 +89,7 @@ Optional configuration with lazy.nvim: >
                   '-fsanitize=address,undefined', '-DLOCAL',
                   '{source}', '-o', '{binary}',
                 },
-                version = 20,
+                version = 23,
                 extension = "cc",
               },
               python = {
@@ -97,9 +97,9 @@ Optional configuration with lazy.nvim: >
                 debug = { 'python3', '{source}' },
                 extension = "py",
               },
+              default_language = "cpp",
               timeout_ms = 2000,
             },
-            codeforces = { cpp = { version = 23 } },
           },
           hooks = {
             before_run = function(ctx) vim.cmd.w() end,
@@ -107,64 +107,65 @@ Optional configuration with lazy.nvim: >
               -- ctx.problem_id, ctx.platform, ctx.source_file, etc.
               vim.cmd.w()
             end,
+            setup_code = function(ctx)
+              vim.wo.foldmethod = "marker"
+              vim.wo.foldmarker = "{{{,}}}"
+              vim.diagnostic.enable(false)
+            end,
           },
           snippets = { ... },  -- LuaSnip snippets
           tile = function(source_buf, input_buf, output_buf) ... end,
-          filename = function(contest, problem_id, problem_letter) ... end,
+          filename = function(contest, contest_id, problem_id, config, language) ... end,
         }
     }
 <
 
-Configuration options:
+*cp.Config*
 
-contests                        Dictionary of contest configurations - each contest inherits from 'default'.
+    Fields: ~
+      • {contests}      (`table<string,ContestConfig>`) Contest configurations.
+      • {hooks}         (`cp.Hooks`) Hook functions called at various stages.
+      • {snippets}      (`table[]`) LuaSnip snippet definitions.
+      • {debug}         (`boolean`, default: `false`) Show info messages
+                        during operation.
+      • {tile}?         (`function`) Custom window arrangement function.
+                        `function(source_buf, input_buf, output_buf)`
+      • {filename}?     (`function`) Custom filename generation function.
+                        `function(contest, contest_id, problem_id, config, language)`
+                        Should return full filename with extension.
+                        (default: uses problem_id or contest_id)
 
-  cpp                           C++ language configuration
-    compile                     Compile command template with {version}, {source}, {binary} placeholders
-    run                         Run command template with {binary} placeholder
-    debug                       Debug compile command template
-    version                     C++ standard version (e.g. 20, 23)
-    extension                   File extension for C++ files (default: "cc")
+*cp.ContestConfig*
 
-  python                        Python language configuration
-    run                         Run command template with {source} placeholder
-    debug                       Debug run command template
-    extension                   File extension for Python files (default: "py")
+    Fields: ~
+      • {cpp}               (`LanguageConfig`) C++ language configuration.
+      • {python}            (`LanguageConfig`) Python language configuration.
+      • {default_language}  (`string`, default: `"cpp"`) Default language when
+                            `--lang` not specified.
+      • {timeout_ms}        (`number`, default: `2000`) Execution timeout in
+                            milliseconds.
 
-  default_language              Default language when --lang not specified (default: "cpp")
+*cp.LanguageConfig*
 
-  timeout_ms                    Duration (ms) to run/debug before timeout
+    Fields: ~
+      • {compile}?      (`string[]`) Compile command template with
+                        `{version}`, `{source}`, `{binary}` placeholders.
+      • {run}           (`string[]`) Run command template.
+      • {debug}?        (`string[]`) Debug compile command template.
+      • {version}?      (`number`) Language version (e.g. 20, 23 for C++).
+      • {extension}     (`string`) File extension (e.g. "cc", "py").
+      • {executable}?   (`string`) Executable name for interpreted languages.
 
-snippets                        LuaSnip snippets by contest type
+*cp.Hooks*
 
-hooks                           Functions called at specific events
-  before_run                    Called before :CP run
-                                  function(ctx)
-                                ctx contains:
-                                  - problem_id: string
-                                  - platform: string (atcoder/codeforces/cses)
-                                  - contest_id: string
-                                  - source_file: string (path to source)
-                                  - input_file: string (path to .cpin)
-                                  - output_file: string (path to .cpout)
-                                  - expected_file: string (path to .expected)
-                                  - contest_config: table (language configs)
-                                (default: nil, do nothing)
-  before_debug                  Called before :CP debug
-                                  function(ctx)
-                                Same ctx as before_run
-                                (default: nil, do nothing)
-
-debug                           Show info messages during operation
-                                (default: false, silent operation)
-
-tile                            Custom function to arrange windows
-                                  function(source_buf, input_buf, output_buf)
-                                (default: nil, uses built-in layout)
-
-filename                        Custom function to generate filenames
-                                  function(contest, problem_id, problem_letter)
-                                (default: nil, uses problem_id + letter + ".cc")
+    Fields: ~
+      • {before_run}?   (`function`) Called before `:CP run`.
+                        `function(ctx: ProblemContext)`
+      • {before_debug}? (`function`) Called before `:CP debug`.
+                        `function(ctx: ProblemContext)`
+      • {setup_code}?   (`function`) Called after source file is opened.
+                        Used to configure buffer settings.
+                        `function(ctx: ProblemContext)`
 
 WORKFLOW						*cp-workflow*
 
@@ -232,7 +233,7 @@ Example: Setting up and solving AtCoder contest ABC324
 
 3. Start with problem A: >
     :CP a
-<   This creates abc324a.cc and scrapes test cases
+<   This creates a.cc and scrapes test cases
 
 4. Code your solution, then test: >
     :CP run
@@ -259,32 +260,26 @@ FILE STRUCTURE						*cp-files*
 
 cp.nvim creates the following file structure upon problem setup:
 
-    {contest_id}{problem_id}.cc     " Source file (e.g. abc324a.cc)
+    {problem_id}.{ext}              " Source file (e.g. a.cc, b.py)
     build/
-      {contest_id}{problem_id}.run  " Compiled binary
+      {problem_id}.run              " Compiled binary
     io/
-      {contest_id}{problem_id}.cpin     " Test input
-      {contest_id}{problem_id}.cpout    " Program output
-      {contest_id}{problem_id}.expected " Expected output
+      {problem_id}.cpin             " Test input
+      {problem_id}.cpout            " Program output
+      {problem_id}.expected         " Expected output
 
 The plugin automatically manages this structure and navigation between problems
 maintains proper file associations.
 
 SNIPPETS						*cp-snippets*
 
-cp.nvim integrates with LuaSnip for automatic template expansion. When you
-open a new problem file, type the contest name and press <Tab> to expand.
+cp.nvim integrates with LuaSnip for automatic template expansion. Built-in
+snippets include basic C++ and Python templates for each contest type.
 
-Built-in snippets include basic C++ and Python templates for each contest type.
-Custom snippets can be added via configuration.
+Snippet trigger names must EXACTLY match platform names ("codeforces" for
+CodeForces, "cses" for CSES, etc.).
 
-IMPORTANT: Snippet trigger names must exactly match the contest/platform names:
-- "codeforces" for Codeforces problems
-- "atcoder" for AtCoder problems
-- "cses" for CSES problems
-
-The plugin automatically selects the appropriate template based on the file
-extension (e.g., .cc files get C++ templates, .py files get Python templates).
+Custom snippets can be added via the `snippets` configuration field.
 
 HEALTH CHECK						*cp-health*
 

@@ -26,8 +26,10 @@ end, {
 			end, lang_completions)
 		end
 
-		if ArgLead == "--lang" then
-			return { "--lang" }
+		if ArgLead:match("^%-") and not ArgLead:match("^--lang") then
+			return vim.tbl_filter(function(completion)
+				return completion:find(ArgLead, 1, true) == 1
+			end, { "--lang" })
 		end
 
 		local args = vim.split(vim.trim(CmdLine), "%s+")
@@ -43,7 +45,6 @@ end, {
 
 		if num_args == 2 then
 			local candidates = { "--lang" }
-			vim.list_extend(candidates, platforms)
 			vim.list_extend(candidates, actions)
 			local cp = require("cp")
 			local context = cp.get_current_context()
@@ -56,6 +57,8 @@ end, {
 						table.insert(candidates, problem.id)
 					end
 				end
+			else
+				vim.list_extend(candidates, platforms)
 			end
 			return vim.tbl_filter(function(cmd)
 				return cmd:find(ArgLead, 1, true) == 1

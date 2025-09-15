@@ -8,7 +8,6 @@ M.filetype_to_language = {
 	cc = M.CPP,
 	cxx = M.CPP,
 	cpp = M.CPP,
-	c = M.CPP,
 	py = M.PYTHON,
 	py3 = M.PYTHON,
 }

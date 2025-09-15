@@ -1,4 +1,1 @@
-std = "vim"
-
-[config]
-lua52 = true
+std = "lua51+vim"

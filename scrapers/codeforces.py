@@ -30,7 +30,7 @@ def scrape(url: str) -> list[tuple[str, str]]:
                     lines = [div.get_text().strip() for div in divs]
                     text = "\n".join(lines)
                 else:
-                    text = inp_pre.get_text().replace("\r", "")
+                    text = inp_pre.get_text().replace("\r", "").strip()
                 all_inputs.append(text)
 
         for out_section in output_sections:
@@ -41,7 +41,7 @@ def scrape(url: str) -> list[tuple[str, str]]:
                     lines = [div.get_text().strip() for div in divs]
                     text = "\n".join(lines)
                 else:
-                    text = out_pre.get_text().replace("\r", "")
+                    text = out_pre.get_text().replace("\r", "").strip()
                 all_outputs.append(text)
 
         if all_inputs and all_outputs:

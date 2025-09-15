@@ -89,9 +89,9 @@ local function setup_problem(contest_id, problem_id, language)
 		state.test_cases = cached_test_cases
 	end
 
-	local ctx = problem.create_context(state.platform, contest_id, problem_id, config, language)
+	local scrape_ctx = problem.create_context(state.platform, contest_id, problem_id, config, language)
 
-	local scrape_result = scrape.scrape_problem(ctx)
+	local scrape_result = scrape.scrape_problem(scrape_ctx)
 
 	if not scrape_result.success then
 		logger.log("scraping failed: " .. (scrape_result.error or "unknown error"), vim.log.levels.WARN)
@@ -107,7 +107,7 @@ local function setup_problem(contest_id, problem_id, language)
 		end
 	end
 
-	vim.cmd.e(ctx.source_file)
+	vim.cmd.e(scrape_ctx.source_file)
 
 	if vim.api.nvim_buf_get_lines(0, 0, -1, true)[1] == "" then
 		local has_luasnip, luasnip = pcall(require, "luasnip")
@@ -135,13 +135,11 @@ local function setup_problem(contest_id, problem_id, language)
 		end
 	end
 
-	vim.api.nvim_set_option_value("winbar", "", { scope = "local" })
-	vim.api.nvim_set_option_value("foldlevel", 0, { scope = "local" })
-	vim.api.nvim_set_option_value("foldmethod", "marker", { scope = "local" })
-	vim.api.nvim_set_option_value("foldmarker", "{{{,}}}", { scope = "local" })
-	vim.api.nvim_set_option_value("foldtext", "", { scope = "local" })
+	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config, language)
 
-	vim.diagnostic.enable(false)
+	if config.hooks and config.hooks.setup_code then
+		config.hooks.setup_code(ctx)
+	end
 
 	local source_buf = vim.api.nvim_get_current_buf()
 	local input_buf = vim.fn.bufnr(ctx.input_file, true)
@@ -179,16 +177,7 @@ local function run_problem()
 	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
 
 	if config.hooks and config.hooks.before_run then
-		config.hooks.before_run({
-			problem_id = problem_id,
-			platform = state.platform,
-			contest_id = state.contest_id,
-			source_file = ctx.source_file,
-			input_file = ctx.input_file,
-			output_file = ctx.output_file,
-			expected_file = ctx.expected_file,
-			contest_config = contest_config,
-		})
+		config.hooks.before_run(ctx)
 	end
 
 	vim.schedule(function()
@@ -212,16 +201,7 @@ local function debug_problem()
 	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
 
 	if config.hooks and config.hooks.before_debug then
-		config.hooks.before_debug({
-			problem_id = problem_id,
-			platform = state.platform,
-			contest_id = state.contest_id,
-			source_file = ctx.source_file,
-			input_file = ctx.input_file,
-			output_file = ctx.output_file,
-			expected_file = ctx.expected_file,
-			contest_config = contest_config,
-		})
+		config.hooks.before_debug(ctx)
 	end
 
 	vim.schedule(function()
