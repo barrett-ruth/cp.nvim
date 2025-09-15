@@ -29,8 +29,9 @@ local state = {
 	test_states = {},
 }
 
-local platforms = { "atcoder", "codeforces", "cses" }
-local actions = { "run", "debug", "next", "prev" }
+local constants = require("cp.constants")
+local platforms = constants.PLATFORMS
+local actions = constants.ACTIONS
 
 local function set_platform(platform)
 	if not vim.tbl_contains(platforms, platform) then

@@ -69,7 +69,7 @@ follows:
 - finer-tuned problem limits (i.e. per-problem codeforces time, memory)
 - better highlighting
 - test case management
-- USACO support
 - new video with functionality, notify discord members
 - note that codeforces support is scuffed: https://codeforces.com/blog/entry/146423
 - codeforces: use round number & api not the contest id
+   - problems: api config

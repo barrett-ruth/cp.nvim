@@ -10,8 +10,8 @@ function M.setup(config)
 
 	local s, i, fmt = ls.snippet, ls.insert_node, require("luasnip.extras.fmt").fmt
 
-	local languages = require("cp.languages")
-	local filetype_to_language = languages.filetype_to_language
+	local constants = require("cp.constants")
+	local filetype_to_language = constants.filetype_to_language
 
 	local language_to_filetype = {}
 	for ext, lang in pairs(filetype_to_language) do

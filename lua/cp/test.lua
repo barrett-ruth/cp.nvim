@@ -1,0 +1,163 @@
+local M = {}
+local logger = require("cp.log")
+local execute = require("cp.execute")
+
+local test_panel_state = {
+	test_cases = {},
+	current_index = 1,
+	buffer = nil,
+	namespace = nil,
+	is_active = false,
+	saved_layout = nil,
+}
+
+local function create_test_case(index, input, expected)
+	return {
+		index = index,
+		input = input,
+		expected = expected,
+		status = "pending",
+		actual = nil,
+		time_ms = nil,
+		error = nil,
+	}
+end
+
+local function parse_test_cases_from_cache(platform, contest_id, problem_id)
+	local cache = require("cp.cache")
+	cache.load()
+	local cached_test_cases = cache.get_test_cases(platform, contest_id, problem_id)
+
+	if not cached_test_cases or #cached_test_cases == 0 then
+		return {}
+	end
+
+	local test_cases = {}
+	for i, test_case in ipairs(cached_test_cases) do
+		table.insert(test_cases, create_test_case(i, test_case.input, test_case.output))
+	end
+
+	return test_cases
+end
+
+local function parse_test_cases_from_files(input_file, expected_file)
+	if vim.fn.filereadable(input_file) == 0 or vim.fn.filereadable(expected_file) == 0 then
+		return {}
+	end
+
+	local input_content = table.concat(vim.fn.readfile(input_file), "\n")
+	local expected_content = table.concat(vim.fn.readfile(expected_file), "\n")
+
+	return { create_test_case(1, input_content, expected_content) }
+end
+
+local function run_single_test_case(ctx, contest_config, test_case)
+	local language = vim.fn.fnamemodify(ctx.source_file, ":e")
+	local languages = require("cp.languages")
+	local language_name = languages.filetype_to_language[language] or contest_config.default_language
+	local language_config = contest_config[language_name]
+
+	if not language_config then
+		return {
+			status = "fail",
+			actual = "",
+			error = "No language configuration",
+			time_ms = 0,
+		}
+	end
+
+	local function substitute_template(cmd_template, substitutions)
+		local result = {}
+		for _, arg in ipairs(cmd_template) do
+			local substituted = arg
+			for key, value in pairs(substitutions) do
+				substituted = substituted:gsub("{" .. key .. "}", value)
+			end
+			table.insert(result, substituted)
+		end
+		return result
+	end
+
+	local function build_command(cmd_template, executable, substitutions)
+		local cmd = substitute_template(cmd_template, substitutions)
+		if executable then
+			table.insert(cmd, 1, executable)
+		end
+		return cmd
+	end
+
+	local substitutions = {
+		source = ctx.source_file,
+		binary = ctx.binary_file,
+		version = tostring(language_config.version or ""),
+	}
+
+	local run_cmd = build_command(language_config.run, language_config.executable, substitutions)
+
+	local start_time = vim.uv.hrtime()
+	local result = vim.system(run_cmd, {
+		stdin = test_case.input .. "\n",
+		timeout = contest_config.timeout_ms or 2000,
+		text = true,
+	}):wait()
+	local execution_time = (vim.uv.hrtime() - start_time) / 1000000
+
+	local actual_output = (result.stdout or ""):gsub("\n$", "")
+	local expected_output = test_case.expected:gsub("\n$", "")
+	local matches = actual_output == expected_output
+
+	return {
+		status = result.code == 0 and matches and "pass" or "fail",
+		actual = actual_output,
+		error = result.code ~= 0 and result.stderr or nil,
+		time_ms = execution_time,
+	}
+end
+
+function M.load_test_cases(ctx, state)
+	local test_cases = parse_test_cases_from_cache(state.platform, state.contest_id, state.problem_id)
+
+	if #test_cases == 0 then
+		test_cases = parse_test_cases_from_files(ctx.input_file, ctx.expected_file)
+	end
+
+	test_panel_state.test_cases = test_cases
+	test_panel_state.current_index = 1
+
+	logger.log(("loaded %d test case(s)"):format(#test_cases))
+	return #test_cases > 0
+end
+
+function M.run_test_case(ctx, contest_config, index)
+	local test_case = test_panel_state.test_cases[index]
+	if not test_case then
+		return false
+	end
+
+	logger.log(("running test case %d"):format(index))
+	test_case.status = "running"
+
+	local result = run_single_test_case(ctx, contest_config, test_case)
+
+	test_case.status = result.status
+	test_case.actual = result.actual
+	test_case.error = result.error
+	test_case.time_ms = result.time_ms
+
+	return true
+end
+
+function M.run_all_test_cases(ctx, contest_config)
+	local results = {}
+	for i, _ in ipairs(test_panel_state.test_cases) do
+		M.run_test_case(ctx, contest_config, i)
+		table.insert(results, test_panel_state.test_cases[i])
+	end
+	return results
+end
+
+function M.get_test_panel_state()
+	return test_panel_state
+end
+
+return M
