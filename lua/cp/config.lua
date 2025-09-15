@@ -127,9 +127,14 @@ function M.setup(user_config)
 				for lang_name, lang_config in pairs(contest_config) do
 					if type(lang_config) == "table" and lang_config.extension then
 						if not vim.tbl_contains(vim.tbl_keys(filetype_to_language), lang_config.extension) then
-							error(("Invalid extension '%s' for language '%s' in contest '%s'. Valid extensions: %s"):format(
-								lang_config.extension, lang_name, contest_name, table.concat(vim.tbl_keys(filetype_to_language), ", ")
-							))
+							error(
+								("Invalid extension '%s' for language '%s' in contest '%s'. Valid extensions: %s"):format(
+									lang_config.extension,
+									lang_name,
+									contest_name,
+									table.concat(vim.tbl_keys(filetype_to_language), ", ")
+								)
+							)
 						end
 					end
 				end

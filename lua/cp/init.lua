@@ -306,7 +306,10 @@ end
 
 local function parse_command(args)
 	if #args == 0 then
-		return { type = "error", message = "Usage: :CP <platform> <contest> [problem] [--lang=<language>] | :CP <action> | :CP <problem>" }
+		return {
+			type = "error",
+			message = "Usage: :CP <platform> <contest> [problem] [--lang=<language>] | :CP <action> | :CP <problem>",
+		}
 	end
 
 	local language = nil
@@ -344,7 +347,13 @@ local function parse_command(args)
 				return { type = "contest_setup", platform = first, contest = filtered_args[2], language = language }
 			end
 		elseif #filtered_args == 3 then
-			return { type = "full_setup", platform = first, contest = filtered_args[2], problem = filtered_args[3], language = language }
+			return {
+				type = "full_setup",
+				platform = first,
+				contest = filtered_args[2],
+				problem = filtered_args[3],
+				language = language,
+			}
 		else
 			return { type = "error", message = "Too many arguments" }
 		end

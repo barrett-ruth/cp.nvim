@@ -42,7 +42,10 @@ end, {
 			num_args = num_args + 1
 		end
 
-		local lang_flag_present = vim.tbl_contains(args, "--lang") or vim.iter(args):any(function(arg) return arg:match("^--lang=") end)
+		local lang_flag_present = vim.tbl_contains(args, "--lang")
+			or vim.iter(args):any(function(arg)
+				return arg:match("^--lang=")
+			end)
 
 		if num_args == 2 then
 			local candidates = { "--lang" }
@@ -63,7 +66,7 @@ end, {
 			return vim.tbl_filter(function(cmd)
 				return cmd:find(ArgLead, 1, true) == 1
 			end, candidates)
-		elseif args[#args-1] == "--lang" then
+		elseif args[#args - 1] == "--lang" then
 			return vim.tbl_filter(function(lang)
 				return lang:find(ArgLead, 1, true) == 1
 			end, languages)
