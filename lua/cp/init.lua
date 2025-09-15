@@ -34,17 +34,6 @@ local state = {
 local platforms = { "atcoder", "codeforces", "cses" }
 local actions = { "run", "debug", "diff", "next", "prev" }
 
-local function get_current_problem_key()
-	if not state.platform or not state.contest_id then
-		return nil
-	end
-	if state.platform == "cses" then
-		return state.contest_id
-	else
-		return state.contest_id .. "_" .. (state.problem_id or "")
-	end
-end
-
 local function set_platform(platform)
 	if not vim.tbl_contains(platforms, platform) then
 		logger.log(("unknown platform. Available: [%s]"):format(table.concat(platforms, ", ")), vim.log.levels.ERROR)
