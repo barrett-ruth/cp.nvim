@@ -176,16 +176,7 @@ local function run_problem()
 	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
 
 	if config.hooks and config.hooks.before_run then
-		config.hooks.before_run({
-			problem_id = problem_id,
-			platform = state.platform,
-			contest_id = state.contest_id,
-			source_file = ctx.source_file,
-			input_file = ctx.input_file,
-			output_file = ctx.output_file,
-			expected_file = ctx.expected_file,
-			contest_config = contest_config,
-		})
+		config.hooks.before_run(ctx)
 	end
 
 	vim.schedule(function()
@@ -209,16 +200,7 @@ local function debug_problem()
 	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
 
 	if config.hooks and config.hooks.before_debug then
-		config.hooks.before_debug({
-			problem_id = problem_id,
-			platform = state.platform,
-			contest_id = state.contest_id,
-			source_file = ctx.source_file,
-			input_file = ctx.input_file,
-			output_file = ctx.output_file,
-			expected_file = ctx.expected_file,
-			contest_config = contest_config,
-		})
+		config.hooks.before_debug(ctx)
 	end
 
 	vim.schedule(function()
