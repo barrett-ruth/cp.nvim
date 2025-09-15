@@ -27,20 +27,15 @@ def scrape(url: str) -> list[tuple[str, str]]:
                 input_lines: list[str] = []
                 output_lines: list[str] = []
 
-                for line_div in inp_pre.find_all("div", class_="test-example-line"):
-                    input_lines.append(line_div.get_text().strip())
+                input_text_raw = inp_pre.get_text().strip().replace("\r", "")
+                input_lines = [
+                    line.strip() for line in input_text_raw.split("\n") if line.strip()
+                ]
 
-                output_divs = out_pre.find_all("div", class_="test-example-line")
-                if not output_divs:
-                    output_text_raw = out_pre.get_text().strip().replace("\r", "")
-                    output_lines = [
-                        line.strip()
-                        for line in output_text_raw.split("\n")
-                        if line.strip()
-                    ]
-                else:
-                    for line_div in output_divs:
-                        output_lines.append(line_div.get_text().strip())
+                output_text_raw = out_pre.get_text().strip().replace("\r", "")
+                output_lines = [
+                    line.strip() for line in output_text_raw.split("\n") if line.strip()
+                ]
 
                 if input_lines and output_lines:
                     input_text = "\n".join(input_lines)
@@ -80,7 +75,7 @@ def scrape_contest_problems(contest_id: str) -> list[dict[str, str]]:
                 problem_letter: str = href.split("/")[-1].lower()
                 problem_name: str = link.get_text(strip=True)
 
-                if problem_letter and problem_name and len(problem_letter) == 1:
+                if problem_letter and problem_name:
                     problems.append({"id": problem_letter, "name": problem_name})
 
         problems.sort(key=lambda x: x["id"])

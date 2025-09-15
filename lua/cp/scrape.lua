@@ -11,6 +11,11 @@ local function ensure_io_directory()
 	vim.fn.mkdir("io", "p")
 end
 
+local function check_internet_connectivity()
+	local result = vim.system({ "ping", "-c", "1", "-W", "3", "8.8.8.8" }, { text = true }):wait()
+	return result.code == 0
+end
+
 local function setup_python_env()
 	local plugin_path = get_plugin_path()
 	local venv_dir = plugin_path .. "/.venv"
@@ -47,6 +52,13 @@ function M.scrape_contest_metadata(platform, contest_id)
 		return {
 			success = true,
 			problems = cached_data.problems,
+		}
+	end
+
+	if not check_internet_connectivity() then
+		return {
+			success = false,
+			error = "No internet connection available",
 		}
 	end
 
@@ -116,6 +128,14 @@ function M.scrape_problem(ctx)
 			success = true,
 			problem_id = ctx.problem_name,
 			test_count = 1,
+		}
+	end
+
+	if not check_internet_connectivity() then
+		return {
+			success = false,
+			problem_id = ctx.problem_name,
+			error = "No internet connection available",
 		}
 	end
 

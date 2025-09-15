@@ -1,6 +1,6 @@
 local M = {}
 
-local cache_file = vim.fn.stdpath("data") .. "/cp-contest-cache.json"
+local cache_file = vim.fn.stdpath("data") .. "/cp-nvim.json"
 local cache_data = {}
 
 local function get_expiry_date(platform)
