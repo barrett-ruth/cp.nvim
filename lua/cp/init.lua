@@ -89,9 +89,9 @@ local function setup_problem(contest_id, problem_id, language)
 		state.test_cases = cached_test_cases
 	end
 
-	local ctx = problem.create_context(state.platform, contest_id, problem_id, config, language)
+	local scrape_ctx = problem.create_context(state.platform, contest_id, problem_id, config, language)
 
-	local scrape_result = scrape.scrape_problem(ctx)
+	local scrape_result = scrape.scrape_problem(scrape_ctx)
 
 	if not scrape_result.success then
 		logger.log("scraping failed: " .. (scrape_result.error or "unknown error"), vim.log.levels.WARN)
@@ -107,7 +107,7 @@ local function setup_problem(contest_id, problem_id, language)
 		end
 	end
 
-	vim.cmd.e(ctx.source_file)
+	vim.cmd.e(scrape_ctx.source_file)
 
 	if vim.api.nvim_buf_get_lines(0, 0, -1, true)[1] == "" then
 		local has_luasnip, luasnip = pcall(require, "luasnip")
