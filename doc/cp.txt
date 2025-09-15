@@ -55,6 +55,10 @@ Action Commands ~
 :CP debug                       Compile with debug flags and run current problem.
                                 Includes sanitizers and debug symbols.
 
+:CP test                        Toggle test panel for individual test case
+                                debugging. Shows per-test results with
+                                vim-native navigation and execution controls.
+
 Navigation Commands ~
 
 :CP next                        Navigate to next problem in current contest.
@@ -235,10 +239,15 @@ Example: Setting up and solving AtCoder contest ABC324
 4. Code your solution, then test: >
     :CP run
 <
-5. If needed, debug: >
+5. If test fails, debug individual test cases: >
+    :CP test
+<   Navigate with j/k, run specific tests with <enter>
+    Exit test panel with q or :CP test when done
+
+6. If needed, compile with debug flags: >
     :CP debug
 <
-6. Move to next problem: >
+7. Move to next problem: >
     :CP next
 <   This automatically sets up problem B
 
@@ -249,6 +258,82 @@ Example: Quick setup for single Codeforces problem >
     :CP codeforces 1933 a       " One command setup
     :CP run                     " Test immediately
 <
+
+TEST PANEL						*cp-test*
+
+The test panel provides individual test case debugging for competitive
+programming problems, particularly useful for Codeforces where multiple
+test cases are combined into single input/output files.
+
+Activation ~
+								*:CP-test*
+:CP test                        Toggle test panel on/off. When activated,
+                                replaces current layout with test interface.
+                                Toggle again to restore original layout.
+
+Interface ~
+
+The test panel displays a list of test cases with their status and details
+for the currently selected test case: >
+
+    ┌─ Test Cases ───────────────────────────────────────────────┐
+    │  1  ✓ PASS    12ms                                        │
+    │  2  ✗ FAIL    45ms                                        │
+    │> 3  ✓ PASS     8ms   <-- current selection               │
+    │  4  ? PENDING                                             │
+    │                                                            │
+    │ ── Test 3 ──                                              │
+    │ Input:     │ Expected:   │ Actual:                        │
+    │ 5 3        │ 8           │ 8                              │
+    │            │             │                                │
+    │                                                            │
+    │ j/k: navigate  <space>: toggle  <enter>: run  a: run all │
+    └────────────────────────────────────────────────────────────┘
+<
+
+Test Status Indicators ~
+
+✓ PASS                          Test case passed (green)
+✗ FAIL                          Test case failed (red)
+? PENDING                       Test case not yet executed (yellow)
+⟳ RUNNING                       Test case currently executing (blue)
+
+Keymaps ~
+								*cp-test-keys*
+j / <Down>                      Navigate to next test case
+k / <Up>                        Navigate to previous test case
+<space>                         Toggle selection of current test case
+<enter>                         Run selected test cases
+a                               Run all test cases
+r                               Re-run failed test cases only
+c                               Clear all test results
+q / <esc>                       Exit test panel (restore layout)
+
+Test Case Sources ~
+
+Test cases are loaded in priority order:
+1. Individual scraped test cases (preferred for Codeforces)
+2. Combined input/output files from io/ directory (fallback)
+
+For Codeforces problems, the plugin attempts to parse individual test
+cases from the scraped contest data, enabling precise debugging of
+specific test case failures.
+
+For AtCoder and CSES problems, which typically provide single test
+cases, the combined input/output approach is used.
+
+Execution Details ~
+
+Each test case shows:
+• Input data provided to your solution
+• Expected output from the problem statement
+• Actual output produced by your solution
+• Execution time in milliseconds
+• Error messages (if execution failed)
+
+Test cases are executed individually using the same compilation and
+execution pipeline as |:CP-run|, but with isolated input/output for
+precise failure analysis.
 
 FILE STRUCTURE						*cp-files*
 
