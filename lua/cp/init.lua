@@ -266,7 +266,8 @@ local function diff_problem()
 end
 
 ---@param delta number 1 for next, -1 for prev
-local function navigate_problem(delta)
+---@param language? string
+local function navigate_problem(delta, language)
 	if not state.platform or not state.contest_id then
 		logger.log("no contest set. run :CP <platform> <contest> first", vim.log.levels.ERROR)
 		return
@@ -317,9 +318,9 @@ local function navigate_problem(delta)
 	local new_problem = problems[new_index]
 
 	if state.platform == "cses" then
-		setup_problem(new_problem.id)
+		setup_problem(new_problem.id, nil, language)
 	else
-		setup_problem(state.contest_id, new_problem.id)
+		setup_problem(state.contest_id, new_problem.id, language)
 	end
 end
 
@@ -353,7 +354,7 @@ local function parse_command(args)
 	local first = filtered_args[1]
 
 	if vim.tbl_contains(actions, first) then
-		return { type = "action", action = first }
+		return { type = "action", action = first, language = language }
 	end
 
 	if vim.tbl_contains(platforms, first) then
@@ -401,9 +402,9 @@ function M.handle_command(opts)
 		elseif cmd.action == "diff" then
 			diff_problem()
 		elseif cmd.action == "next" then
-			navigate_problem(1)
+			navigate_problem(1, cmd.language)
 		elseif cmd.action == "prev" then
-			navigate_problem(-1)
+			navigate_problem(-1, cmd.language)
 		end
 		return
 	end
