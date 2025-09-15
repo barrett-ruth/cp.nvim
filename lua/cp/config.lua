@@ -137,7 +137,7 @@ local function default_filename(contest_id, problem_id)
 	})
 
 	if problem_id then
-		return problem_id:lower()
+		return (contest_id .. problem_id):lower()
 	else
 		return contest_id:lower()
 	end

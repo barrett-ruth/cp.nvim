@@ -99,7 +99,11 @@ local function setup_problem(contest_id, problem_id, language)
 	if vim.api.nvim_buf_get_lines(0, 0, -1, true)[1] == "" then
 		local has_luasnip, luasnip = pcall(require, "luasnip")
 		if has_luasnip then
-			local prefixed_trigger = ("cp.nvim/%s.%s"):format(state.platform, language)
+			local constants = require("cp.constants")
+			local filetype = vim.api.nvim_get_option_value("filetype", { buf = 0 })
+			local language_name = constants.filetype_to_language[filetype]
+			local canonical_language = constants.canonical_filetypes[language_name] or language_name
+			local prefixed_trigger = ("cp.nvim/%s.%s"):format(state.platform, canonical_language)
 
 			vim.api.nvim_buf_set_lines(0, 0, -1, false, { prefixed_trigger })
 			vim.api.nvim_win_set_cursor(0, { 1, #prefixed_trigger })
@@ -234,6 +238,30 @@ local function toggle_test_panel()
 	vim.bo.filetype = "cptest"
 	vim.bo.bufhidden = "wipe"
 
+	local function navigate_test(delta)
+		local test_state = test_module.get_test_panel_state()
+		local new_index = test_state.current_index + delta
+		if new_index >= 1 and new_index <= #test_state.test_cases then
+			test_state.current_index = new_index
+			toggle_test_panel()
+			toggle_test_panel()
+		end
+	end
+
+	local function run_current_test()
+		local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
+		local contest_config = config.contests[state.platform]
+		local test_state = test_module.get_test_panel_state()
+		test_module.run_test_case(ctx, contest_config, test_state.current_index)
+		toggle_test_panel()
+		toggle_test_panel()
+	end
+
+	vim.keymap.set("n", "j", function() navigate_test(1) end, { buffer = test_buf, silent = true })
+	vim.keymap.set("n", "k", function() navigate_test(-1) end, { buffer = test_buf, silent = true })
+	vim.keymap.set("n", "<CR>", run_current_test, { buffer = test_buf, silent = true })
+	vim.keymap.set("n", "q", function() toggle_test_panel() end, { buffer = test_buf, silent = true })
+
 	local test_state = test_module.get_test_panel_state()
 	local test_lines = {}
 
@@ -261,25 +289,22 @@ local function toggle_test_panel()
 	if current_test then
 		table.insert(test_lines, string.format("── Test %d ──", test_state.current_index))
 		table.insert(test_lines, "Input:")
-		for line in current_test.input:gmatch("[^\n]*") do
-			table.insert(test_lines, "  " .. line)
+		for _, line in ipairs(vim.split(current_test.input, "\n", { plain = true, trimempty = true })) do
+			table.insert(test_lines, line)
 		end
 
 		table.insert(test_lines, "Expected:")
-		for line in current_test.expected:gmatch("[^\n]*") do
-			table.insert(test_lines, "  " .. line)
+		for _, line in ipairs(vim.split(current_test.expected, "\n", { plain = true, trimempty = true })) do
+			table.insert(test_lines, line)
 		end
 
 		if current_test.actual then
 			table.insert(test_lines, "Actual:")
-			for line in current_test.actual:gmatch("[^\n]*") do
-				table.insert(test_lines, "  " .. line)
+			for _, line in ipairs(vim.split(current_test.actual, "\n", { plain = true, trimempty = true })) do
+				table.insert(test_lines, line)
 			end
 		end
 	end
-
-	table.insert(test_lines, "")
-	table.insert(test_lines, "j/k: navigate  <space>: toggle  <enter>: run  q: quit")
 
 	vim.api.nvim_buf_set_lines(test_buf, 0, -1, false, test_lines)
 	vim.bo.modifiable = false

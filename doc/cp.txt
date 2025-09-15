@@ -134,7 +134,7 @@ Optional configuration with lazy.nvim: >
       • {filename}?     (`function`) Custom filename generation function.
                         `function(contest, contest_id, problem_id, config, language)`
                         Should return full filename with extension.
-                        (default: uses problem_id or contest_id)
+                        (default: concats contest_id and problem id)
 
 *cp.ContestConfig*
 
