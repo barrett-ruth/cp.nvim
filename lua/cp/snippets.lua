@@ -15,17 +15,108 @@ function M.setup(config)
 
 	local language_to_filetype = {}
 	for ext, lang in pairs(filetype_to_language) do
-		language_to_filetype[lang] = ext
+		if not language_to_filetype[lang] then
+			language_to_filetype[lang] = ext
+		end
 	end
 
+	local template_definitions = {
+		cpp = {
+			codeforces = [[#include <bits/stdc++.h>
 
-	for language, filetype in pairs(language_to_filetype) do
+using namespace std;
+
+void solve() {{
+  {}
+}}
+
+int main() {{
+  std::cin.tie(nullptr)->sync_with_stdio(false);
+
+  int tc = 1;
+  std::cin >> tc;
+
+  for (int t = 0; t < tc; ++t) {{
+    solve();
+  }}
+
+  return 0;
+}}]],
+
+			atcoder = [[#include <bits/stdc++.h>
+
+using namespace std;
+
+void solve() {{
+  {}
+}}
+
+int main() {{
+  std::cin.tie(nullptr)->sync_with_stdio(false);
+
+#ifdef LOCAL
+  int tc;
+  std::cin >> tc;
+
+  for (int t = 0; t < tc; ++t) {{
+    solve();
+  }}
+#else
+  solve();
+#endif
+
+  return 0;
+}}]],
+
+			cses = [[#include <bits/stdc++.h>
+
+using namespace std;
+
+int main() {{
+  std::cin.tie(nullptr)->sync_with_stdio(false);
+
+  {}
+
+  return 0;
+}}]],
+		},
+
+		python = {
+			codeforces = [[def solve():
+    {}
+
+if __name__ == "__main__":
+    tc = int(input())
+    for _ in range(tc):
+        solve()]],
+
+			atcoder = [[def solve():
+    {}
+
+if __name__ == "__main__":
+    solve()]],
+
+			cses = [[{}]],
+		},
+	}
+
+
+	for language, template_set in pairs(template_definitions) do
 		local snippets = {}
+		local filetype = languages.canonical_filetypes[language]
+
+		print("Processing language: " .. language .. " -> filetype: " .. filetype)
+
+		for contest, template in pairs(template_set) do
+			print("Adding built-in snippet: " .. contest .. " for language: " .. language)
+			table.insert(snippets, s(contest, fmt(template, { i(1) })))
+		end
 
 		for _, snippet in ipairs(config.snippets or {}) do
 			table.insert(snippets, snippet)
 		end
 
+		print("Registering " .. #snippets .. " snippets for filetype: " .. filetype)
 		ls.add_snippets(filetype, snippets)
 	end
 end

@@ -14,7 +14,7 @@ end, {
 	desc = "Competitive programming helper",
 	complete = function(ArgLead, CmdLine, _)
 		local languages_module = require("cp.languages")
-		local languages = languages_module.all
+		local languages = vim.tbl_keys(languages_module.canonical_filetypes)
 
 		if ArgLead:match("^--lang=") then
 			local lang_completions = {}

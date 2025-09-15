@@ -13,7 +13,10 @@ M.filetype_to_language = {
 	py3 = M.PYTHON,
 }
 
----@type string[]
-M.all = { M.CPP, M.PYTHON }
+---@type table<string, string>
+M.canonical_filetypes = {
+	[M.CPP] = "cpp",
+	[M.PYTHON] = "python",
+}
 
 return M

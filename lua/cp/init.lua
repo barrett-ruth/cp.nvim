@@ -117,6 +117,7 @@ local function setup_problem(contest_id, problem_id, language)
 			vim.cmd.startinsert({ bang = true })
 
 			vim.schedule(function()
+				print("Debug: platform=" .. state.platform .. ", filetype=" .. vim.bo.filetype .. ", expandable=" .. tostring(luasnip.expandable()))
 				if luasnip.expandable() then
 					luasnip.expand()
 				end
