@@ -25,12 +25,24 @@ def scrape(url: str) -> list[tuple[str, str]]:
         for inp_section in input_sections:
             inp_pre = inp_section.find("pre")
             if inp_pre:
-                all_inputs.append(inp_pre.get_text().strip().replace("\r", ""))
+                divs = inp_pre.find_all("div")
+                if divs:
+                    lines = [div.get_text().strip() for div in divs]
+                    text = "\n".join(lines)
+                else:
+                    text = inp_pre.get_text().replace("\r", "")
+                all_inputs.append(text)
 
         for out_section in output_sections:
             out_pre = out_section.find("pre")
             if out_pre:
-                all_outputs.append(out_pre.get_text().strip().replace("\r", ""))
+                divs = out_pre.find_all("div")
+                if divs:
+                    lines = [div.get_text().strip() for div in divs]
+                    text = "\n".join(lines)
+                else:
+                    text = out_pre.get_text().replace("\r", "")
+                all_outputs.append(text)
 
         if all_inputs and all_outputs:
             combined_input = "\n".join(all_inputs)
@@ -103,11 +115,12 @@ def main() -> None:
         print(json.dumps(result))
         sys.exit(1)
 
+
     mode: str = sys.argv[1]
 
     if mode == "metadata":
         if len(sys.argv) != 3:
-            result = {
+            result: dict[str, str | bool] = {
                 "success": False,
                 "error": "Usage: codeforces.py metadata <contest_id>",
             }
@@ -118,14 +131,14 @@ def main() -> None:
         problems: list[dict[str, str]] = scrape_contest_problems(contest_id)
 
         if not problems:
-            result = {
+            result: dict[str, str | bool] = {
                 "success": False,
                 "error": f"No problems found for contest {contest_id}",
             }
             print(json.dumps(result))
             sys.exit(1)
 
-        result = {
+        result: dict[str, str | bool | list] = {
             "success": True,
             "contest_id": contest_id,
             "problems": problems,
@@ -134,7 +147,7 @@ def main() -> None:
 
     elif mode == "tests":
         if len(sys.argv) != 4:
-            result = {
+            result: dict[str, str | bool] = {
                 "success": False,
                 "error": "Usage: codeforces.py tests <contest_id> <problem_letter>",
             }
@@ -149,7 +162,7 @@ def main() -> None:
         tests: list[tuple[str, str]] = scrape_sample_tests(url)
 
         if not tests:
-            result = {
+            result: dict[str, str | bool] = {
                 "success": False,
                 "error": f"No tests found for {contest_id} {problem_letter}",
                 "problem_id": problem_id,
@@ -162,7 +175,7 @@ def main() -> None:
         for input_data, output_data in tests:
             test_cases.append({"input": input_data, "output": output_data})
 
-        result = {
+        result: dict[str, str | bool | list] = {
             "success": True,
             "problem_id": problem_id,
             "url": url,
@@ -171,7 +184,7 @@ def main() -> None:
         print(json.dumps(result))
 
     else:
-        result = {
+        result: dict[str, str | bool] = {
             "success": False,
             "error": f"Unknown mode: {mode}. Use 'metadata' or 'tests'",
         }

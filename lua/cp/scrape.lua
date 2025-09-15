@@ -74,9 +74,9 @@ function M.scrape_contest_metadata(platform, contest_id)
 
 	local args
 	if platform == "cses" then
-		args = { "uv", "run", scraper_path, "metadata" }
+		args = { "uv", "run", "--directory", plugin_path, scraper_path, "metadata" }
 	else
-		args = { "uv", "run", scraper_path, "metadata", contest_id }
+		args = { "uv", "run", "--directory", plugin_path, scraper_path, "metadata", contest_id }
 	end
 
 	local result = vim.system(args, {
@@ -152,9 +152,9 @@ function M.scrape_problem(ctx)
 
 	local args
 	if ctx.contest == "cses" then
-		args = { "uv", "run", scraper_path, "tests", ctx.contest_id }
+		args = { "uv", "run", "--directory", plugin_path, scraper_path, "tests", ctx.contest_id }
 	else
-		args = { "uv", "run", scraper_path, "tests", ctx.contest_id, ctx.problem_id }
+		args = { "uv", "run", "--directory", plugin_path, scraper_path, "tests", ctx.contest_id, ctx.problem_id }
 	end
 
 	local result = vim.system(args, {
@@ -188,8 +188,8 @@ function M.scrape_problem(ctx)
 		local combined_input = data.test_cases[1].input:gsub("\r", "")
 		local combined_output = data.test_cases[1].output:gsub("\r", "")
 
-		vim.fn.writefile(vim.split(combined_input, "\n"), ctx.input_file)
-		vim.fn.writefile(vim.split(combined_output, "\n"), ctx.expected_file)
+		vim.fn.writefile(vim.split(combined_input, "\n", true), ctx.input_file)
+		vim.fn.writefile(vim.split(combined_output, "\n", true), ctx.expected_file)
 	end
 
 	return {
