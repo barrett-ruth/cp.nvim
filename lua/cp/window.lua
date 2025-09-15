@@ -1,3 +1,14 @@
+---@class WindowState
+---@field windows table<integer, WindowData>
+---@field current_win integer
+---@field layout string
+
+---@class WindowData
+---@field bufnr integer
+---@field view table
+---@field width integer
+---@field height integer
+
 local M = {}
 
 function M.clearcol()
@@ -8,6 +19,7 @@ function M.clearcol()
 	vim.api.nvim_set_option_value("foldcolumn", "0", { scope = "local" })
 end
 
+---@return WindowState
 function M.save_layout()
 	local windows = {}
 	for _, win in ipairs(vim.api.nvim_list_wins()) do
@@ -29,7 +41,14 @@ function M.save_layout()
 	}
 end
 
+---@param state? WindowState
+---@param tile_fn? fun(source_buf: integer, input_buf: integer, output_buf: integer)
 function M.restore_layout(state, tile_fn)
+	vim.validate({
+		state = { state, { "table", "nil" }, true },
+		tile_fn = { tile_fn, { "function", "nil" }, true },
+	})
+
 	if not state then
 		return
 	end
@@ -56,7 +75,21 @@ function M.restore_layout(state, tile_fn)
 		local input_file = ("%s/io/%s.in"):format(base_fp, problem_id)
 		local output_file = ("%s/io/%s.out"):format(base_fp, problem_id)
 		local source_files = vim.fn.glob(problem_id .. ".*")
-		local source_file = source_files ~= "" and vim.split(source_files, "\n")[1] or (problem_id .. ".cc")
+		local source_file
+		if source_files ~= "" then
+			local files = vim.split(source_files, "\n")
+			local valid_extensions = { "cc", "cpp", "cxx", "c", "py", "py3" }
+			for _, file in ipairs(files) do
+				local ext = vim.fn.fnamemodify(file, ":e")
+				if vim.tbl_contains(valid_extensions, ext) then
+					source_file = file
+					break
+				end
+			end
+			source_file = source_file or files[1]
+		else
+			source_file = problem_id .. ".cc"
+		end
 
 		if vim.fn.filereadable(source_file) == 0 then
 			return
@@ -90,7 +123,16 @@ function M.restore_layout(state, tile_fn)
 	end
 end
 
+---@param actual_output string
+---@param expected_output string
+---@param input_file string
 function M.setup_diff_layout(actual_output, expected_output, input_file)
+	vim.validate({
+		actual_output = { actual_output, "string" },
+		expected_output = { expected_output, "string" },
+		input_file = { input_file, "string" },
+	})
+
 	vim.cmd.diffoff()
 	vim.cmd("silent only")
 
@@ -117,7 +159,16 @@ function M.setup_diff_layout(actual_output, expected_output, input_file)
 	vim.cmd.wincmd("k")
 end
 
+---@param source_buf integer
+---@param input_buf integer
+---@param output_buf integer
 local function default_tile(source_buf, input_buf, output_buf)
+	vim.validate({
+		source_buf = { source_buf, "number" },
+		input_buf = { input_buf, "number" },
+		output_buf = { output_buf, "number" },
+	})
+
 	vim.api.nvim_set_current_buf(source_buf)
 	vim.cmd.vsplit()
 	vim.api.nvim_set_current_buf(output_buf)

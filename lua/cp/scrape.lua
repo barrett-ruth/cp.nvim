@@ -45,6 +45,11 @@ end
 ---@param contest_id string
 ---@return {success: boolean, problems?: table[], error?: string}
 function M.scrape_contest_metadata(platform, contest_id)
+	vim.validate({
+		platform = { platform, "string" },
+		contest_id = { contest_id, "string" },
+	})
+
 	cache.load()
 
 	local cached_data = cache.get_contest_data(platform, contest_id)
@@ -121,6 +126,10 @@ end
 ---@param ctx ProblemContext
 ---@return {success: boolean, problem_id: string, test_count?: number, test_cases?: table[], url?: string, error?: string}
 function M.scrape_problem(ctx)
+	vim.validate({
+		ctx = { ctx, "table" },
+	})
+
 	ensure_io_directory()
 
 	if vim.fn.filereadable(ctx.input_file) == 1 and vim.fn.filereadable(ctx.expected_file) == 1 then

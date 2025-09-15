@@ -10,11 +10,19 @@ function M.setup(config)
 
 	local s, i, fmt = ls.snippet, ls.insert_node, require("luasnip.extras.fmt").fmt
 
-	local default_snippets = {
-		s(
-			"codeforces",
-			fmt(
-				[[#include <bits/stdc++.h>
+	local languages = require("cp.languages")
+	local filetype_to_language = languages.filetype_to_language
+
+	local language_to_filetype = {}
+	for ext, lang in pairs(filetype_to_language) do
+		if not language_to_filetype[lang] then
+			language_to_filetype[lang] = ext
+		end
+	end
+
+	local template_definitions = {
+		cpp = {
+			codeforces = [[#include <bits/stdc++.h>
 
 using namespace std;
 
@@ -34,14 +42,8 @@ int main() {{
 
   return 0;
 }}]],
-				{ i(1) }
-			)
-		),
 
-		s(
-			"atcoder",
-			fmt(
-				[[#include <bits/stdc++.h>
+			atcoder = [[#include <bits/stdc++.h>
 
 using namespace std;
 
@@ -65,14 +67,8 @@ int main() {{
 
   return 0;
 }}]],
-				{ i(1) }
-			)
-		),
 
-		s(
-			"cses",
-			fmt(
-				[[#include <bits/stdc++.h>
+			cses = [[#include <bits/stdc++.h>
 
 using namespace std;
 
@@ -83,29 +79,41 @@ int main() {{
 
   return 0;
 }}]],
-				{ i(1) }
-			)
-		),
+		},
+
+		python = {
+			codeforces = [[def solve():
+    {}
+
+if __name__ == "__main__":
+    tc = int(input())
+    for _ in range(tc):
+        solve()]],
+
+			atcoder = [[def solve():
+    {}
+
+if __name__ == "__main__":
+    solve()]],
+
+			cses = [[{}]],
+		},
 	}
 
-	local default_map = {}
-	for _, snippet in pairs(default_snippets) do
-		default_map[snippet.trigger] = snippet
+	for language, template_set in pairs(template_definitions) do
+		local snippets = {}
+		local filetype = languages.canonical_filetypes[language]
+
+		for contest, template in pairs(template_set) do
+			table.insert(snippets, s(contest, fmt(template, { i(1) })))
+		end
+
+		for _, snippet in ipairs(config.snippets or {}) do
+			table.insert(snippets, snippet)
+		end
+
+		ls.add_snippets(filetype, snippets)
 	end
-
-	local user_map = {}
-	for _, snippet in pairs(config.snippets or {}) do
-		user_map[snippet.trigger] = snippet
-	end
-
-	local merged_map = vim.tbl_extend("force", default_map, user_map)
-
-	local all_snippets = {}
-	for _, snippet in pairs(merged_map) do
-		table.insert(all_snippets, snippet)
-	end
-
-	ls.add_snippets("cpp", all_snippets)
 end
 
 return M

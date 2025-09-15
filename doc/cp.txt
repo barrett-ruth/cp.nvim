@@ -27,11 +27,12 @@ cp.nvim uses a single :CP command with intelligent argument parsing:
 
 Setup Commands ~
 
-:CP {platform} {contest_id} {problem_id}
+:CP {platform} {contest_id} {problem_id} [--lang={language}]
                                 Full setup: set platform, load contest metadata,
                                 and set up specific problem. Scrapes test cases
                                 and creates source file.
                                 Example: :CP codeforces 1933 a
+                                Example: :CP codeforces 1933 a --lang=python
 
 :CP {platform} {contest_id}     Contest setup: set platform and load contest
                                 metadata for navigation. Caches problem list.
@@ -40,9 +41,11 @@ Setup Commands ~
 :CP {platform}                  Platform setup: set platform only.
                                 Example: :CP cses
 
-:CP {problem_id}                Problem switch: switch to different problem
+:CP {problem_id} [--lang={language}]
+                                Problem switch: switch to different problem
                                 within current contest context.
                                 Example: :CP b (switch to problem b)
+                                Example: :CP b --lang=python
 
 Action Commands ~
 
@@ -75,21 +78,39 @@ Optional configuration with lazy.nvim: >
           debug = false,
           contests = {
             default = {
-              cpp_version = 20,
-              compile_flags = { "-O2", "-DLOCAL", "-Wall", "-Wextra" },
-              debug_flags = { "-g3", "-fsanitize=address,undefined", "-DLOCAL" },
+              cpp = {
+                compile = {
+                  'g++', '-std=c++{version}', '-O2', '-Wall', '-Wextra',
+                  '-DLOCAL', '{source}', '-o', '{binary}',
+                },
+                run = { '{binary}' },
+                debug = {
+                  'g++', '-std=c++{version}', '-g3',
+                  '-fsanitize=address,undefined', '-DLOCAL',
+                  '{source}', '-o', '{binary}',
+                },
+                version = 20,
+                extension = "cc",
+              },
+              python = {
+                run = { 'python3', '{source}' },
+                debug = { 'python3', '{source}' },
+                extension = "py",
+              },
               timeout_ms = 2000,
             },
-            atcoder = { cpp_version = 23 },
+            codeforces = { cpp = { version = 23 } },
           },
           hooks = {
-            before_run = function(problem_id) vim.cmd.w() end,
-            before_debug = function(problem_id) ... end,
+            before_run = function(ctx) vim.cmd.w() end,
+            before_debug = function(ctx)
+              -- ctx.problem_id, ctx.platform, ctx.source_file, etc.
+              vim.cmd.w()
+            end,
           },
-          tile = function(source_buf, input_buf, output_buf)
-          end,
-          filename = function(contest, problem_id, problem_letter)
-          end,
+          snippets = { ... },  -- LuaSnip snippets
+          tile = function(source_buf, input_buf, output_buf) ... end,
+          filename = function(contest, problem_id, problem_letter) ... end,
         }
     }
 <
@@ -98,19 +119,40 @@ Configuration options:
 
 contests                        Dictionary of contest configurations - each contest inherits from 'default'.
 
-  cpp_version                   c++ standard version (e.g. 20, 23)
-  compile_flags                 compiler flags for run builds
-  debug_flags                   compiler flags for debug builds
-  timeout_ms                    duration (ms) to run/debug before timeout
+  cpp                           C++ language configuration
+    compile                     Compile command template with {version}, {source}, {binary} placeholders
+    run                         Run command template with {binary} placeholder
+    debug                       Debug compile command template
+    version                     C++ standard version (e.g. 20, 23)
+    extension                   File extension for C++ files (default: "cc")
+
+  python                        Python language configuration
+    run                         Run command template with {source} placeholder
+    debug                       Debug run command template
+    extension                   File extension for Python files (default: "py")
+
+  default_language              Default language when --lang not specified (default: "cpp")
+
+  timeout_ms                    Duration (ms) to run/debug before timeout
 
 snippets                        LuaSnip snippets by contest type
 
 hooks                           Functions called at specific events
   before_run                    Called before :CP run
-                                  function(problem_id)
+                                  function(ctx)
+                                ctx contains:
+                                  - problem_id: string
+                                  - platform: string (atcoder/codeforces/cses)
+                                  - contest_id: string
+                                  - source_file: string (path to source)
+                                  - input_file: string (path to .cpin)
+                                  - output_file: string (path to .cpout)
+                                  - expected_file: string (path to .expected)
+                                  - contest_config: table (language configs)
                                 (default: nil, do nothing)
   before_debug                  Called before :CP debug
-                                  function(problem_id)
+                                  function(ctx)
+                                Same ctx as before_run
                                 (default: nil, do nothing)
 
 debug                           Show info messages during operation
@@ -221,8 +263,8 @@ cp.nvim creates the following file structure upon problem setup:
     build/
       {contest_id}{problem_id}.run  " Compiled binary
     io/
-      {contest_id}{problem_id}.in       " Test input
-      {contest_id}{problem_id}.out      " Program output
+      {contest_id}{problem_id}.cpin     " Test input
+      {contest_id}{problem_id}.cpout    " Program output
       {contest_id}{problem_id}.expected " Expected output
 
 The plugin automatically manages this structure and navigation between problems
@@ -233,8 +275,16 @@ SNIPPETS						*cp-snippets*
 cp.nvim integrates with LuaSnip for automatic template expansion. When you
 open a new problem file, type the contest name and press <Tab> to expand.
 
-Built-in snippets include basic C++ templates for each contest type.
+Built-in snippets include basic C++ and Python templates for each contest type.
 Custom snippets can be added via configuration.
+
+IMPORTANT: Snippet trigger names must exactly match the contest/platform names:
+- "codeforces" for Codeforces problems
+- "atcoder" for AtCoder problems
+- "cses" for CSES problems
+
+The plugin automatically selects the appropriate template based on the file
+extension (e.g., .cc files get C++ templates, .py files get Python templates).
 
 HEALTH CHECK						*cp-health*
 

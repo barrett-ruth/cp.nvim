@@ -48,7 +48,8 @@ end
 
 ---@param contest_id string
 ---@param problem_id? string
-local function setup_problem(contest_id, problem_id)
+---@param language? string
+local function setup_problem(contest_id, problem_id, language)
 	if not state.platform then
 		logger.log("no platform set. run :CP <platform> <contest> first", vim.log.levels.ERROR)
 		return
@@ -88,7 +89,7 @@ local function setup_problem(contest_id, problem_id)
 		state.test_cases = cached_test_cases
 	end
 
-	local ctx = problem.create_context(state.platform, contest_id, problem_id, config)
+	local ctx = problem.create_context(state.platform, contest_id, problem_id, config, language)
 
 	local scrape_result = scrape.scrape_problem(ctx)
 
@@ -116,6 +117,14 @@ local function setup_problem(contest_id, problem_id)
 			vim.cmd.startinsert({ bang = true })
 
 			vim.schedule(function()
+				print(
+					"Debug: platform="
+						.. state.platform
+						.. ", filetype="
+						.. vim.bo.filetype
+						.. ", expandable="
+						.. tostring(luasnip.expandable())
+				)
 				if luasnip.expandable() then
 					luasnip.expand()
 				end
@@ -161,19 +170,28 @@ local function run_problem()
 
 	logger.log(("running problem: %s"):format(problem_id))
 
-	if config.hooks and config.hooks.before_run then
-		config.hooks.before_run(problem_id)
-	end
-
 	if not state.platform then
 		logger.log("no platform set", vim.log.levels.ERROR)
 		return
 	end
 
 	local contest_config = config.contests[state.platform]
+	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
+
+	if config.hooks and config.hooks.before_run then
+		config.hooks.before_run({
+			problem_id = problem_id,
+			platform = state.platform,
+			contest_id = state.contest_id,
+			source_file = ctx.source_file,
+			input_file = ctx.input_file,
+			output_file = ctx.output_file,
+			expected_file = ctx.expected_file,
+			contest_config = contest_config,
+		})
+	end
 
 	vim.schedule(function()
-		local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
 		execute.run_problem(ctx, contest_config, false)
 		vim.cmd.checktime()
 	end)
@@ -185,19 +203,28 @@ local function debug_problem()
 		return
 	end
 
-	if config.hooks and config.hooks.before_debug then
-		config.hooks.before_debug(problem_id)
-	end
-
 	if not state.platform then
 		logger.log("no platform set", vim.log.levels.ERROR)
 		return
 	end
 
 	local contest_config = config.contests[state.platform]
+	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
+
+	if config.hooks and config.hooks.before_debug then
+		config.hooks.before_debug({
+			problem_id = problem_id,
+			platform = state.platform,
+			contest_id = state.contest_id,
+			source_file = ctx.source_file,
+			input_file = ctx.input_file,
+			output_file = ctx.output_file,
+			expected_file = ctx.expected_file,
+			contest_config = contest_config,
+		})
+	end
 
 	vim.schedule(function()
-		local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
 		execute.run_problem(ctx, contest_config, true)
 		vim.cmd.checktime()
 	end)
@@ -246,7 +273,8 @@ local function diff_problem()
 end
 
 ---@param delta number 1 for next, -1 for prev
-local function navigate_problem(delta)
+---@param language? string
+local function navigate_problem(delta, language)
 	if not state.platform or not state.contest_id then
 		logger.log("no contest set. run :CP <platform> <contest> first", vim.log.levels.ERROR)
 		return
@@ -297,41 +325,69 @@ local function navigate_problem(delta)
 	local new_problem = problems[new_index]
 
 	if state.platform == "cses" then
-		setup_problem(new_problem.id)
+		setup_problem(new_problem.id, nil, language)
 	else
-		setup_problem(state.contest_id, new_problem.id)
+		setup_problem(state.contest_id, new_problem.id, language)
 	end
 end
 
 local function parse_command(args)
 	if #args == 0 then
-		return { type = "error", message = "Usage: :CP <platform> <contest> [problem] | :CP <action> | :CP <problem>" }
+		return {
+			type = "error",
+			message = "Usage: :CP <platform> <contest> [problem] [--lang=<language>] | :CP <action> | :CP <problem>",
+		}
 	end
 
-	local first = args[1]
+	local language = nil
+
+	for i, arg in ipairs(args) do
+		local lang_match = arg:match("^--lang=(.+)$")
+		if lang_match then
+			language = lang_match
+		elseif arg == "--lang" then
+			if i + 1 <= #args then
+				language = args[i + 1]
+			else
+				return { type = "error", message = "--lang requires a value" }
+			end
+		end
+	end
+
+	local filtered_args = vim.tbl_filter(function(arg)
+		return not (arg:match("^--lang") or arg == language)
+	end, args)
+
+	local first = filtered_args[1]
 
 	if vim.tbl_contains(actions, first) then
-		return { type = "action", action = first }
+		return { type = "action", action = first, language = language }
 	end
 
 	if vim.tbl_contains(platforms, first) then
-		if #args == 1 then
-			return { type = "platform_only", platform = first }
-		elseif #args == 2 then
+		if #filtered_args == 1 then
+			return { type = "platform_only", platform = first, language = language }
+		elseif #filtered_args == 2 then
 			if first == "cses" then
-				return { type = "cses_problem", platform = first, problem = args[2] }
+				return { type = "cses_problem", platform = first, problem = filtered_args[2], language = language }
 			else
-				return { type = "contest_setup", platform = first, contest = args[2] }
+				return { type = "contest_setup", platform = first, contest = filtered_args[2], language = language }
 			end
-		elseif #args == 3 then
-			return { type = "full_setup", platform = first, contest = args[2], problem = args[3] }
+		elseif #filtered_args == 3 then
+			return {
+				type = "full_setup",
+				platform = first,
+				contest = filtered_args[2],
+				problem = filtered_args[3],
+				language = language,
+			}
 		else
 			return { type = "error", message = "Too many arguments" }
 		end
 	end
 
 	if state.platform and state.contest_id then
-		return { type = "problem_switch", problem = first }
+		return { type = "problem_switch", problem = first, language = language }
 	end
 
 	return { type = "error", message = "Unknown command or no contest context" }
@@ -353,9 +409,9 @@ function M.handle_command(opts)
 		elseif cmd.action == "diff" then
 			diff_problem()
 		elseif cmd.action == "next" then
-			navigate_problem(1)
+			navigate_problem(1, cmd.language)
 		elseif cmd.action == "prev" then
-			navigate_problem(-1)
+			navigate_problem(-1, cmd.language)
 		end
 		return
 	end
@@ -398,7 +454,7 @@ function M.handle_command(opts)
 				)
 			end
 
-			setup_problem(cmd.contest, cmd.problem)
+			setup_problem(cmd.contest, cmd.problem, cmd.language)
 		end
 		return
 	end
@@ -412,16 +468,16 @@ function M.handle_command(opts)
 					vim.log.levels.WARN
 				)
 			end
-			setup_problem(cmd.problem)
+			setup_problem(cmd.problem, nil, cmd.language)
 		end
 		return
 	end
 
 	if cmd.type == "problem_switch" then
 		if state.platform == "cses" then
-			setup_problem(cmd.problem)
+			setup_problem(cmd.problem, nil, cmd.language)
 		else
-			setup_problem(state.contest_id, cmd.problem)
+			setup_problem(state.contest_id, cmd.problem, cmd.language)
 		end
 		return
 	end
