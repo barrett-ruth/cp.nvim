@@ -4,7 +4,7 @@ end
 vim.g.loaded_cp = 1
 
 local platforms = { "atcoder", "codeforces", "cses" }
-local actions = { "run", "debug", "diff", "next", "prev" }
+local actions = { "run", "debug", "next", "prev" }
 
 vim.api.nvim_create_user_command("CP", function(opts)
 	local cp = require("cp")

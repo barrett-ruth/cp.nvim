@@ -55,9 +55,6 @@ Action Commands ~
 :CP debug                       Compile with debug flags and run current problem.
                                 Includes sanitizers and debug symbols.
 
-:CP diff                        Enter diff mode to compare actual vs expected
-                                output. Run again to exit diff mode.
-
 Navigation Commands ~
 
 :CP next                        Navigate to next problem in current contest.
@@ -241,15 +238,12 @@ Example: Setting up and solving AtCoder contest ABC324
 5. If needed, debug: >
     :CP debug
 <
-6. Compare output visually: >
-    :CP diff
-<
-7. Move to next problem: >
+6. Move to next problem: >
     :CP next
 <   This automatically sets up problem B
 
-8. Continue solving problems with :CP next/:CP prev navigation
-9. Submit solutions on AtCoder website
+7. Continue solving problems with :CP next/:CP prev navigation
+8. Submit solutions on AtCoder website
 
 Example: Quick setup for single Codeforces problem >
     :CP codeforces 1933 a       " One command setup
