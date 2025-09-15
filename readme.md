@@ -62,6 +62,7 @@ follows:
 ## Similar Projects
 
 - [competitest.nvim](https://github.com/xeluxee/competitest.nvim)
+- [assistant.nvim](https://github.com/A7Lavinraj/assistant.nvim)
 
 ## TODO
 
@@ -70,3 +71,5 @@ follows:
 - test case management
 - USACO support
 - new video with functionality, notify discord members
+- note that codeforces support is scuffed: https://codeforces.com/blog/entry/146423
+- codeforces: use round number & api not the contest id

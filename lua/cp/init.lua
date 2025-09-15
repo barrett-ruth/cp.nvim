@@ -23,16 +23,14 @@ local state = {
 	platform = nil,
 	contest_id = nil,
 	problem_id = nil,
-	diff_mode = false,
 	saved_layout = nil,
 	saved_session = nil,
-	temp_output = nil,
 	test_cases = nil,
 	test_states = {},
 }
 
 local platforms = { "atcoder", "codeforces", "cses" }
-local actions = { "run", "debug", "diff", "next", "prev" }
+local actions = { "run", "debug", "next", "prev" }
 
 local function set_platform(platform)
 	if not vim.tbl_contains(platforms, platform) then
@@ -64,19 +62,6 @@ local function setup_problem(contest_id, problem_id, language)
 			"failed to load contest metadata: " .. (metadata_result.error or "unknown error"),
 			vim.log.levels.WARN
 		)
-	end
-
-	if state.diff_mode then
-		vim.cmd.diffoff()
-		if state.saved_session then
-			vim.fn.delete(state.saved_session)
-			state.saved_session = nil
-		end
-		if state.temp_output then
-			vim.fn.delete(state.temp_output)
-			state.temp_output = nil
-		end
-		state.diff_mode = false
 	end
 
 	vim.cmd("silent only")
