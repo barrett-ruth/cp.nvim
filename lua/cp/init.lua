@@ -112,21 +112,18 @@ local function setup_problem(contest_id, problem_id, language)
 	if vim.api.nvim_buf_get_lines(0, 0, -1, true)[1] == "" then
 		local has_luasnip, luasnip = pcall(require, "luasnip")
 		if has_luasnip then
-			vim.api.nvim_buf_set_lines(0, 0, -1, false, { state.platform })
-			vim.api.nvim_win_set_cursor(0, { 1, #state.platform })
+			local prefixed_trigger = ("cp.nvim/%s.%s"):format(state.platform, language)
+
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, { prefixed_trigger })
+			vim.api.nvim_win_set_cursor(0, { 1, #prefixed_trigger })
 			vim.cmd.startinsert({ bang = true })
 
 			vim.schedule(function()
-				print(
-					"Debug: platform="
-						.. state.platform
-						.. ", filetype="
-						.. vim.bo.filetype
-						.. ", expandable="
-						.. tostring(luasnip.expandable())
-				)
 				if luasnip.expandable() then
 					luasnip.expand()
+				else
+					vim.api.nvim_buf_set_lines(0, 0, 1, false, { "" })
+					vim.api.nvim_win_set_cursor(0, { 1, 0 })
 				end
 				vim.cmd.stopinsert()
 			end)
@@ -214,6 +211,7 @@ local function diff_problem()
 	if state.diff_mode then
 		vim.cmd.diffoff()
 		if state.saved_session then
+			vim.cmd(("source %s"):format(state.saved_session))
 			vim.fn.delete(state.saved_session)
 			state.saved_session = nil
 		end
@@ -242,13 +240,25 @@ local function diff_problem()
 		return
 	end
 
+	local output_lines = vim.fn.readfile(ctx.output_file)
+	local actual_output = {}
+	for i = 1, #output_lines do
+		if output_lines[i]:match("^%[code%]:") then
+			break
+		end
+		table.insert(actual_output, output_lines[i])
+	end
+
+	state.temp_output = vim.fn.tempname()
+	vim.fn.writefile(actual_output, state.temp_output)
+
 	state.saved_session = vim.fn.tempname()
 	vim.cmd(("mksession! %s"):format(state.saved_session))
 
 	vim.cmd("silent only")
-	vim.cmd(("edit %s"):format(ctx.expected_file))
+	vim.cmd(("edit %s"):format(state.temp_output))
 	vim.cmd.diffthis()
-	vim.cmd(("vertical diffsplit %s"):format(ctx.output_file))
+	vim.cmd(("vertical diffsplit %s"):format(ctx.expected_file))
 	state.diff_mode = true
 end
 
