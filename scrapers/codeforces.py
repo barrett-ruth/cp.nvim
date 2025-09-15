@@ -80,7 +80,7 @@ def scrape_contest_problems(contest_id: str) -> list[dict[str, str]]:
                 problem_letter: str = href.split("/")[-1].lower()
                 problem_name: str = link.get_text(strip=True)
 
-                if problem_letter and problem_name and len(problem_letter) == 1:
+                if problem_letter and problem_name:
                     problems.append({"id": problem_letter, "name": problem_name})
 
         problems.sort(key=lambda x: x["id"])
