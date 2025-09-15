@@ -67,3 +67,4 @@ follows:
 - better highlighting
 - test case management
 - USACO support
+- new video with functionality, notify discord members

@@ -27,8 +27,8 @@ function M.create_context(contest, contest_id, problem_id, config)
 		problem_id = problem_id,
 		source_file = source_file,
 		binary_file = ("build/%s.run"):format(base_name),
-		input_file = ("io/%s.in"):format(base_name),
-		output_file = ("io/%s.out"):format(base_name),
+		input_file = ("io/%s.cpin"):format(base_name),
+		output_file = ("io/%s.cpout"):format(base_name),
 		expected_file = ("io/%s.expected"):format(base_name),
 		problem_name = base_name,
 	}
