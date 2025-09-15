@@ -188,8 +188,8 @@ function M.run_test_case(ctx, contest_config, index)
 	return true
 end
 
----@param ctx table
----@param contest_config table
+---@param ctx ProblemContext
+---@param contest_config ContestConfig
 ---@return TestCase[]
 function M.run_all_test_cases(ctx, contest_config)
 	local results = {}
