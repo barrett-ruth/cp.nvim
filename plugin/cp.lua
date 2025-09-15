@@ -13,14 +13,8 @@ end, {
 	nargs = "*",
 	desc = "Competitive programming helper",
 	complete = function(ArgLead, CmdLine, _)
-		local filetype_to_language = {
-			cc = "cpp",
-			c = "cpp",
-			py = "python",
-			py3 = "python",
-		}
-
-		local languages = vim.tbl_keys(vim.tbl_add_reverse_lookup(filetype_to_language))
+		local languages_module = require("cp.languages")
+		local languages = languages_module.all
 
 		if ArgLead:match("^--lang=") then
 			local lang_completions = {}

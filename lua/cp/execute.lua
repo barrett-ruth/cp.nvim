@@ -8,14 +8,8 @@
 local M = {}
 local logger = require("cp.log")
 
-local filetype_to_language = {
-	cpp = "cpp",
-	cxx = "cpp",
-	cc = "cpp",
-	c = "cpp",
-	py = "python",
-	py3 = "python",
-}
+local languages = require("cp.languages")
+local filetype_to_language = languages.filetype_to_language
 
 ---@param source_file string
 ---@param contest_config table
