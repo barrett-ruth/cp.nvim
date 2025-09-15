@@ -80,7 +80,6 @@ M.defaults = {
 	filename = nil,
 }
 
-
 ---@param user_config cp.UserConfig|nil
 ---@return cp.Config
 function M.setup(user_config)
@@ -153,6 +152,10 @@ local function default_filename(contest, contest_id, problem_id, config, languag
 	end
 
 	local contest_config = config.contests[contest]
+	if not contest_config then
+		error(("No contest config found for '%s'"):format(contest))
+	end
+
 	local target_language = language or contest_config.default_language
 	local language_config = contest_config[target_language]
 

@@ -124,7 +124,6 @@ Optional configuration with lazy.nvim: >
 
     Fields: ~
       • {contests}      (`table<string,ContestConfig>`) Contest configurations.
-                        Each contest inherits from 'default'.
       • {hooks}         (`cp.Hooks`) Hook functions called at various stages.
       • {snippets}      (`table[]`) LuaSnip snippet definitions.
       • {debug}         (`boolean`, default: `false`) Show info messages
