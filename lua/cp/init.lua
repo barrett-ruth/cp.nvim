@@ -135,13 +135,10 @@ local function setup_problem(contest_id, problem_id, language)
 		end
 	end
 
-	vim.api.nvim_set_option_value("winbar", "", { scope = "local" })
-	vim.api.nvim_set_option_value("foldlevel", 0, { scope = "local" })
-	vim.api.nvim_set_option_value("foldmethod", "marker", { scope = "local" })
-	vim.api.nvim_set_option_value("foldmarker", "{{{,}}}", { scope = "local" })
-	vim.api.nvim_set_option_value("foldtext", "", { scope = "local" })
-
-	vim.diagnostic.enable(false)
+	if config.hooks and config.hooks.setup_code then
+		local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
+		config.hooks.setup_code(ctx)
+	end
 
 	local source_buf = vim.api.nvim_get_current_buf()
 	local input_buf = vim.fn.bufnr(ctx.input_file, true)

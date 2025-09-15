@@ -39,6 +39,7 @@
 ---@class Hooks
 ---@field before_run? fun(ctx: HookContext)
 ---@field before_debug? fun(ctx: HookContext)
+---@field setup_code? fun(ctx: HookContext)
 
 ---@class cp.Config
 ---@field contests table<string, ContestConfig>
@@ -67,78 +68,18 @@ local filetype_to_language = {
 
 ---@type cp.Config
 M.defaults = {
-	contests = {
-		default = {
-			cpp = {
-				compile = {
-					"g++",
-					"-std=c++{version}",
-					"-O2",
-					"-DLOCAL",
-					"-Wall",
-					"-Wextra",
-					"{source}",
-					"-o",
-					"{binary}",
-				},
-				run = { "{binary}" },
-				debug = {
-					"g++",
-					"-std=c++{version}",
-					"-g3",
-					"-fsanitize=address,undefined",
-					"-DLOCAL",
-					"{source}",
-					"-o",
-					"{binary}",
-				},
-				executable = nil,
-				version = 20,
-				extension = "cc",
-			},
-			python = {
-				compile = nil,
-				run = { "{source}" },
-				debug = { "{source}" },
-				executable = "python3",
-				extension = "py",
-			},
-			default_language = "cpp",
-			timeout_ms = 2000,
-		},
-		---@type PartialContestConfig
-		atcoder = {
-			---@type PartialLanguageConfig
-			cpp = { version = 23 },
-		},
-		---@type PartialContestConfig
-		codeforces = {
-			---@type PartialLanguageConfig
-			cpp = { version = 23 },
-		},
-		---@type PartialContestConfig
-		cses = {
-			---@type PartialLanguageConfig
-			cpp = { version = 20 },
-		},
-	},
+	contests = {},
 	snippets = {},
 	hooks = {
 		before_run = nil,
 		before_debug = nil,
+		setup_code = nil,
 	},
 	debug = false,
 	tile = nil,
 	filename = nil,
 }
 
----@param base_config table
----@param contest_config table
----@return table
-local function extend_contest_config(base_config, contest_config)
-	local result = vim.tbl_deep_extend("force", base_config, contest_config)
-	return result
-end
 
 ---@param user_config cp.UserConfig|nil
 ---@return cp.Config
@@ -161,6 +102,7 @@ function M.setup(user_config)
 			vim.validate({
 				before_run = { user_config.hooks.before_run, { "function", "nil" }, true },
 				before_debug = { user_config.hooks.before_debug, { "function", "nil" }, true },
+				setup_code = { user_config.hooks.setup_code, { "function", "nil" }, true },
 			})
 		end
 
@@ -185,14 +127,6 @@ function M.setup(user_config)
 	end
 
 	local config = vim.tbl_deep_extend("force", M.defaults, user_config or {})
-
-	local default_contest = config.contests.default
-	for contest_name, contest_config in pairs(config.contests) do
-		if contest_name ~= "default" then
-			config.contests[contest_name] = extend_contest_config(default_contest, contest_config)
-		end
-	end
-
 	return config
 end
 
@@ -218,9 +152,18 @@ local function default_filename(contest, contest_id, problem_id, config, languag
 		end
 	end
 
-	local contest_config = config.contests[contest] or config.contests.default
+	local contest_config = config.contests[contest]
 	local target_language = language or contest_config.default_language
 	local language_config = contest_config[target_language]
+
+	if not language_config then
+		error(("No language config found for '%s' in contest '%s'"):format(target_language, contest))
+	end
+
+	if not language_config.extension then
+		error(("No extension configured for language '%s' in contest '%s'"):format(target_language, contest))
+	end
+
 	return full_problem_id .. "." .. language_config.extension
 end
 
