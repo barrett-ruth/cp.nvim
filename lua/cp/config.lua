@@ -26,20 +26,10 @@
 ---@field default_language? string
 ---@field timeout_ms? number
 
----@class HookContext
----@field problem_id string
----@field platform string
----@field contest_id string
----@field source_file string
----@field input_file string
----@field output_file string
----@field expected_file string
----@field contest_config table
-
 ---@class Hooks
----@field before_run? fun(ctx: HookContext)
----@field before_debug? fun(ctx: HookContext)
----@field setup_code? fun(ctx: HookContext)
+---@field before_run? fun(ctx: ProblemContext)
+---@field before_debug? fun(ctx: ProblemContext)
+---@field setup_code? fun(ctx: ProblemContext)
 
 ---@class cp.Config
 ---@field contests table<string, ContestConfig>
@@ -103,7 +93,9 @@ function M.setup(user_config)
 			for contest_name, contest_config in pairs(user_config.contests) do
 				for lang_name, lang_config in pairs(contest_config) do
 					if type(lang_config) == "table" and lang_config.extension then
-						if not vim.tbl_contains(vim.tbl_keys(languages.filetype_to_language), lang_config.extension) then
+						if
+							not vim.tbl_contains(vim.tbl_keys(languages.filetype_to_language), lang_config.extension)
+						then
 							error(
 								("Invalid extension '%s' for language '%s' in contest '%s'. Valid extensions: %s"):format(
 									lang_config.extension,

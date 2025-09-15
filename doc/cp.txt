@@ -160,24 +160,12 @@ Optional configuration with lazy.nvim: >
 
     Fields: ~
       • {before_run}?   (`function`) Called before `:CP run`.
-                        `function(ctx: HookContext)`
+                        `function(ctx: ProblemContext)`
       • {before_debug}? (`function`) Called before `:CP debug`.
-                        `function(ctx: HookContext)`
+                        `function(ctx: ProblemContext)`
       • {setup_code}?   (`function`) Called after source file is opened.
                         Used to configure buffer settings.
-                        `function(ctx: HookContext)`
-
-*cp.HookContext*
-
-    Fields: ~
-      • {problem_id}      (`string`) Problem identifier (e.g. "a", "b").
-      • {platform}        (`string`) Platform name (e.g. "codeforces").
-      • {contest_id}      (`string`) Contest identifier (e.g. "1933").
-      • {source_file}     (`string`) Path to source file.
-      • {input_file}      (`string`) Path to input file (.cpin).
-      • {output_file}     (`string`) Path to output file (.cpout).
-      • {expected_file}   (`string`) Path to expected output file.
-      • {contest_config}  (`table`) Contest configuration.
+                        `function(ctx: ProblemContext)`
 
 WORKFLOW						*cp-workflow*
 

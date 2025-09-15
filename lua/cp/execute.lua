@@ -103,9 +103,9 @@ local function compile_generic(language_config, substitutions)
 	local compile_cmd = substitute_template(language_config.compile, substitutions)
 	logger.log(("compiling: %s"):format(table.concat(compile_cmd, " ")))
 
-	local start_time = vim.loop.hrtime()
+	local start_time = vim.uv.hrtime()
 	local result = vim.system(compile_cmd, { text = true }):wait()
-	local compile_time = (vim.loop.hrtime() - start_time) / 1000000
+	local compile_time = (vim.uv.hrtime() - start_time) / 1000000
 
 	if result.code == 0 then
 		logger.log(("compilation successful (%.1fms)"):format(compile_time))
@@ -129,7 +129,7 @@ local function execute_command(cmd, input_data, timeout_ms)
 
 	logger.log(("executing: %s"):format(table.concat(cmd, " ")))
 
-	local start_time = vim.loop.hrtime()
+	local start_time = vim.uv.hrtime()
 
 	local result = vim.system(cmd, {
 		stdin = input_data,
@@ -137,7 +137,7 @@ local function execute_command(cmd, input_data, timeout_ms)
 		text = true,
 	}):wait()
 
-	local end_time = vim.loop.hrtime()
+	local end_time = vim.uv.hrtime()
 	local execution_time = (end_time - start_time) / 1000000
 
 	local actual_code = result.code or 0
