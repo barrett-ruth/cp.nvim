@@ -5,14 +5,14 @@
 ---@field problems Problem[]
 ---@field scraped_at string
 ---@field expires_at? number
----@field test_cases? TestCase[]
+---@field test_cases? CachedTestCase[]
 ---@field test_cases_cached_at? number
 
 ---@class Problem
 ---@field id string
 ---@field name? string
 
----@class TestCase
+---@class CachedTestCase
 ---@field input string
 ---@field output string
 
