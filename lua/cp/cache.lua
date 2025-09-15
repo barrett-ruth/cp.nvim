@@ -146,7 +146,7 @@ end
 ---@param platform string
 ---@param contest_id string
 ---@param problem_id? string
----@return TestCase[]?
+---@return CachedTestCase[]?
 function M.get_test_cases(platform, contest_id, problem_id)
 	vim.validate({
 		platform = { platform, "string" },
@@ -164,7 +164,7 @@ end
 ---@param platform string
 ---@param contest_id string
 ---@param problem_id? string
----@param test_cases TestCase[]
+---@param test_cases CachedTestCase[]
 function M.set_test_cases(platform, contest_id, problem_id, test_cases)
 	vim.validate({
 		platform = { platform, "string" },
