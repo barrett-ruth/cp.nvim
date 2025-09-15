@@ -112,21 +112,21 @@ local function setup_problem(contest_id, problem_id, language)
 	if vim.api.nvim_buf_get_lines(0, 0, -1, true)[1] == "" then
 		local has_luasnip, luasnip = pcall(require, "luasnip")
 		if has_luasnip then
-			vim.api.nvim_buf_set_lines(0, 0, -1, false, { state.platform })
-			vim.api.nvim_win_set_cursor(0, { 1, #state.platform })
+			local languages = require("cp.languages")
+			local file_ext = vim.fn.expand("%:e")
+			local language = languages.filetype_to_language[file_ext] or "cpp"
+			local prefixed_trigger = ("cp.nvim/%s.%s"):format(state.platform, language)
+
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, { prefixed_trigger })
+			vim.api.nvim_win_set_cursor(0, { 1, #prefixed_trigger })
 			vim.cmd.startinsert({ bang = true })
 
 			vim.schedule(function()
-				print(
-					"Debug: platform="
-						.. state.platform
-						.. ", filetype="
-						.. vim.bo.filetype
-						.. ", expandable="
-						.. tostring(luasnip.expandable())
-				)
 				if luasnip.expandable() then
 					luasnip.expand()
+				else
+					vim.api.nvim_buf_set_lines(0, 0, 1, false, { "" })
+					vim.api.nvim_win_set_cursor(0, { 1, 0 })
 				end
 				vim.cmd.stopinsert()
 			end)

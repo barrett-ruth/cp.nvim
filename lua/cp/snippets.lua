@@ -100,16 +100,27 @@ if __name__ == "__main__":
 		},
 	}
 
+	local user_overrides = {}
+	for _, snippet in ipairs(config.snippets or {}) do
+		user_overrides[snippet.trigger] = snippet
+	end
+
 	for language, template_set in pairs(template_definitions) do
 		local snippets = {}
 		local filetype = languages.canonical_filetypes[language]
 
 		for contest, template in pairs(template_set) do
-			table.insert(snippets, s(contest, fmt(template, { i(1) })))
+			local prefixed_trigger = ("cp.nvim/%s.%s"):format(contest, language)
+			if not user_overrides[prefixed_trigger] then
+				table.insert(snippets, s(prefixed_trigger, fmt(template, { i(1) })))
+			end
 		end
 
-		for _, snippet in ipairs(config.snippets or {}) do
-			table.insert(snippets, snippet)
+		for trigger, snippet in pairs(user_overrides) do
+			local prefix_match = trigger:match("^cp%.nvim/[^.]+%.(.+)$")
+			if prefix_match == language then
+				table.insert(snippets, snippet)
+			end
 		end
 
 		ls.add_snippets(filetype, snippets)
