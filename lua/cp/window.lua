@@ -12,14 +12,6 @@
 local M = {}
 local constants = require("cp.constants")
 
-function M.clearcol()
-	vim.api.nvim_set_option_value("number", false, { scope = "local" })
-	vim.api.nvim_set_option_value("relativenumber", false, { scope = "local" })
-	vim.api.nvim_set_option_value("statuscolumn", "", { scope = "local" })
-	vim.api.nvim_set_option_value("signcolumn", "no", { scope = "local" })
-	vim.api.nvim_set_option_value("foldcolumn", "0", { scope = "local" })
-end
-
 ---@return WindowState
 function M.save_layout()
 	local windows = {}
@@ -136,12 +128,10 @@ local function default_tile(source_buf, input_buf, output_buf)
 	vim.cmd.vsplit()
 	vim.api.nvim_set_current_buf(output_buf)
 	vim.bo.filetype = "cp"
-	M.clearcol()
 	vim.cmd(("vertical resize %d"):format(math.floor(vim.o.columns * 0.3)))
 	vim.cmd.split()
 	vim.api.nvim_set_current_buf(input_buf)
 	vim.bo.filetype = "cp"
-	M.clearcol()
 	vim.cmd.wincmd("h")
 end
 

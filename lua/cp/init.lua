@@ -27,6 +27,7 @@ local state = {
 	saved_session = nil,
 	test_cases = nil,
 	test_states = {},
+	test_panel_active = false,
 }
 
 local constants = require("cp.constants")
@@ -193,6 +194,53 @@ local function debug_problem()
 	end)
 end
 
+local function toggle_test_panel()
+	if state.test_panel_active then
+		if state.saved_session then
+			vim.cmd(("source %s"):format(state.saved_session))
+			vim.fn.delete(state.saved_session)
+			state.saved_session = nil
+		end
+		state.test_panel_active = false
+		logger.log("test panel closed")
+		return
+	end
+
+	local problem_id = get_current_problem()
+	if not problem_id then
+		return
+	end
+
+	state.saved_session = vim.fn.tempname()
+	vim.cmd(("mksession! %s"):format(state.saved_session))
+
+	vim.cmd("silent only")
+
+	local test_buf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_set_current_buf(test_buf)
+	vim.bo.filetype = "cptest"
+	vim.bo.bufhidden = "wipe"
+
+	local test_lines = {
+		"  1  ✓ PASS    12ms",
+		"  2  ✗ FAIL    45ms",
+		"> 3  ✓ PASS     8ms",
+		"  4  ? PENDING",
+		"",
+		"── Test 3 ──",
+		"Input:     │ Expected:   │ Actual:",
+		"5 3        │ 8           │ 8",
+		"",
+		"j/k: navigate  <space>: toggle  <enter>: run  q: quit",
+	}
+
+	vim.api.nvim_buf_set_lines(test_buf, 0, -1, false, test_lines)
+	vim.bo.modifiable = false
+
+	state.test_panel_active = true
+	logger.log("test panel opened")
+end
+
 ---@param delta number 1 for next, -1 for prev
 ---@param language? string
 local function navigate_problem(delta, language)
@@ -341,6 +389,8 @@ function M.handle_command(opts)
 			run_problem()
 		elseif cmd.action == "debug" then
 			debug_problem()
+		elseif cmd.action == "test" then
+			toggle_test_panel()
 		elseif cmd.action == "next" then
 			navigate_problem(1, cmd.language)
 		elseif cmd.action == "prev" then
