@@ -29,16 +29,12 @@ def scrape(url: str) -> list[tuple[str, str]]:
 
                 input_text_raw = inp_pre.get_text().strip().replace("\r", "")
                 input_lines = [
-                    line.strip()
-                    for line in input_text_raw.split("\n")
-                    if line.strip()
+                    line.strip() for line in input_text_raw.split("\n") if line.strip()
                 ]
 
                 output_text_raw = out_pre.get_text().strip().replace("\r", "")
                 output_lines = [
-                    line.strip()
-                    for line in output_text_raw.split("\n")
-                    if line.strip()
+                    line.strip() for line in output_text_raw.split("\n") if line.strip()
                 ]
 
                 if input_lines and output_lines:
