@@ -41,8 +41,8 @@ local function set_platform(platform)
 	end
 
 	state.platform = platform
-	vim.fs.mkdir("build", { parents = true })
-	vim.fs.mkdir("io", { parents = true })
+	vim.fn.mkdir("build", "p")
+	vim.fn.mkdir("io", "p")
 	return true
 end
 
