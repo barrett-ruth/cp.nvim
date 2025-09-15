@@ -100,7 +100,6 @@ if __name__ == "__main__":
 		},
 	}
 
-
 	for language, template_set in pairs(template_definitions) do
 		local snippets = {}
 		local filetype = languages.canonical_filetypes[language]
