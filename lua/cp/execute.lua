@@ -1,4 +1,5 @@
 local M = {}
+local logger = require("cp.log")
 
 local filetype_to_language = {
 	cpp = "cpp",
@@ -11,7 +12,9 @@ local filetype_to_language = {
 
 local function get_language_from_file(source_file)
 	local extension = vim.fn.fnamemodify(source_file, ":e")
-	return filetype_to_language[extension] or "cpp"
+	local language = filetype_to_language[extension] or "cpp"
+	logger.log(("detected language: %s (extension: %s)"):format(language, extension))
+	return language
 end
 
 local function substitute_template(cmd_template, substitutions)
@@ -58,14 +61,29 @@ end
 
 local function compile_generic(language_config, substitutions)
 	if not language_config.compile then
+		logger.log("no compilation step required")
 		return { code = 0, stderr = "" }
 	end
 
 	local compile_cmd = substitute_template(language_config.compile, substitutions)
-	return vim.system(compile_cmd, { text = true }):wait()
+	logger.log(("compiling: %s"):format(table.concat(compile_cmd, " ")))
+
+	local start_time = vim.loop.hrtime()
+	local result = vim.system(compile_cmd, { text = true }):wait()
+	local compile_time = (vim.loop.hrtime() - start_time) / 1000000
+
+	if result.code == 0 then
+		logger.log(("compilation successful (%.1fms)"):format(compile_time))
+	else
+		logger.log(("compilation failed (%.1fms): %s"):format(compile_time, result.stderr), vim.log.levels.WARN)
+	end
+
+	return result
 end
 
 local function execute_command(cmd, input_data, timeout_ms)
+	logger.log(("executing: %s"):format(table.concat(cmd, " ")))
+
 	local start_time = vim.loop.hrtime()
 
 	local result = vim.system(cmd, {
@@ -78,6 +96,14 @@ local function execute_command(cmd, input_data, timeout_ms)
 	local execution_time = (end_time - start_time) / 1000000
 
 	local actual_code = result.code or 0
+
+	if result.code == 124 then
+		logger.log(("execution timed out after %.1fms"):format(execution_time), vim.log.levels.WARN)
+	elseif actual_code ~= 0 then
+		logger.log(("execution failed (exit code %d, %.1fms)"):format(actual_code, execution_time), vim.log.levels.WARN)
+	else
+		logger.log(("execution successful (%.1fms)"):format(execution_time))
+	end
 
 	return {
 		stdout = result.stdout or "",
@@ -183,6 +209,8 @@ function M.run_individual_tests(ctx, test_cases, contest_config, is_debug)
 	if not test_cases or #test_cases == 0 then
 		return {}
 	end
+
+	logger.log(("running %d individual tests"):format(#test_cases))
 
 	local language = get_language_from_file(ctx.source_file)
 	local language_config = contest_config[language]
