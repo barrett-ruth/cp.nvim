@@ -6,11 +6,25 @@
 ---@field version? number Language version
 ---@field extension string File extension
 
+---@class PartialLanguageConfig
+---@field compile? string[] Compile command template
+---@field run? string[] Run command template
+---@field debug? string[] Debug command template
+---@field executable? string Executable name
+---@field version? number Language version
+---@field extension? string File extension
+
 ---@class ContestConfig
 ---@field cpp LanguageConfig
 ---@field python LanguageConfig
 ---@field default_language string
 ---@field timeout_ms number
+
+---@class PartialContestConfig
+---@field cpp? PartialLanguageConfig
+---@field python? PartialLanguageConfig
+---@field default_language? string
+---@field timeout_ms? number
 
 ---@class HookContext
 ---@field problem_id string
@@ -31,6 +45,14 @@
 ---@field snippets table[]
 ---@field hooks Hooks
 ---@field debug boolean
+---@field tile? fun(source_buf: number, input_buf: number, output_buf: number)
+---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
+
+---@class cp.UserConfig
+---@field contests? table<string, PartialContestConfig>
+---@field snippets? table[]
+---@field hooks? Hooks
+---@field debug? boolean
 ---@field tile? fun(source_buf: number, input_buf: number, output_buf: number)
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 
@@ -84,13 +106,19 @@ M.defaults = {
 			default_language = "cpp",
 			timeout_ms = 2000,
 		},
+		---@type PartialContestConfig
 		atcoder = {
+			---@type PartialLanguageConfig
 			cpp = { version = 23 },
 		},
+		---@type PartialContestConfig
 		codeforces = {
+			---@type PartialLanguageConfig
 			cpp = { version = 23 },
 		},
+		---@type PartialContestConfig
 		cses = {
+			---@type PartialLanguageConfig
 			cpp = { version = 20 },
 		},
 	},
@@ -112,7 +140,7 @@ local function extend_contest_config(base_config, contest_config)
 	return result
 end
 
----@param user_config cp.Config|nil
+---@param user_config cp.UserConfig|nil
 ---@return cp.Config
 function M.setup(user_config)
 	vim.validate({
