@@ -105,10 +105,7 @@ if __name__ == "__main__":
 		local snippets = {}
 		local filetype = languages.canonical_filetypes[language]
 
-		print("Processing language: " .. language .. " -> filetype: " .. filetype)
-
 		for contest, template in pairs(template_set) do
-			print("Adding built-in snippet: " .. contest .. " for language: " .. language)
 			table.insert(snippets, s(contest, fmt(template, { i(1) })))
 		end
 
@@ -116,7 +113,6 @@ if __name__ == "__main__":
 			table.insert(snippets, snippet)
 		end
 
-		print("Registering " .. #snippets .. " snippets for filetype: " .. filetype)
 		ls.add_snippets(filetype, snippets)
 	end
 end
