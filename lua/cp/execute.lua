@@ -64,23 +64,6 @@ local function build_command(cmd_template, executable, substitutions)
 	return cmd
 end
 
-local signal_codes = {
-	[128] = "SIGILL",
-	[130] = "SIGINT",
-	[131] = "SIGQUIT",
-	[132] = "SIGILL",
-	[133] = "SIGTRAP",
-	[134] = "SIGABRT",
-	[135] = "SIGBUS",
-	[136] = "SIGFPE",
-	[137] = "SIGKILL",
-	[138] = "SIGUSR1",
-	[139] = "SIGSEGV",
-	[140] = "SIGUSR2",
-	[141] = "SIGPIPE",
-	[142] = "SIGALRM",
-	[143] = "SIGTERM",
-}
 
 local function ensure_directories()
 	vim.system({ "mkdir", "-p", "build", "io" }):wait()
@@ -176,7 +159,7 @@ local function format_output(exec_result, expected_file, is_debug)
 	if exec_result.timed_out then
 		table.insert(metadata_lines, "[code]: 124 (TIMEOUT)")
 	elseif exec_result.code >= 128 then
-		local signal_name = signal_codes[exec_result.code] or "SIGNAL"
+		local signal_name = constants.signal_codes[exec_result.code] or "SIGNAL"
 		table.insert(metadata_lines, ("[code]: %d (%s)"):format(exec_result.code, signal_name))
 	else
 		table.insert(metadata_lines, ("[code]: %d"):format(exec_result.code))
@@ -193,17 +176,17 @@ local function format_output(exec_result, expected_file, is_debug)
 			table.remove(actual_lines)
 		end
 
-		local matches = #actual_lines == #expected_content
-		if matches then
+		local ok = #actual_lines == #expected_content
+		if ok then
 			for i, line in ipairs(actual_lines) do
 				if line ~= expected_content[i] then
-					matches = false
+					ok = false
 					break
 				end
 			end
 		end
 
-		table.insert(metadata_lines, ("[matches]: %s"):format(matches and "true" or "false"))
+		table.insert(metadata_lines, ("[ok]: %s"):format(ok and "true" or "false"))
 	end
 
 	return table.concat(output_lines, "") .. "\n" .. table.concat(metadata_lines, "\n")

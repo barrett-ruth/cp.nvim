@@ -281,10 +281,45 @@ local function toggle_test_panel()
 		local test_state = test_module.get_test_panel_state()
 		local tab_lines = {}
 
+		local max_status_width = 0
+		local max_code_width = 0
+		local max_time_width = 0
+
+		for _, test_case in ipairs(test_state.test_cases) do
+			local status_text = test_case.status == "pending" and "" or string.upper(test_case.status)
+			max_status_width = math.max(max_status_width, #status_text)
+
+			if test_case.code then
+				max_code_width = math.max(max_code_width, #tostring(test_case.code))
+			end
+
+			if test_case.time_ms then
+				local time_text = string.format("%.0fms", test_case.time_ms)
+				max_time_width = math.max(max_time_width, #time_text)
+			end
+		end
+
 		for i, test_case in ipairs(test_state.test_cases) do
-			local status_text = test_case.status == "pending" and "?" or string.upper(test_case.status)
 			local prefix = i == test_state.current_index and "> " or "  "
-			local tab = string.format("%s%d. %s", prefix, i, status_text)
+			local tab = string.format("%s%d.", prefix, i)
+
+			if test_case.code then
+				tab = tab .. string.format(" [code:%-" .. max_code_width .. "s]", tostring(test_case.code))
+			end
+
+			if test_case.time_ms then
+				local time_text = string.format("%.0fms", test_case.time_ms)
+				tab = tab .. string.format(" [time:%-" .. max_time_width .. "s]", time_text)
+			end
+
+			if test_case.ok ~= nil then
+				tab = tab .. string.format(" [ok:%-5s]", tostring(test_case.ok))
+			end
+
+			if test_case.signal then
+				tab = tab .. string.format(" [%s]", test_case.signal)
+			end
+
 			table.insert(tab_lines, tab)
 		end
 
@@ -300,6 +335,7 @@ local function toggle_test_panel()
 
 		return tab_lines
 	end
+
 
 	local function update_expected_pane()
 		local test_state = test_module.get_test_panel_state()

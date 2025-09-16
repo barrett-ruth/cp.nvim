@@ -7,6 +7,10 @@
 ---@field time_ms number?
 ---@field error string?
 ---@field selected boolean
+---@field code number?
+---@field ok boolean?
+---@field signal string?
+---@field timed_out boolean?
 
 ---@class TestPanelState
 ---@field test_cases TestCase[]
@@ -18,6 +22,7 @@
 
 local M = {}
 local logger = require("cp.log")
+local constants = require("cp.constants")
 
 ---@type TestPanelState
 local test_panel_state = {
@@ -88,10 +93,6 @@ local function parse_test_cases_from_files(input_file, expected_file)
 		if vim.fn.filereadable(individual_input_file) == 1 and vim.fn.filereadable(individual_expected_file) == 1 then
 			local input_content = table.concat(vim.fn.readfile(individual_input_file), "\n")
 			local expected_content = table.concat(vim.fn.readfile(individual_expected_file), "\n")
-
-			if input_content:match("^1\n") then
-				input_content = input_content:gsub("^1\n", "")
-			end
 
 			table.insert(test_cases, create_test_case(i, input_content, expected_content))
 			i = i + 1
@@ -180,15 +181,21 @@ local function run_single_test_case(ctx, contest_config, test_case)
 
 	local actual_output = (result.stdout or ""):gsub("\n$", "")
 	local expected_output = test_case.expected:gsub("\n$", "")
-	local matches = actual_output == expected_output
+	local ok = actual_output == expected_output
 
 	local status
-	if result.code == 143 or result.code == 124 then
+	local timed_out = result.code == 143 or result.code == 124
+	if timed_out then
 		status = "timeout"
-	elseif result.code == 0 and matches then
+	elseif result.code == 0 and ok then
 		status = "pass"
 	else
 		status = "fail"
+	end
+
+	local signal = nil
+	if result.code >= 128 then
+		signal = constants.signal_codes[result.code]
 	end
 
 	return {
@@ -196,6 +203,10 @@ local function run_single_test_case(ctx, contest_config, test_case)
 		actual = actual_output,
 		error = result.code ~= 0 and result.stderr or nil,
 		time_ms = execution_time,
+		code = result.code,
+		ok = ok,
+		signal = signal,
+		timed_out = timed_out,
 	}
 end
 
@@ -235,6 +246,10 @@ function M.run_test_case(ctx, contest_config, index)
 	test_case.actual = result.actual
 	test_case.error = result.error
 	test_case.time_ms = result.time_ms
+	test_case.code = result.code
+	test_case.ok = result.ok
+	test_case.signal = result.signal
+	test_case.timed_out = result.timed_out
 
 	return true
 end

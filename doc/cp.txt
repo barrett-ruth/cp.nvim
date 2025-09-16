@@ -70,23 +70,6 @@ Navigation Commands ~
 :CP prev                        Navigate to previous problem in current contest.
                                 Stops at first problem (no wrapping).
 
-ERROR HANDLING						*cp-errors*
-
-cp.nvim provides clear error messages for common issues:
-
-No Contest Configured ~
-When running `:CP run`, `:CP debug`, or `:CP test` without setting up a
-contest first, you'll see:
-"No contest configured. Use :CP <platform> <contest> <problem> to set up first."
-
-Platform Not Supported ~
-For platforms or features not yet implemented:
-"test panel not yet supported for codeforces"
-
-Missing Dependencies ~
-When required tools are missing:
-"uv is not installed. Install it to enable problem scraping: https://docs.astral.sh/uv/"
-
 CONFIGURATION						*cp-config*
 
 cp.nvim works out of the box. No setup required.
@@ -314,39 +297,13 @@ The test panel uses a three-pane layout for easy comparison: >
     └─────────────────────────┘ └─────────────────────────┘
 <
 
-Test Status Indicators ~
-
-PASS                            Test case passed (green highlighting)
-FAIL                            Test case failed (red highlighting with diff)
-(empty)                         Test case not yet executed
-
 Keymaps ~
 								*cp-test-keys*
 j / <Down>                      Navigate to next test case
 k / <Up>                        Navigate to previous test case
 q                               Exit test panel (restore layout)
 
-Test Case Sources ~
-
-Test cases are loaded in priority order:
-1. Individual scraped test cases from cache (AtCoder, CSES)
-2. Individual test case files (*.1.cpin, *.2.cpin, etc.)
-3. Combined input/output files from io/ directory (fallback)
-
-For AtCoder problems, individual test case files are prefixed with "1\n"
-to satisfy template requirements, but this prefix is stripped in the UI
-for clean display.
-
-For CSES problems, individual test cases are loaded directly from scraped data.
-
 Execution Details ~
-
-Each test case shows:
-• Input data provided to your solution (top pane)
-• Expected output from the problem statement (bottom left pane)
-• Actual output produced by your solution (bottom right pane)
-• Execution time in milliseconds
-• Pass/fail status with vim diff highlighting for failures
 
 Test cases are executed individually using the same compilation and
 execution pipeline as |:CP-run|, but with isolated input/output for

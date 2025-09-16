@@ -259,10 +259,6 @@ function M.scrape_problem(ctx)
 			local input_content = test_case.input:gsub("\r", "")
 			local expected_content = test_case.output:gsub("\r", "")
 
-			if ctx.contest == "atcoder" then
-				input_content = "1\n" .. input_content
-			end
-
 			vim.fn.writefile(vim.split(input_content, "\n", true), input_file)
 			vim.fn.writefile(vim.split(expected_content, "\n", true), expected_file)
 		end
