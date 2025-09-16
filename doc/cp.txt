@@ -51,13 +51,16 @@ Action Commands ~
 
 :CP run                         Compile and run current problem with test input.
                                 Shows execution time and output comparison.
+                                Requires contest setup first.
 
 :CP debug                       Compile with debug flags and run current problem.
                                 Includes sanitizers and debug symbols.
+                                Requires contest setup first.
 
 :CP test                        Toggle test panel for individual test case
-                                debugging. Shows per-test results with
-                                vim-native navigation and execution controls.
+                                debugging. Shows per-test results with three-pane
+                                layout for easy Expected/Actual comparison.
+                                Requires contest setup first.
 
 Navigation Commands ~
 
@@ -66,6 +69,23 @@ Navigation Commands ~
 
 :CP prev                        Navigate to previous problem in current contest.
                                 Stops at first problem (no wrapping).
+
+ERROR HANDLING						*cp-errors*
+
+cp.nvim provides clear error messages for common issues:
+
+No Contest Configured ~
+When running `:CP run`, `:CP debug`, or `:CP test` without setting up a
+contest first, you'll see:
+"No contest configured. Use :CP <platform> <contest> <problem> to set up first."
+
+Platform Not Supported ~
+For platforms or features not yet implemented:
+"test panel not yet supported for codeforces"
+
+Missing Dependencies ~
+When required tools are missing:
+"uv is not installed. Install it to enable problem scraping: https://docs.astral.sh/uv/"
 
 CONFIGURATION						*cp-config*
 
@@ -261,79 +281,77 @@ Example: Quick setup for single Codeforces problem >
 
 TEST PANEL						*cp-test*
 
-The test panel provides individual test case debugging for competitive
-programming problems, particularly useful for Codeforces where multiple
-test cases are combined into single input/output files.
+The test panel provides individual test case debugging with a three-pane
+layout showing test list, expected output, and actual output side-by-side.
+Currently supported for AtCoder and CSES (Codeforces support coming soon).
 
 Activation ~
 								*:CP-test*
 :CP test                        Toggle test panel on/off. When activated,
                                 replaces current layout with test interface.
+                                Automatically compiles and runs all tests.
                                 Toggle again to restore original layout.
 
 Interface ~
 
-The test panel displays a list of test cases with their status and details
-for the currently selected test case: >
+The test panel uses a three-pane layout for easy comparison: >
 
-    ┌─ Test Cases ───────────────────────────────────────────────┐
-    │  1  ✓ PASS    12ms                                        │
-    │  2  ✗ FAIL    45ms                                        │
-    │> 3  ✓ PASS     8ms   <-- current selection               │
-    │  4  ? PENDING                                             │
-    │                                                            │
-    │ ── Test 3 ──                                              │
-    │ Input:     │ Expected:   │ Actual:                        │
-    │ 5 3        │ 8           │ 8                              │
-    │            │             │                                │
-    │                                                            │
-    │ j/k: navigate  <space>: toggle  <enter>: run  a: run all │
-    └────────────────────────────────────────────────────────────┘
+    ┌─ Test List ─────────────────────────────────────────────────┐
+    │  1. PASS   12ms                                             │
+    │> 2. FAIL   45ms                                             │
+    │  3.        8ms                                              │
+    │  4.                                                         │
+    │                                                             │
+    │ ── Input ──                                                 │
+    │ 5 3                                                         │
+    │                                                             │
+    └─────────────────────────────────────────────────────────────┘
+    ┌─ Expected ──────────────┐ ┌─ Actual ────────────────┐
+    │ 8                       │ │ 7                       │
+    │                         │ │                         │
+    │                         │ │                         │
+    │                         │ │                         │
+    └─────────────────────────┘ └─────────────────────────┘
 <
 
 Test Status Indicators ~
 
-✓ PASS                          Test case passed (green)
-✗ FAIL                          Test case failed (red)
-? PENDING                       Test case not yet executed (yellow)
-⟳ RUNNING                       Test case currently executing (blue)
+PASS                            Test case passed (green highlighting)
+FAIL                            Test case failed (red highlighting with diff)
+(empty)                         Test case not yet executed
 
 Keymaps ~
 								*cp-test-keys*
 j / <Down>                      Navigate to next test case
 k / <Up>                        Navigate to previous test case
-<space>                         Toggle selection of current test case
-<enter>                         Run selected test cases
-a                               Run all test cases
-r                               Re-run failed test cases only
-c                               Clear all test results
-q / <esc>                       Exit test panel (restore layout)
+q                               Exit test panel (restore layout)
 
 Test Case Sources ~
 
 Test cases are loaded in priority order:
-1. Individual scraped test cases (preferred for Codeforces)
-2. Combined input/output files from io/ directory (fallback)
+1. Individual scraped test cases from cache (AtCoder, CSES)
+2. Individual test case files (*.1.cpin, *.2.cpin, etc.)
+3. Combined input/output files from io/ directory (fallback)
 
-For Codeforces problems, the plugin attempts to parse individual test
-cases from the scraped contest data, enabling precise debugging of
-specific test case failures.
+For AtCoder problems, individual test case files are prefixed with "1\n"
+to satisfy template requirements, but this prefix is stripped in the UI
+for clean display.
 
-For AtCoder and CSES problems, which typically provide single test
-cases, the combined input/output approach is used.
+For CSES problems, individual test cases are loaded directly from scraped data.
 
 Execution Details ~
 
 Each test case shows:
-• Input data provided to your solution
-• Expected output from the problem statement
-• Actual output produced by your solution
+• Input data provided to your solution (top pane)
+• Expected output from the problem statement (bottom left pane)
+• Actual output produced by your solution (bottom right pane)
 • Execution time in milliseconds
-• Error messages (if execution failed)
+• Pass/fail status with vim diff highlighting for failures
 
 Test cases are executed individually using the same compilation and
 execution pipeline as |:CP-run|, but with isolated input/output for
-precise failure analysis.
+precise failure analysis. All tests are automatically run when the
+panel opens.
 
 FILE STRUCTURE						*cp-files*
 

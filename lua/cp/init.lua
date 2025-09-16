@@ -157,7 +157,10 @@ local function run_problem()
 	logger.log(("running problem: %s"):format(problem_id))
 
 	if not state.platform then
-		logger.log("no platform set", vim.log.levels.ERROR)
+		logger.log(
+			"No contest configured. Use :CP <platform> <contest> <problem> to set up first.",
+			vim.log.levels.ERROR
+		)
 		return
 	end
 
@@ -210,6 +213,14 @@ local function toggle_test_panel()
 		return
 	end
 
+	if not state.platform then
+		logger.log(
+			"No contest configured. Use :CP <platform> <contest> <problem> to set up first.",
+			vim.log.levels.ERROR
+		)
+		return
+	end
+
 	if state.platform == "codeforces" then
 		logger.log("test panel not yet supported for codeforces", vim.log.levels.ERROR)
 		return
@@ -233,53 +244,128 @@ local function toggle_test_panel()
 
 	vim.cmd("silent only")
 
-	local test_buf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_set_current_buf(test_buf)
-	vim.bo.filetype = "cptest"
-	vim.bo.bufhidden = "wipe"
+	local tab_buf = vim.api.nvim_create_buf(false, true)
+	local expected_buf = vim.api.nvim_create_buf(false, true)
+	local actual_buf = vim.api.nvim_create_buf(false, true)
 
-	local function refresh_test_panel()
-		if not test_buf or not vim.api.nvim_buf_is_valid(test_buf) then
-			return
-		end
+	vim.api.nvim_buf_set_option(tab_buf, "bufhidden", "wipe")
+	vim.api.nvim_buf_set_option(expected_buf, "bufhidden", "wipe")
+	vim.api.nvim_buf_set_option(actual_buf, "bufhidden", "wipe")
 
+	local main_win = vim.api.nvim_get_current_win()
+	vim.api.nvim_win_set_buf(main_win, tab_buf)
+	vim.api.nvim_buf_set_option(tab_buf, "filetype", "cptest")
+
+	vim.cmd("split")
+	local content_win = vim.api.nvim_get_current_win()
+	vim.api.nvim_win_set_buf(content_win, actual_buf)
+	vim.api.nvim_buf_set_option(actual_buf, "filetype", "cptest")
+
+	vim.cmd("vsplit")
+	local expected_win = vim.api.nvim_get_current_win()
+	vim.api.nvim_win_set_buf(expected_win, expected_buf)
+	vim.api.nvim_buf_set_option(expected_buf, "filetype", "cptest")
+
+	local test_windows = {
+		tab_win = main_win,
+		actual_win = content_win,
+		expected_win = expected_win,
+	}
+	local test_buffers = {
+		tab_buf = tab_buf,
+		expected_buf = expected_buf,
+		actual_buf = actual_buf,
+	}
+
+	local function render_test_tabs()
 		local test_state = test_module.get_test_panel_state()
-		local test_lines = {}
+		local tab_lines = {}
 
 		for i, test_case in ipairs(test_state.test_cases) do
 			local status_text = test_case.status == "pending" and "?" or string.upper(test_case.status)
 			local prefix = i == test_state.current_index and "> " or "  "
-			local line = string.format("%s%d  %s", prefix, i, status_text)
-			table.insert(test_lines, line)
+			local tab = string.format("%s%d. %s", prefix, i, status_text)
+			table.insert(tab_lines, tab)
 		end
 
-		if test_state.test_cases[test_state.current_index] then
-			local current_test = test_state.test_cases[test_state.current_index]
-			table.insert(test_lines, "")
-			table.insert(test_lines, string.format("── Test %d ──", test_state.current_index))
-
-			table.insert(test_lines, "Input:")
+		local current_test = test_state.test_cases[test_state.current_index]
+		if current_test then
+			table.insert(tab_lines, "")
+			table.insert(tab_lines, "Input:")
+			table.insert(tab_lines, "")
 			for _, line in ipairs(vim.split(current_test.input, "\n", { plain = true, trimempty = true })) do
-				table.insert(test_lines, line)
-			end
-
-			table.insert(test_lines, "Expected:")
-			for _, line in ipairs(vim.split(current_test.expected, "\n", { plain = true, trimempty = true })) do
-				table.insert(test_lines, line)
-			end
-
-			if current_test.actual then
-				table.insert(test_lines, "Actual:")
-				for _, line in ipairs(vim.split(current_test.actual, "\n", { plain = true, trimempty = true })) do
-					table.insert(test_lines, line)
-				end
+				table.insert(tab_lines, line)
 			end
 		end
 
-		table.insert(test_lines, "")
-		table.insert(test_lines, "[j/k] Navigate  [Enter] Run all tests  [q] Close")
+		return tab_lines
+	end
 
-		vim.api.nvim_buf_set_lines(test_buf, 0, -1, false, test_lines)
+	local function update_expected_pane()
+		local test_state = test_module.get_test_panel_state()
+		local current_test = test_state.test_cases[test_state.current_index]
+
+		if not current_test then
+			return
+		end
+
+		local expected_lines = {}
+		table.insert(expected_lines, "Expected:")
+		table.insert(expected_lines, "")
+
+		local expected_text = current_test.expected
+		for _, line in ipairs(vim.split(expected_text, "\n", { plain = true, trimempty = true })) do
+			table.insert(expected_lines, line)
+		end
+
+		vim.api.nvim_buf_set_lines(test_buffers.expected_buf, 0, -1, false, expected_lines)
+	end
+
+	local function update_actual_pane()
+		local test_state = test_module.get_test_panel_state()
+		local current_test = test_state.test_cases[test_state.current_index]
+
+		if not current_test then
+			return
+		end
+
+		local actual_lines = {}
+
+		if current_test.actual then
+			table.insert(actual_lines, "Actual:")
+			table.insert(actual_lines, "")
+			for _, line in ipairs(vim.split(current_test.actual, "\n", { plain = true, trimempty = true })) do
+				table.insert(actual_lines, line)
+			end
+
+			if current_test.status == "fail" then
+				vim.api.nvim_win_set_option(test_windows.expected_win, "diff", true)
+				vim.api.nvim_win_set_option(test_windows.actual_win, "diff", true)
+			else
+				vim.api.nvim_win_set_option(test_windows.expected_win, "diff", false)
+				vim.api.nvim_win_set_option(test_windows.actual_win, "diff", false)
+			end
+		else
+			table.insert(actual_lines, "Actual:")
+			table.insert(actual_lines, "(not run yet)")
+
+			vim.api.nvim_win_set_option(test_windows.expected_win, "diff", false)
+			vim.api.nvim_win_set_option(test_windows.actual_win, "diff", false)
+		end
+
+		vim.api.nvim_buf_set_lines(test_buffers.actual_buf, 0, -1, false, actual_lines)
+	end
+
+	local function refresh_test_panel()
+		if not test_buffers.tab_buf or not vim.api.nvim_buf_is_valid(test_buffers.tab_buf) then
+			return
+		end
+
+		local tab_lines = render_test_tabs()
+		vim.api.nvim_buf_set_lines(test_buffers.tab_buf, 0, -1, false, tab_lines)
+
+		update_expected_pane()
+		update_actual_pane()
 	end
 
 	local function navigate_test_case(delta)
@@ -298,36 +384,32 @@ local function toggle_test_panel()
 		refresh_test_panel()
 	end
 
-	local function run_all_tests()
-		local problem_ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
-		local contest_config = config.contests[state.platform]
-		local test_state = test_module.get_test_panel_state()
-
-		if test_state.test_cases and #test_state.test_cases > 0 then
-			if not execute.compile_problem(problem_ctx, contest_config) then
-				return
-			end
-			test_module.run_all_test_cases(problem_ctx, contest_config)
-			refresh_test_panel()
-		end
-	end
-
 	vim.keymap.set("n", "j", function()
 		navigate_test_case(1)
-	end, { buffer = test_buf, silent = true })
+	end, { buffer = test_buffers.tab_buf, silent = true })
 	vim.keymap.set("n", "k", function()
 		navigate_test_case(-1)
-	end, { buffer = test_buf, silent = true })
-	vim.keymap.set("n", "<CR>", function()
-		run_all_tests()
-	end, { buffer = test_buf, silent = true })
-	vim.keymap.set("n", "q", function()
-		toggle_test_panel()
-	end, { buffer = test_buf, silent = true })
+	end, { buffer = test_buffers.tab_buf, silent = true })
+
+	for _, buf in pairs(test_buffers) do
+		vim.keymap.set("n", "q", function()
+			toggle_test_panel()
+		end, { buffer = buf, silent = true })
+	end
+
+	local execute_module = require("cp.execute")
+	local contest_config = config.contests[state.platform]
+	if execute_module.compile_problem(ctx, contest_config) then
+		test_module.run_all_test_cases(ctx, contest_config)
+	end
 
 	refresh_test_panel()
 
+	vim.api.nvim_set_current_win(test_windows.tab_win)
+
 	state.test_panel_active = true
+	state.test_buffers = test_buffers
+	state.test_windows = test_windows
 	local test_state = test_module.get_test_panel_state()
 	logger.log(string.format("test panel opened (%d test cases)", #test_state.test_cases))
 end

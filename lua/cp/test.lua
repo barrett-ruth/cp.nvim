@@ -89,6 +89,10 @@ local function parse_test_cases_from_files(input_file, expected_file)
 			local input_content = table.concat(vim.fn.readfile(individual_input_file), "\n")
 			local expected_content = table.concat(vim.fn.readfile(individual_expected_file), "\n")
 
+			if input_content:match("^1\n") then
+				input_content = input_content:gsub("^1\n", "")
+			end
+
 			table.insert(test_cases, create_test_case(i, input_content, expected_content))
 			i = i + 1
 		else
