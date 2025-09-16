@@ -69,4 +69,3 @@ follows:
 - finer-tuned problem limits (i.e. per-problem codeforces time, memory)
 - better highlighting
 - notify discord members
-- codeforces support (blocked: https://codeforces.com/blog/entry/146423)

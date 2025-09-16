@@ -266,7 +266,11 @@ TEST PANEL						*cp-test*
 
 The test panel provides individual test case debugging with a three-pane
 layout showing test list, expected output, and actual output side-by-side.
-Currently supported for AtCoder and CSES (Codeforces support coming soon).
+Currently supported for AtCoder and CSES.
+
+Note: Codeforces is not supported due to the ambiguity of identifying
+individual test case output. See https://codeforces.com/blog/entry/138406
+for ongoing efforts to resolve this.
 
 Activation ~
 								*:CP-test*
