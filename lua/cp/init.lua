@@ -249,10 +249,10 @@ local function toggle_test_panel()
 	end
 
 	local function run_current_test()
-		local test_ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
+		local problem_ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
 		local contest_config = config.contests[state.platform]
 		local test_state = test_module.get_test_panel_state()
-		test_module.run_test_case(test_ctx, contest_config, test_state.current_index)
+		test_module.run_test_case(problem_ctx, contest_config, test_state.current_index)
 		toggle_test_panel()
 		toggle_test_panel()
 	end
