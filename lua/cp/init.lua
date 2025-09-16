@@ -303,6 +303,10 @@ local function toggle_test_panel()
 			local prefix = i == test_state.current_index and "> " or "  "
 			local tab = string.format("%s%d.", prefix, i)
 
+			if test_case.ok ~= nil then
+				tab = tab .. string.format(" [ok:%-5s]", tostring(test_case.ok))
+			end
+
 			if test_case.code then
 				tab = tab .. string.format(" [code:%-" .. max_code_width .. "s]", tostring(test_case.code))
 			end
@@ -310,10 +314,6 @@ local function toggle_test_panel()
 			if test_case.time_ms then
 				local time_text = string.format("%.0fms", test_case.time_ms)
 				tab = tab .. string.format(" [time:%-" .. max_time_width .. "s]", time_text)
-			end
-
-			if test_case.ok ~= nil then
-				tab = tab .. string.format(" [ok:%-5s]", tostring(test_case.ok))
 			end
 
 			if test_case.signal then
@@ -327,7 +327,6 @@ local function toggle_test_panel()
 		if current_test then
 			table.insert(tab_lines, "")
 			table.insert(tab_lines, "Input:")
-			table.insert(tab_lines, "")
 			for _, line in ipairs(vim.split(current_test.input, "\n", { plain = true, trimempty = true })) do
 				table.insert(tab_lines, line)
 			end
@@ -335,7 +334,6 @@ local function toggle_test_panel()
 
 		return tab_lines
 	end
-
 
 	local function update_expected_pane()
 		local test_state = test_module.get_test_panel_state()
@@ -347,7 +345,6 @@ local function toggle_test_panel()
 
 		local expected_lines = {}
 		table.insert(expected_lines, "Expected:")
-		table.insert(expected_lines, "")
 
 		local expected_text = current_test.expected
 		for _, line in ipairs(vim.split(expected_text, "\n", { plain = true, trimempty = true })) do
@@ -369,7 +366,6 @@ local function toggle_test_panel()
 
 		if current_test.actual then
 			table.insert(actual_lines, "Actual:")
-			table.insert(actual_lines, "")
 			for _, line in ipairs(vim.split(current_test.actual, "\n", { plain = true, trimempty = true })) do
 				table.insert(actual_lines, line)
 			end

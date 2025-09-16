@@ -64,7 +64,6 @@ local function build_command(cmd_template, executable, substitutions)
 	return cmd
 end
 
-
 local function ensure_directories()
 	vim.system({ "mkdir", "-p", "build", "io" }):wait()
 end
