@@ -68,6 +68,5 @@ follows:
 
 - finer-tuned problem limits (i.e. per-problem codeforces time, memory)
 - better highlighting
-- test case management
-- new video with functionality, notify discord members
-- note that codeforces support is scuffed: https://codeforces.com/blog/entry/146423
+- notify discord members
+- codeforces support (blocked: https://codeforces.com/blog/entry/146423)
