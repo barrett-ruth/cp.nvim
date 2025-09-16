@@ -13,6 +13,7 @@
 ---@field name? string
 
 ---@class CachedTestCase
+---@field index? number
 ---@field input string
 ---@field output string
 

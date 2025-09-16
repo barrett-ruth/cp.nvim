@@ -100,7 +100,6 @@ local function setup_problem(contest_id, problem_id, language)
 	if vim.api.nvim_buf_get_lines(source_buf, 0, -1, true)[1] == "" then
 		local has_luasnip, luasnip = pcall(require, "luasnip")
 		if has_luasnip then
-			local constants = require("cp.constants")
 			local filetype = vim.api.nvim_get_option_value("filetype", { buf = source_buf })
 			local language_name = constants.filetype_to_language[filetype]
 			local canonical_language = constants.canonical_filetypes[language_name] or language_name
@@ -130,12 +129,12 @@ local function setup_problem(contest_id, problem_id, language)
 		config.hooks.setup_code(ctx)
 	end
 
-	local source_buf = vim.api.nvim_get_current_buf()
+	local src_buf = vim.api.nvim_get_current_buf()
 	local input_buf = vim.fn.bufnr(ctx.input_file, true)
 	local output_buf = vim.fn.bufnr(ctx.output_file, true)
 
 	local tile_fn = config.tile or window.default_tile
-	tile_fn(source_buf, input_buf, output_buf)
+	tile_fn(src_buf, input_buf, output_buf)
 
 	logger.log(("switched to problem %s"):format(ctx.problem_name))
 end
@@ -250,10 +249,10 @@ local function toggle_test_panel()
 	end
 
 	local function run_current_test()
-		local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
+		local test_ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
 		local contest_config = config.contests[state.platform]
 		local test_state = test_module.get_test_panel_state()
-		test_module.run_test_case(ctx, contest_config, test_state.current_index)
+		test_module.run_test_case(test_ctx, contest_config, test_state.current_index)
 		toggle_test_panel()
 		toggle_test_panel()
 	end
