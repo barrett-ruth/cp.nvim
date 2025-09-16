@@ -248,23 +248,23 @@ local function toggle_test_panel()
 	local expected_buf = vim.api.nvim_create_buf(false, true)
 	local actual_buf = vim.api.nvim_create_buf(false, true)
 
-	vim.api.nvim_buf_set_option(tab_buf, "bufhidden", "wipe")
-	vim.api.nvim_buf_set_option(expected_buf, "bufhidden", "wipe")
-	vim.api.nvim_buf_set_option(actual_buf, "bufhidden", "wipe")
+	vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = tab_buf })
+	vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = expected_buf })
+	vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = actual_buf })
 
 	local main_win = vim.api.nvim_get_current_win()
 	vim.api.nvim_win_set_buf(main_win, tab_buf)
-	vim.api.nvim_buf_set_option(tab_buf, "filetype", "cptest")
+	vim.api.nvim_set_option_value("filetype", "cptest", { buf = tab_buf })
 
 	vim.cmd("split")
 	local content_win = vim.api.nvim_get_current_win()
 	vim.api.nvim_win_set_buf(content_win, actual_buf)
-	vim.api.nvim_buf_set_option(actual_buf, "filetype", "cptest")
+	vim.api.nvim_set_option_value("filetype", "cptest", { buf = actual_buf })
 
 	vim.cmd("vsplit")
 	local expected_win = vim.api.nvim_get_current_win()
 	vim.api.nvim_win_set_buf(expected_win, expected_buf)
-	vim.api.nvim_buf_set_option(expected_buf, "filetype", "cptest")
+	vim.api.nvim_set_option_value("filetype", "cptest", { buf = expected_buf })
 
 	local test_windows = {
 		tab_win = main_win,
@@ -281,10 +281,45 @@ local function toggle_test_panel()
 		local test_state = test_module.get_test_panel_state()
 		local tab_lines = {}
 
+		local max_status_width = 0
+		local max_code_width = 0
+		local max_time_width = 0
+
+		for _, test_case in ipairs(test_state.test_cases) do
+			local status_text = test_case.status == "pending" and "" or string.upper(test_case.status)
+			max_status_width = math.max(max_status_width, #status_text)
+
+			if test_case.code then
+				max_code_width = math.max(max_code_width, #tostring(test_case.code))
+			end
+
+			if test_case.time_ms then
+				local time_text = string.format("%.0fms", test_case.time_ms)
+				max_time_width = math.max(max_time_width, #time_text)
+			end
+		end
+
 		for i, test_case in ipairs(test_state.test_cases) do
-			local status_text = test_case.status == "pending" and "?" or string.upper(test_case.status)
 			local prefix = i == test_state.current_index and "> " or "  "
-			local tab = string.format("%s%d. %s", prefix, i, status_text)
+			local tab = string.format("%s%d.", prefix, i)
+
+			if test_case.ok ~= nil then
+				tab = tab .. string.format(" [ok:%-5s]", tostring(test_case.ok))
+			end
+
+			if test_case.code then
+				tab = tab .. string.format(" [code:%-" .. max_code_width .. "s]", tostring(test_case.code))
+			end
+
+			if test_case.time_ms then
+				local time_text = string.format("%.0fms", test_case.time_ms)
+				tab = tab .. string.format(" [time:%-" .. max_time_width .. "s]", time_text)
+			end
+
+			if test_case.signal then
+				tab = tab .. string.format(" [%s]", test_case.signal)
+			end
+
 			table.insert(tab_lines, tab)
 		end
 
@@ -292,7 +327,6 @@ local function toggle_test_panel()
 		if current_test then
 			table.insert(tab_lines, "")
 			table.insert(tab_lines, "Input:")
-			table.insert(tab_lines, "")
 			for _, line in ipairs(vim.split(current_test.input, "\n", { plain = true, trimempty = true })) do
 				table.insert(tab_lines, line)
 			end
@@ -310,8 +344,6 @@ local function toggle_test_panel()
 		end
 
 		local expected_lines = {}
-		table.insert(expected_lines, "Expected:")
-		table.insert(expected_lines, "")
 
 		local expected_text = current_test.expected
 		for _, line in ipairs(vim.split(expected_text, "\n", { plain = true, trimempty = true })) do
@@ -332,25 +364,22 @@ local function toggle_test_panel()
 		local actual_lines = {}
 
 		if current_test.actual then
-			table.insert(actual_lines, "Actual:")
-			table.insert(actual_lines, "")
 			for _, line in ipairs(vim.split(current_test.actual, "\n", { plain = true, trimempty = true })) do
 				table.insert(actual_lines, line)
 			end
 
 			if current_test.status == "fail" then
-				vim.api.nvim_win_set_option(test_windows.expected_win, "diff", true)
-				vim.api.nvim_win_set_option(test_windows.actual_win, "diff", true)
+				vim.api.nvim_set_option_value("diff", true, { win = test_windows.expected_win })
+				vim.api.nvim_set_option_value("diff", true, { win = test_windows.actual_win })
 			else
-				vim.api.nvim_win_set_option(test_windows.expected_win, "diff", false)
-				vim.api.nvim_win_set_option(test_windows.actual_win, "diff", false)
+				vim.api.nvim_set_option_value("diff", false, { win = test_windows.expected_win })
+				vim.api.nvim_set_option_value("diff", false, { win = test_windows.actual_win })
 			end
 		else
-			table.insert(actual_lines, "Actual:")
 			table.insert(actual_lines, "(not run yet)")
 
-			vim.api.nvim_win_set_option(test_windows.expected_win, "diff", false)
-			vim.api.nvim_win_set_option(test_windows.actual_win, "diff", false)
+			vim.api.nvim_set_option_value("diff", false, { win = test_windows.expected_win })
+			vim.api.nvim_set_option_value("diff", false, { win = test_windows.actual_win })
 		end
 
 		vim.api.nvim_buf_set_lines(test_buffers.actual_buf, 0, -1, false, actual_lines)
