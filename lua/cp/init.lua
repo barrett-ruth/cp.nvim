@@ -228,7 +228,6 @@ local function toggle_test_panel()
 		return
 	end
 
-
 	state.saved_session = vim.fn.tempname()
 	vim.cmd(("mksession! %s"):format(state.saved_session))
 
