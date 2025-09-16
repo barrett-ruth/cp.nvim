@@ -3,8 +3,9 @@ if vim.g.loaded_cp then
 end
 vim.g.loaded_cp = 1
 
-local platforms = { "atcoder", "codeforces", "cses" }
-local actions = { "run", "debug", "next", "prev" }
+local constants = require("cp.constants")
+local platforms = constants.PLATFORMS
+local actions = constants.ACTIONS
 
 vim.api.nvim_create_user_command("CP", function(opts)
 	local cp = require("cp")
@@ -13,8 +14,7 @@ end, {
 	nargs = "*",
 	desc = "Competitive programming helper",
 	complete = function(ArgLead, CmdLine, _)
-		local languages_module = require("cp.languages")
-		local languages = vim.tbl_keys(languages_module.canonical_filetypes)
+		local languages = vim.tbl_keys(constants.canonical_filetypes)
 
 		if ArgLead:match("^--lang=") then
 			local lang_completions = {}
@@ -45,10 +45,10 @@ end, {
 
 		if num_args == 2 then
 			local candidates = { "--lang" }
-			vim.list_extend(candidates, actions)
 			local cp = require("cp")
 			local context = cp.get_current_context()
 			if context.platform and context.contest_id then
+				vim.list_extend(candidates, actions)
 				local cache = require("cp.cache")
 				cache.load()
 				local contest_data = cache.get_contest_data(context.platform, context.contest_id)

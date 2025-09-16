@@ -8,8 +8,8 @@
 local M = {}
 local logger = require("cp.log")
 
-local languages = require("cp.languages")
-local filetype_to_language = languages.filetype_to_language
+local constants = require("cp.constants")
+local filetype_to_language = constants.filetype_to_language
 
 ---@param source_file string
 ---@param contest_config table
@@ -89,7 +89,7 @@ end
 ---@param language_config table
 ---@param substitutions table<string, string>
 ---@return {code: integer, stderr: string}
-local function compile_generic(language_config, substitutions)
+function M.compile_generic(language_config, substitutions)
 	vim.validate({
 		language_config = { language_config, "table" },
 		substitutions = { substitutions, "table" },
@@ -210,8 +210,40 @@ local function format_output(exec_result, expected_file, is_debug)
 end
 
 ---@param ctx ProblemContext
----@param contest_config table
----@param is_debug boolean
+---@param contest_config ContestConfig
+---@return boolean success
+function M.compile_problem(ctx, contest_config)
+	vim.validate({
+		ctx = { ctx, "table" },
+		contest_config = { contest_config, "table" },
+	})
+
+	local language = get_language_from_file(ctx.source_file, contest_config)
+	local language_config = contest_config[language]
+
+	if not language_config then
+		logger.log("No configuration for language: " .. language, vim.log.levels.ERROR)
+		return false
+	end
+
+	local substitutions = {
+		source = ctx.source_file,
+		binary = ctx.binary_file,
+		version = tostring(language_config.version),
+	}
+
+	if language_config.compile then
+		local compile_result = M.compile_generic(language_config, substitutions)
+		if compile_result.code ~= 0 then
+			logger.log("compilation failed: " .. (compile_result.stderr or "unknown error"), vim.log.levels.ERROR)
+			return false
+		end
+		logger.log("compilation successful")
+	end
+
+	return true
+end
+
 function M.run_problem(ctx, contest_config, is_debug)
 	vim.validate({
 		ctx = { ctx, "table" },
@@ -237,7 +269,7 @@ function M.run_problem(ctx, contest_config, is_debug)
 
 	local compile_cmd = is_debug and language_config.debug or language_config.compile
 	if compile_cmd then
-		local compile_result = compile_generic(language_config, substitutions)
+		local compile_result = M.compile_generic(language_config, substitutions)
 		if compile_result.code ~= 0 then
 			vim.fn.writefile({ compile_result.stderr }, ctx.output_file)
 			return

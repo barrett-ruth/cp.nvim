@@ -10,15 +10,7 @@
 ---@field height integer
 
 local M = {}
-local languages = require("cp.languages")
-
-function M.clearcol()
-	vim.api.nvim_set_option_value("number", false, { scope = "local" })
-	vim.api.nvim_set_option_value("relativenumber", false, { scope = "local" })
-	vim.api.nvim_set_option_value("statuscolumn", "", { scope = "local" })
-	vim.api.nvim_set_option_value("signcolumn", "no", { scope = "local" })
-	vim.api.nvim_set_option_value("foldcolumn", "0", { scope = "local" })
-end
+local constants = require("cp.constants")
 
 ---@return WindowState
 function M.save_layout()
@@ -79,7 +71,7 @@ function M.restore_layout(state, tile_fn)
 		local source_file
 		if source_files ~= "" then
 			local files = vim.split(source_files, "\n")
-			local valid_extensions = vim.tbl_keys(languages.filetype_to_language)
+			local valid_extensions = vim.tbl_keys(constants.filetype_to_language)
 			for _, file in ipairs(files) do
 				local ext = vim.fn.fnamemodify(file, ":e")
 				if vim.tbl_contains(valid_extensions, ext) then
@@ -136,12 +128,10 @@ local function default_tile(source_buf, input_buf, output_buf)
 	vim.cmd.vsplit()
 	vim.api.nvim_set_current_buf(output_buf)
 	vim.bo.filetype = "cp"
-	M.clearcol()
 	vim.cmd(("vertical resize %d"):format(math.floor(vim.o.columns * 0.3)))
 	vim.cmd.split()
 	vim.api.nvim_set_current_buf(input_buf)
 	vim.bo.filetype = "cp"
-	M.clearcol()
 	vim.cmd.wincmd("h")
 end
 

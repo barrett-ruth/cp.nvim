@@ -27,10 +27,12 @@ local state = {
 	saved_session = nil,
 	test_cases = nil,
 	test_states = {},
+	test_panel_active = false,
 }
 
-local platforms = { "atcoder", "codeforces", "cses" }
-local actions = { "run", "debug", "next", "prev" }
+local constants = require("cp.constants")
+local platforms = constants.PLATFORMS
+local actions = constants.ACTIONS
 
 local function set_platform(platform)
 	if not vim.tbl_contains(platforms, platform) then
@@ -93,11 +95,15 @@ local function setup_problem(contest_id, problem_id, language)
 	end
 
 	vim.cmd.e(scrape_ctx.source_file)
+	local source_buf = vim.api.nvim_get_current_buf()
 
-	if vim.api.nvim_buf_get_lines(0, 0, -1, true)[1] == "" then
+	if vim.api.nvim_buf_get_lines(source_buf, 0, -1, true)[1] == "" then
 		local has_luasnip, luasnip = pcall(require, "luasnip")
 		if has_luasnip then
-			local prefixed_trigger = ("cp.nvim/%s.%s"):format(state.platform, language)
+			local filetype = vim.api.nvim_get_option_value("filetype", { buf = source_buf })
+			local language_name = constants.filetype_to_language[filetype]
+			local canonical_language = constants.canonical_filetypes[language_name] or language_name
+			local prefixed_trigger = ("cp.nvim/%s.%s"):format(state.platform, canonical_language)
 
 			vim.api.nvim_buf_set_lines(0, 0, -1, false, { prefixed_trigger })
 			vim.api.nvim_win_set_cursor(0, { 1, #prefixed_trigger })
@@ -123,12 +129,12 @@ local function setup_problem(contest_id, problem_id, language)
 		config.hooks.setup_code(ctx)
 	end
 
-	local source_buf = vim.api.nvim_get_current_buf()
+	local src_buf = vim.api.nvim_get_current_buf()
 	local input_buf = vim.fn.bufnr(ctx.input_file, true)
 	local output_buf = vim.fn.bufnr(ctx.output_file, true)
 
 	local tile_fn = config.tile or window.default_tile
-	tile_fn(source_buf, input_buf, output_buf)
+	tile_fn(src_buf, input_buf, output_buf)
 
 	logger.log(("switched to problem %s"):format(ctx.problem_name))
 end
@@ -190,6 +196,140 @@ local function debug_problem()
 		execute.run_problem(ctx, contest_config, true)
 		vim.cmd.checktime()
 	end)
+end
+
+local function toggle_test_panel()
+	if state.test_panel_active then
+		if state.saved_session then
+			vim.cmd(("source %s"):format(state.saved_session))
+			vim.fn.delete(state.saved_session)
+			state.saved_session = nil
+		end
+		state.test_panel_active = false
+		logger.log("test panel closed")
+		return
+	end
+
+	if state.platform == "codeforces" then
+		logger.log("test panel not yet supported for codeforces", vim.log.levels.ERROR)
+		return
+	end
+
+	local problem_id = get_current_problem()
+	if not problem_id then
+		return
+	end
+
+	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
+	local test_module = require("cp.test")
+
+	if not test_module.load_test_cases(ctx, state) then
+		logger.log("no test cases found", vim.log.levels.WARN)
+		return
+	end
+
+	state.saved_session = vim.fn.tempname()
+	vim.cmd(("mksession! %s"):format(state.saved_session))
+
+	vim.cmd("silent only")
+
+	local test_buf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_set_current_buf(test_buf)
+	vim.bo.filetype = "cptest"
+	vim.bo.bufhidden = "wipe"
+
+	local function refresh_test_panel()
+		if not test_buf or not vim.api.nvim_buf_is_valid(test_buf) then
+			return
+		end
+
+		local test_state = test_module.get_test_panel_state()
+		local test_lines = {}
+
+		for i, test_case in ipairs(test_state.test_cases) do
+			local status_text = test_case.status == "pending" and "?" or string.upper(test_case.status)
+			local prefix = i == test_state.current_index and "> " or "  "
+			local line = string.format("%s%d  %s", prefix, i, status_text)
+			table.insert(test_lines, line)
+		end
+
+		if test_state.test_cases[test_state.current_index] then
+			local current_test = test_state.test_cases[test_state.current_index]
+			table.insert(test_lines, "")
+			table.insert(test_lines, string.format("── Test %d ──", test_state.current_index))
+
+			table.insert(test_lines, "Input:")
+			for _, line in ipairs(vim.split(current_test.input, "\n", { plain = true, trimempty = true })) do
+				table.insert(test_lines, line)
+			end
+
+			table.insert(test_lines, "Expected:")
+			for _, line in ipairs(vim.split(current_test.expected, "\n", { plain = true, trimempty = true })) do
+				table.insert(test_lines, line)
+			end
+
+			if current_test.actual then
+				table.insert(test_lines, "Actual:")
+				for _, line in ipairs(vim.split(current_test.actual, "\n", { plain = true, trimempty = true })) do
+					table.insert(test_lines, line)
+				end
+			end
+		end
+
+		table.insert(test_lines, "")
+		table.insert(test_lines, "[j/k] Navigate  [Enter] Run all tests  [q] Close")
+
+		vim.api.nvim_buf_set_lines(test_buf, 0, -1, false, test_lines)
+	end
+
+	local function navigate_test_case(delta)
+		local test_state = test_module.get_test_panel_state()
+		if #test_state.test_cases == 0 then
+			return
+		end
+
+		test_state.current_index = test_state.current_index + delta
+		if test_state.current_index < 1 then
+			test_state.current_index = #test_state.test_cases
+		elseif test_state.current_index > #test_state.test_cases then
+			test_state.current_index = 1
+		end
+
+		refresh_test_panel()
+	end
+
+	local function run_all_tests()
+		local problem_ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
+		local contest_config = config.contests[state.platform]
+		local test_state = test_module.get_test_panel_state()
+
+		if test_state.test_cases and #test_state.test_cases > 0 then
+			if not execute.compile_problem(problem_ctx, contest_config) then
+				return
+			end
+			test_module.run_all_test_cases(problem_ctx, contest_config)
+			refresh_test_panel()
+		end
+	end
+
+	vim.keymap.set("n", "j", function()
+		navigate_test_case(1)
+	end, { buffer = test_buf, silent = true })
+	vim.keymap.set("n", "k", function()
+		navigate_test_case(-1)
+	end, { buffer = test_buf, silent = true })
+	vim.keymap.set("n", "<CR>", function()
+		run_all_tests()
+	end, { buffer = test_buf, silent = true })
+	vim.keymap.set("n", "q", function()
+		toggle_test_panel()
+	end, { buffer = test_buf, silent = true })
+
+	refresh_test_panel()
+
+	state.test_panel_active = true
+	local test_state = test_module.get_test_panel_state()
+	logger.log(string.format("test panel opened (%d test cases)", #test_state.test_cases))
 end
 
 ---@param delta number 1 for next, -1 for prev
@@ -286,12 +426,26 @@ local function parse_command(args)
 
 	if vim.tbl_contains(platforms, first) then
 		if #filtered_args == 1 then
-			return { type = "platform_only", platform = first, language = language }
+			return {
+				type = "platform_only",
+				platform = first,
+				language = language,
+			}
 		elseif #filtered_args == 2 then
 			if first == "cses" then
-				return { type = "cses_problem", platform = first, problem = filtered_args[2], language = language }
+				return {
+					type = "cses_problem",
+					platform = first,
+					problem = filtered_args[2],
+					language = language,
+				}
 			else
-				return { type = "contest_setup", platform = first, contest = filtered_args[2], language = language }
+				return {
+					type = "contest_setup",
+					platform = first,
+					contest = filtered_args[2],
+					language = language,
+				}
 			end
 		elseif #filtered_args == 3 then
 			return {
@@ -326,6 +480,8 @@ function M.handle_command(opts)
 			run_problem()
 		elseif cmd.action == "debug" then
 			debug_problem()
+		elseif cmd.action == "test" then
+			toggle_test_panel()
 		elseif cmd.action == "next" then
 			navigate_problem(1, cmd.language)
 		elseif cmd.action == "prev" then

@@ -48,7 +48,7 @@
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 
 local M = {}
-local languages = require("cp.languages")
+local constants = require("cp.constants")
 
 ---@type cp.Config
 M.defaults = {
@@ -83,9 +83,21 @@ function M.setup(user_config)
 
 		if user_config.hooks then
 			vim.validate({
-				before_run = { user_config.hooks.before_run, { "function", "nil" }, true },
-				before_debug = { user_config.hooks.before_debug, { "function", "nil" }, true },
-				setup_code = { user_config.hooks.setup_code, { "function", "nil" }, true },
+				before_run = {
+					user_config.hooks.before_run,
+					{ "function", "nil" },
+					true,
+				},
+				before_debug = {
+					user_config.hooks.before_debug,
+					{ "function", "nil" },
+					true,
+				},
+				setup_code = {
+					user_config.hooks.setup_code,
+					{ "function", "nil" },
+					true,
+				},
 			})
 		end
 
@@ -94,14 +106,14 @@ function M.setup(user_config)
 				for lang_name, lang_config in pairs(contest_config) do
 					if type(lang_config) == "table" and lang_config.extension then
 						if
-							not vim.tbl_contains(vim.tbl_keys(languages.filetype_to_language), lang_config.extension)
+							not vim.tbl_contains(vim.tbl_keys(constants.filetype_to_language), lang_config.extension)
 						then
 							error(
 								("Invalid extension '%s' for language '%s' in contest '%s'. Valid extensions: %s"):format(
 									lang_config.extension,
 									lang_name,
 									contest_name,
-									table.concat(vim.tbl_keys(languages.filetype_to_language), ", ")
+									table.concat(vim.tbl_keys(constants.filetype_to_language), ", ")
 								)
 							)
 						end
@@ -125,7 +137,7 @@ local function default_filename(contest_id, problem_id)
 	})
 
 	if problem_id then
-		return problem_id:lower()
+		return (contest_id .. problem_id):lower()
 	else
 		return contest_id:lower()
 	end

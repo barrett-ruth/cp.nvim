@@ -79,9 +79,24 @@ function M.scrape_contest_metadata(platform, contest_id)
 
 	local args
 	if platform == "cses" then
-		args = { "uv", "run", "--directory", plugin_path, scraper_path, "metadata" }
+		args = {
+			"uv",
+			"run",
+			"--directory",
+			plugin_path,
+			scraper_path,
+			"metadata",
+		}
 	else
-		args = { "uv", "run", "--directory", plugin_path, scraper_path, "metadata", contest_id }
+		args = {
+			"uv",
+			"run",
+			"--directory",
+			plugin_path,
+			scraper_path,
+			"metadata",
+			contest_id,
+		}
 	end
 
 	local result = vim.system(args, {
@@ -133,10 +148,34 @@ function M.scrape_problem(ctx)
 	ensure_io_directory()
 
 	if vim.fn.filereadable(ctx.input_file) == 1 and vim.fn.filereadable(ctx.expected_file) == 1 then
+		local base_name = vim.fn.fnamemodify(ctx.input_file, ":r")
+		local test_cases = {}
+		local i = 1
+
+		while true do
+			local input_file = base_name .. "." .. i .. ".cpin"
+			local expected_file = base_name .. "." .. i .. ".cpout"
+
+			if vim.fn.filereadable(input_file) == 1 and vim.fn.filereadable(expected_file) == 1 then
+				local input_content = table.concat(vim.fn.readfile(input_file), "\n")
+				local expected_content = table.concat(vim.fn.readfile(expected_file), "\n")
+
+				table.insert(test_cases, {
+					index = i,
+					input = input_content,
+					output = expected_content,
+				})
+				i = i + 1
+			else
+				break
+			end
+		end
+
 		return {
 			success = true,
 			problem_id = ctx.problem_name,
-			test_count = 1,
+			test_count = #test_cases,
+			test_cases = test_cases,
 		}
 	end
 
@@ -161,9 +200,26 @@ function M.scrape_problem(ctx)
 
 	local args
 	if ctx.contest == "cses" then
-		args = { "uv", "run", "--directory", plugin_path, scraper_path, "tests", ctx.contest_id }
+		args = {
+			"uv",
+			"run",
+			"--directory",
+			plugin_path,
+			scraper_path,
+			"tests",
+			ctx.contest_id,
+		}
 	else
-		args = { "uv", "run", "--directory", plugin_path, scraper_path, "tests", ctx.contest_id, ctx.problem_id }
+		args = {
+			"uv",
+			"run",
+			"--directory",
+			plugin_path,
+			scraper_path,
+			"tests",
+			ctx.contest_id,
+			ctx.problem_id,
+		}
 	end
 
 	local result = vim.system(args, {
@@ -194,8 +250,41 @@ function M.scrape_problem(ctx)
 	end
 
 	if data.test_cases and #data.test_cases > 0 then
-		local combined_input = data.test_cases[1].input:gsub("\r", "")
-		local combined_output = data.test_cases[1].output:gsub("\r", "")
+		local base_name = vim.fn.fnamemodify(ctx.input_file, ":r")
+
+		for i, test_case in ipairs(data.test_cases) do
+			local input_file = base_name .. "." .. i .. ".cpin"
+			local expected_file = base_name .. "." .. i .. ".cpout"
+
+			local input_content = test_case.input:gsub("\r", "")
+			local expected_content = test_case.output:gsub("\r", "")
+
+			if ctx.contest == "atcoder" then
+				input_content = "1\n" .. input_content
+			end
+
+			vim.fn.writefile(vim.split(input_content, "\n", true), input_file)
+			vim.fn.writefile(vim.split(expected_content, "\n", true), expected_file)
+		end
+
+		local combined_input = data.combined and data.combined.input:gsub("\r", "")
+			or table.concat(
+				vim.tbl_map(function(tc)
+					return tc.input
+				end, data.test_cases),
+				"\n"
+			)
+		local combined_output = data.combined and data.combined.output:gsub("\r", "")
+			or table.concat(
+				vim.tbl_map(function(tc)
+					return tc.output
+				end, data.test_cases),
+				"\n"
+			)
+
+		if ctx.contest == "atcoder" then
+			combined_input = tostring(#data.test_cases) .. "\n" .. combined_input
+		end
 
 		vim.fn.writefile(vim.split(combined_input, "\n", true), ctx.input_file)
 		vim.fn.writefile(vim.split(combined_output, "\n", true), ctx.expected_file)

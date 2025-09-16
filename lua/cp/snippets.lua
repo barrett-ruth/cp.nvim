@@ -10,8 +10,8 @@ function M.setup(config)
 
 	local s, i, fmt = ls.snippet, ls.insert_node, require("luasnip.extras.fmt").fmt
 
-	local languages = require("cp.languages")
-	local filetype_to_language = languages.filetype_to_language
+	local constants = require("cp.constants")
+	local filetype_to_language = constants.filetype_to_language
 
 	local language_to_filetype = {}
 	for ext, lang in pairs(filetype_to_language) do
@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
 	for language, template_set in pairs(template_definitions) do
 		local snippets = {}
-		local filetype = languages.canonical_filetypes[language]
+		local filetype = constants.canonical_filetypes[language]
 
 		for contest, template in pairs(template_set) do
 			local prefixed_trigger = ("cp.nvim/%s.%s"):format(contest, language)
