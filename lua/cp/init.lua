@@ -243,20 +243,6 @@ local function toggle_test_panel()
 	vim.bo.filetype = "cptest"
 	vim.bo.bufhidden = "wipe"
 
-	local function navigate_test(delta)
-		logger.log(("navigating test by %d"):format(delta))
-		local test_state = test_module.get_test_panel_state()
-		local new_index = test_state.current_index + delta
-		logger.log(
-			("current: %d, new: %d, total: %d"):format(test_state.current_index, new_index, #test_state.test_cases)
-		)
-		if new_index >= 1 and new_index <= #test_state.test_cases then
-			test_state.current_index = new_index
-			toggle_test_panel()
-			toggle_test_panel()
-		end
-	end
-
 	local function refresh_test_panel()
 		if not test_buf or not vim.api.nvim_buf_is_valid(test_buf) then
 			return
