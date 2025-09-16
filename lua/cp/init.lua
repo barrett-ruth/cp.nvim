@@ -157,7 +157,10 @@ local function run_problem()
 	logger.log(("running problem: %s"):format(problem_id))
 
 	if not state.platform then
-		logger.log("No contest configured. Use :CP <platform> <contest> <problem> to set up first.", vim.log.levels.ERROR)
+		logger.log(
+			"No contest configured. Use :CP <platform> <contest> <problem> to set up first.",
+			vim.log.levels.ERROR
+		)
 		return
 	end
 
@@ -211,7 +214,10 @@ local function toggle_test_panel()
 	end
 
 	if not state.platform then
-		logger.log("No contest configured. Use :CP <platform> <contest> <problem> to set up first.", vim.log.levels.ERROR)
+		logger.log(
+			"No contest configured. Use :CP <platform> <contest> <problem> to set up first.",
+			vim.log.levels.ERROR
+		)
 		return
 	end
 
@@ -263,12 +269,12 @@ local function toggle_test_panel()
 	local test_windows = {
 		tab_win = main_win,
 		actual_win = content_win,
-		expected_win = expected_win
+		expected_win = expected_win,
 	}
 	local test_buffers = {
 		tab_buf = tab_buf,
 		expected_buf = expected_buf,
-		actual_buf = actual_buf
+		actual_buf = actual_buf,
 	}
 
 	local function render_test_tabs()
