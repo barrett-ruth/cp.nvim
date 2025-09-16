@@ -2,10 +2,11 @@
 ---@field index number
 ---@field input string
 ---@field expected string
----@field status "pending"|"pass"|"fail"|"running"
+---@field status "pending"|"pass"|"fail"|"running"|"timeout"
 ---@field actual string?
 ---@field time_ms number?
 ---@field error string?
+---@field selected boolean
 
 ---@class TestPanelState
 ---@field test_cases TestCase[]
@@ -41,6 +42,7 @@ local function create_test_case(index, input, expected)
 		actual = nil,
 		time_ms = nil,
 		error = nil,
+		selected = true,
 	}
 end
 
@@ -75,10 +77,32 @@ local function parse_test_cases_from_files(input_file, expected_file)
 		return {}
 	end
 
-	local input_content = table.concat(vim.fn.readfile(input_file), "\n")
-	local expected_content = table.concat(vim.fn.readfile(expected_file), "\n")
+	local base_name = vim.fn.fnamemodify(input_file, ":r")
+	local test_cases = {}
+	local i = 1
 
-	return { create_test_case(1, input_content, expected_content) }
+	while true do
+		local individual_input_file = base_name .. "." .. i .. ".cpin"
+		local individual_expected_file = base_name .. "." .. i .. ".cpout"
+
+		if vim.fn.filereadable(individual_input_file) == 1 and vim.fn.filereadable(individual_expected_file) == 1 then
+			local input_content = table.concat(vim.fn.readfile(individual_input_file), "\n")
+			local expected_content = table.concat(vim.fn.readfile(individual_expected_file), "\n")
+
+			table.insert(test_cases, create_test_case(i, input_content, expected_content))
+			i = i + 1
+		else
+			break
+		end
+	end
+
+	if #test_cases == 0 then
+		local input_content = table.concat(vim.fn.readfile(input_file), "\n")
+		local expected_content = table.concat(vim.fn.readfile(expected_file), "\n")
+		return { create_test_case(1, input_content, expected_content) }
+	end
+
+	return test_cases
 end
 
 ---@param ctx ProblemContext
@@ -126,6 +150,20 @@ local function run_single_test_case(ctx, contest_config, test_case)
 		version = tostring(language_config.version or ""),
 	}
 
+	if language_config.compile and vim.fn.filereadable(ctx.binary_file) == 0 then
+		logger.log("binary not found, compiling first...")
+		local compile_cmd = substitute_template(language_config.compile, substitutions)
+		local compile_result = vim.system(compile_cmd, { text = true }):wait()
+		if compile_result.code ~= 0 then
+			return {
+				status = "fail",
+				actual = "",
+				error = "Compilation failed: " .. (compile_result.stderr or "Unknown error"),
+				time_ms = 0,
+			}
+		end
+	end
+
 	local run_cmd = build_command(language_config.run, language_config.executable, substitutions)
 
 	local start_time = vim.uv.hrtime()
@@ -140,8 +178,17 @@ local function run_single_test_case(ctx, contest_config, test_case)
 	local expected_output = test_case.expected:gsub("\n$", "")
 	local matches = actual_output == expected_output
 
+	local status
+	if result.code == 143 or result.code == 124 then
+		status = "timeout"
+	elseif result.code == 0 and matches then
+		status = "pass"
+	else
+		status = "fail"
+	end
+
 	return {
-		status = result.code == 0 and matches and "pass" or "fail",
+		status = status,
 		actual = actual_output,
 		error = result.code ~= 0 and result.stderr or nil,
 		time_ms = execution_time,

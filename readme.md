@@ -71,5 +71,3 @@ follows:
 - test case management
 - new video with functionality, notify discord members
 - note that codeforces support is scuffed: https://codeforces.com/blog/entry/146423
-- codeforces: use round number & api not the contest id
-   - problems: api config

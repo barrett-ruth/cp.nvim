@@ -228,6 +228,12 @@ local function toggle_test_panel()
 		return
 	end
 
+	local execute = require("cp.execute")
+	local contest_config = config.contests[state.platform]
+	if not execute.compile_problem(ctx, contest_config) then
+		return
+	end
+
 	state.saved_session = vim.fn.tempname()
 	vim.cmd(("mksession! %s"):format(state.saved_session))
 
@@ -239,8 +245,10 @@ local function toggle_test_panel()
 	vim.bo.bufhidden = "wipe"
 
 	local function navigate_test(delta)
+		logger.log(("navigating test by %d"):format(delta))
 		local test_state = test_module.get_test_panel_state()
 		local new_index = test_state.current_index + delta
+		logger.log(("current: %d, new: %d, total: %d"):format(test_state.current_index, new_index, #test_state.test_cases))
 		if new_index >= 1 and new_index <= #test_state.test_cases then
 			test_state.current_index = new_index
 			toggle_test_panel()
@@ -248,74 +256,97 @@ local function toggle_test_panel()
 		end
 	end
 
-	local function run_current_test()
+	local function refresh_test_panel()
+		if not test_buf or not vim.api.nvim_buf_is_valid(test_buf) then
+			return
+		end
+
+		local test_state = test_module.get_test_panel_state()
+		local test_lines = {}
+
+		for i, test_case in ipairs(test_state.test_cases) do
+			local status_text = string.upper(test_case.status)
+			if test_case.status == "timeout" then
+				status_text = "TIMEOUT"
+			end
+			local prefix = i == test_state.current_index and "> " or "  "
+			local line = string.format("%s%d  %s", prefix, i, status_text)
+			table.insert(test_lines, line)
+		end
+
+		if test_state.test_cases[test_state.current_index] then
+			local current_test = test_state.test_cases[test_state.current_index]
+			table.insert(test_lines, "")
+			table.insert(test_lines, string.format("── Test %d ──", test_state.current_index))
+
+			table.insert(test_lines, "Input:")
+			for _, line in ipairs(vim.split(current_test.input, "\n", { plain = true, trimempty = true })) do
+				table.insert(test_lines, line)
+			end
+
+			table.insert(test_lines, "Expected:")
+			for _, line in ipairs(vim.split(current_test.expected, "\n", { plain = true, trimempty = true })) do
+				table.insert(test_lines, line)
+			end
+
+			if current_test.actual then
+				table.insert(test_lines, "Actual:")
+				for _, line in ipairs(vim.split(current_test.actual, "\n", { plain = true, trimempty = true })) do
+					table.insert(test_lines, line)
+				end
+			end
+		end
+
+		table.insert(test_lines, "")
+		table.insert(test_lines, "[j/k] Navigate  [Enter] Run all tests  [q] Close")
+
+		vim.api.nvim_buf_set_lines(test_buf, 0, -1, false, test_lines)
+	end
+
+	local function navigate_test_case(delta)
+		local test_state = test_module.get_test_panel_state()
+		if #test_state.test_cases == 0 then
+			return
+		end
+
+		test_state.current_index = test_state.current_index + delta
+		if test_state.current_index < 1 then
+			test_state.current_index = #test_state.test_cases
+		elseif test_state.current_index > #test_state.test_cases then
+			test_state.current_index = 1
+		end
+
+		refresh_test_panel()
+	end
+
+	local function run_all_tests()
 		local problem_ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
 		local contest_config = config.contests[state.platform]
 		local test_state = test_module.get_test_panel_state()
-		test_module.run_test_case(problem_ctx, contest_config, test_state.current_index)
-		toggle_test_panel()
-		toggle_test_panel()
+
+		if test_state.test_cases and #test_state.test_cases > 0 then
+			test_module.run_all_test_cases(problem_ctx, contest_config)
+			refresh_test_panel()
+		end
 	end
 
 	vim.keymap.set("n", "j", function()
-		navigate_test(1)
+		navigate_test_case(1)
 	end, { buffer = test_buf, silent = true })
 	vim.keymap.set("n", "k", function()
-		navigate_test(-1)
+		navigate_test_case(-1)
 	end, { buffer = test_buf, silent = true })
-	vim.keymap.set("n", "<CR>", run_current_test, { buffer = test_buf, silent = true })
+	vim.keymap.set("n", "<CR>", function()
+		run_all_tests()
+	end, { buffer = test_buf, silent = true })
 	vim.keymap.set("n", "q", function()
 		toggle_test_panel()
 	end, { buffer = test_buf, silent = true })
 
-	local test_state = test_module.get_test_panel_state()
-	local test_lines = {}
-
-	for i, test_case in ipairs(test_state.test_cases) do
-		local status_icon = "?"
-		local status_text = "PENDING"
-
-		if test_case.status == "pass" then
-			status_icon = "✓"
-			status_text = "PASS"
-		elseif test_case.status == "fail" then
-			status_icon = "✗"
-			status_text = "FAIL"
-		end
-
-		local time_text = test_case.time_ms and string.format("%.0fms", test_case.time_ms) or ""
-		local prefix = i == test_state.current_index and "> " or "  "
-
-		table.insert(test_lines, string.format("%s%d  %s %s    %s", prefix, i, status_icon, status_text, time_text))
-	end
-
-	table.insert(test_lines, "")
-
-	local current_test = test_state.test_cases[test_state.current_index]
-	if current_test then
-		table.insert(test_lines, string.format("── Test %d ──", test_state.current_index))
-		table.insert(test_lines, "Input:")
-		for _, line in ipairs(vim.split(current_test.input, "\n", { plain = true, trimempty = true })) do
-			table.insert(test_lines, line)
-		end
-
-		table.insert(test_lines, "Expected:")
-		for _, line in ipairs(vim.split(current_test.expected, "\n", { plain = true, trimempty = true })) do
-			table.insert(test_lines, line)
-		end
-
-		if current_test.actual then
-			table.insert(test_lines, "Actual:")
-			for _, line in ipairs(vim.split(current_test.actual, "\n", { plain = true, trimempty = true })) do
-				table.insert(test_lines, line)
-			end
-		end
-	end
-
-	vim.api.nvim_buf_set_lines(test_buf, 0, -1, false, test_lines)
-	vim.bo.modifiable = false
+	refresh_test_panel()
 
 	state.test_panel_active = true
+	local test_state = test_module.get_test_panel_state()
 	logger.log(string.format("test panel opened (%d test cases)", #test_state.test_cases))
 end
 
