@@ -228,7 +228,6 @@ local function toggle_test_panel()
 		return
 	end
 
-	local execute = require("cp.execute")
 	local contest_config = config.contests[state.platform]
 	if not execute.compile_problem(ctx, contest_config) then
 		return
@@ -323,7 +322,6 @@ local function toggle_test_panel()
 
 	local function run_all_tests()
 		local problem_ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
-		local contest_config = config.contests[state.platform]
 		local test_state = test_module.get_test_panel_state()
 
 		if test_state.test_cases and #test_state.test_cases > 0 then
