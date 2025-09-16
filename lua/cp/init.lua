@@ -384,20 +384,6 @@ local function toggle_test_panel()
 		refresh_test_panel()
 	end
 
-	local function run_all_tests()
-		local problem_ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
-		local contest_config = config.contests[state.platform]
-		local test_state = test_module.get_test_panel_state()
-
-		if test_state.test_cases and #test_state.test_cases > 0 then
-			if not execute.compile_problem(problem_ctx, contest_config) then
-				return
-			end
-			test_module.run_all_test_cases(problem_ctx, contest_config)
-			refresh_test_panel()
-		end
-	end
-
 	vim.keymap.set("n", "j", function()
 		navigate_test_case(1)
 	end, { buffer = test_buffers.tab_buf, silent = true })
