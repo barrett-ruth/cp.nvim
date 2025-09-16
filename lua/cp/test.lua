@@ -170,9 +170,14 @@ local function run_single_test_case(ctx, contest_config, test_case)
 
 	local run_cmd = build_command(language_config.run, language_config.executable, substitutions)
 
+	local stdin_content = test_case.input .. "\n"
+	if ctx.contest == "atcoder" then
+		stdin_content = "1\n" .. stdin_content
+	end
+
 	local start_time = vim.uv.hrtime()
 	local result = vim.system(run_cmd, {
-		stdin = test_case.input .. "\n",
+		stdin = stdin_content,
 		timeout = contest_config.timeout_ms or 2000,
 		text = true,
 	}):wait()
