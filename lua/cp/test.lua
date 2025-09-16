@@ -116,7 +116,6 @@ end
 ---@return table
 local function run_single_test_case(ctx, contest_config, test_case)
 	local language = vim.fn.fnamemodify(ctx.source_file, ":e")
-	local constants = require("cp.constants")
 	local language_name = constants.filetype_to_language[language] or contest_config.default_language
 	local language_config = contest_config[language_name]
 
