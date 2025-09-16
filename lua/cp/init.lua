@@ -228,10 +228,6 @@ local function toggle_test_panel()
 		return
 	end
 
-	local contest_config = config.contests[state.platform]
-	if not execute.compile_problem(ctx, contest_config) then
-		return
-	end
 
 	state.saved_session = vim.fn.tempname()
 	vim.cmd(("mksession! %s"):format(state.saved_session))
@@ -252,10 +248,7 @@ local function toggle_test_panel()
 		local test_lines = {}
 
 		for i, test_case in ipairs(test_state.test_cases) do
-			local status_text = string.upper(test_case.status)
-			if test_case.status == "timeout" then
-				status_text = "TIMEOUT"
-			end
+			local status_text = test_case.status == "pending" and "?" or string.upper(test_case.status)
 			local prefix = i == test_state.current_index and "> " or "  "
 			local line = string.format("%s%d  %s", prefix, i, status_text)
 			table.insert(test_lines, line)
@@ -308,9 +301,13 @@ local function toggle_test_panel()
 
 	local function run_all_tests()
 		local problem_ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
+		local contest_config = config.contests[state.platform]
 		local test_state = test_module.get_test_panel_state()
 
 		if test_state.test_cases and #test_state.test_cases > 0 then
+			if not execute.compile_problem(problem_ctx, contest_config) then
+				return
+			end
 			test_module.run_all_test_cases(problem_ctx, contest_config)
 			refresh_test_panel()
 		end
