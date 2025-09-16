@@ -163,7 +163,7 @@ function M.scrape_problem(ctx)
 				table.insert(test_cases, {
 					index = i,
 					input = input_content,
-					output = expected_content
+					output = expected_content,
 				})
 				i = i + 1
 			else
@@ -228,7 +228,6 @@ function M.scrape_problem(ctx)
 		timeout = 30000,
 	}):wait()
 
-
 	if result.code ~= 0 then
 		return {
 			success = false,
@@ -245,7 +244,6 @@ function M.scrape_problem(ctx)
 			error = "Failed to parse tests scraper output: " .. tostring(data),
 		}
 	end
-
 
 	if not data.success then
 		return data
@@ -269,8 +267,20 @@ function M.scrape_problem(ctx)
 			vim.fn.writefile(vim.split(expected_content, "\n", true), expected_file)
 		end
 
-		local combined_input = data.combined and data.combined.input:gsub("\r", "") or table.concat(vim.tbl_map(function(tc) return tc.input end, data.test_cases), "\n")
-		local combined_output = data.combined and data.combined.output:gsub("\r", "") or table.concat(vim.tbl_map(function(tc) return tc.output end, data.test_cases), "\n")
+		local combined_input = data.combined and data.combined.input:gsub("\r", "")
+			or table.concat(
+				vim.tbl_map(function(tc)
+					return tc.input
+				end, data.test_cases),
+				"\n"
+			)
+		local combined_output = data.combined and data.combined.output:gsub("\r", "")
+			or table.concat(
+				vim.tbl_map(function(tc)
+					return tc.output
+				end, data.test_cases),
+				"\n"
+			)
 
 		if ctx.contest == "atcoder" then
 			combined_input = tostring(#data.test_cases) .. "\n" .. combined_input
@@ -279,7 +289,6 @@ function M.scrape_problem(ctx)
 		vim.fn.writefile(vim.split(combined_input, "\n", true), ctx.input_file)
 		vim.fn.writefile(vim.split(combined_output, "\n", true), ctx.expected_file)
 	end
-
 
 	return {
 		success = true,
