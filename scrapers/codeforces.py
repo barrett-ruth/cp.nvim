@@ -263,25 +263,24 @@ def main() -> None:
             print(json.dumps(result))
             sys.exit(1)
 
-        test_cases: list[dict[str, str]] = []
-        has_individual = len(individual_tests) > 0
+        test = []
+        run = []
 
-        if has_individual:
+        if individual_tests:
             for input_data, output_data in individual_tests:
-                test_cases.append({"input": input_data, "output": output_data})
+                test.append({"input": input_data, "output": output_data})
+                run.append({"input": f"1\n{input_data}", "output": output_data})
         elif combined:
-            test_cases.append({"input": combined[0], "output": combined[1]})
+            test.append({"input": combined[0], "output": combined[1]})
+            run.append({"input": combined[0], "output": combined[1]})
 
         result: dict[str, str | bool | list] = {
             "success": True,
             "problem_id": problem_id,
             "url": url,
-            "test_cases": test_cases,
-            "has_individual_tests": has_individual,
+            "test": test,
+            "run": run,
         }
-
-        if combined:
-            result["combined"] = {"input": combined[0], "output": combined[1]}
 
         print(json.dumps(result))
 

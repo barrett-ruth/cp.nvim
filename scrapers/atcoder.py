@@ -198,21 +198,19 @@ def main() -> None:
             print(json.dumps(result))
             sys.exit(1)
 
-        individual_test_cases: list[dict[str, str]] = []
-        for index, (input_data, output_data) in enumerate(tests, 1):
-            individual_test_cases.append(
-                {"index": index, "input": input_data, "output": output_data}
-            )
+        test = []
+        run = []
 
-        combined_input = "\n".join(tc["input"] for tc in individual_test_cases)
-        combined_output = "\n".join(tc["output"] for tc in individual_test_cases)
+        for input_data, output_data in tests:
+            test.append({"input": input_data, "output": output_data})
+            run.append({"input": input_data, "output": output_data})
 
         result = {
             "success": True,
             "problem_id": problem_id,
             "url": url,
-            "test_cases": individual_test_cases,
-            "combined": {"input": combined_input, "output": combined_output},
+            "test": test,
+            "run": run,
         }
         print(json.dumps(result))
 

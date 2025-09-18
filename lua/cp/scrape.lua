@@ -249,10 +249,10 @@ function M.scrape_problem(ctx)
 		return data
 	end
 
-	if data.test_cases and #data.test_cases > 0 then
+	if data.test and #data.test > 0 then
 		local base_name = vim.fn.fnamemodify(ctx.input_file, ":r")
 
-		for i, test_case in ipairs(data.test_cases) do
+		for i, test_case in ipairs(data.test) do
 			local input_file = base_name .. "." .. i .. ".cpin"
 			local expected_file = base_name .. "." .. i .. ".cpout"
 
@@ -263,36 +263,33 @@ function M.scrape_problem(ctx)
 			vim.fn.writefile(vim.split(expected_content, "\n", true), expected_file)
 		end
 
-		local combined_input = data.combined and data.combined.input:gsub("\r", "")
-			or table.concat(
-				vim.tbl_map(function(tc)
-					return tc.input
-				end, data.test_cases),
-				"\n"
-			)
-		local combined_output = data.combined and data.combined.output:gsub("\r", "")
-			or table.concat(
-				vim.tbl_map(function(tc)
-					return tc.output
-				end, data.test_cases),
-				"\n"
-			)
+		if data.run and #data.run > 0 then
+			local first_run_case = data.run[1]
+			local combined_input = first_run_case.input:gsub("\r", "")
+			local combined_output = first_run_case.output:gsub("\r", "")
 
-		-- with atcoder, we combine together multiple test cases
-		-- TODO: per-platform settings to do this (i.e. do we stitch?)
-		if ctx.contest == "atcoder" then
-			combined_input = tostring(#data.test_cases) .. "\n" .. combined_input
+			if #data.run > 1 then
+				local all_inputs = {}
+				local all_outputs = {}
+				for _, run_case in ipairs(data.run) do
+					table.insert(all_inputs, run_case.input:gsub("\r", ""))
+					table.insert(all_outputs, run_case.output:gsub("\r", ""))
+				end
+				combined_input = table.concat(all_inputs, "\n")
+				combined_output = table.concat(all_outputs, "\n")
+			end
+
+			vim.fn.writefile(vim.split(combined_input, "\n", true), ctx.input_file)
+			vim.fn.writefile(vim.split(combined_output, "\n", true), ctx.expected_file)
 		end
-
-		vim.fn.writefile(vim.split(combined_input, "\n", true), ctx.input_file)
-		vim.fn.writefile(vim.split(combined_output, "\n", true), ctx.expected_file)
 	end
 
 	return {
 		success = true,
 		problem_id = ctx.problem_name,
-		test_count = data.test_cases and #data.test_cases or 0,
-		test_cases = data.test_cases,
+		test_count = data.test and #data.test or 0,
+		test_cases = data.test,
+		run_cases = data.run,
 		url = data.url,
 	}
 end

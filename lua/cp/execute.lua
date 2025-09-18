@@ -226,11 +226,12 @@ function M.compile_problem(ctx, contest_config)
 	return true
 end
 
-function M.run_problem(ctx, contest_config, is_debug)
+function M.run_problem(ctx, contest_config, is_debug, run_cases)
 	vim.validate({
 		ctx = { ctx, "table" },
 		contest_config = { contest_config, "table" },
 		is_debug = { is_debug, "boolean" },
+		run_cases = { run_cases, { "table", "nil" }, true },
 	})
 
 	ensure_directories()
@@ -258,23 +259,64 @@ function M.run_problem(ctx, contest_config, is_debug)
 		end
 	end
 
-	local input_data = ""
-	if vim.fn.filereadable(ctx.input_file) == 1 then
-		input_data = table.concat(vim.fn.readfile(ctx.input_file), "\n") .. "\n"
-	end
+	if run_cases and #run_cases > 0 then
+		local all_outputs = {}
+		local run_cmd = build_command(language_config.run, language_config.executable, substitutions)
+		local total_time = 0
+		local final_exit_code = 0
 
-	local run_cmd = build_command(language_config.run, language_config.executable, substitutions)
-	local exec_result = execute_command(run_cmd, input_data, contest_config.timeout_ms)
-	local formatted_output = format_output(exec_result, ctx.expected_file, is_debug)
+		for _, run_case in ipairs(run_cases) do
+			local input_data = run_case.input .. "\n"
+			local exec_result = execute_command(run_cmd, input_data, contest_config.timeout_ms)
 
-	local output_buf = vim.fn.bufnr(ctx.output_file)
-	if output_buf ~= -1 then
-		vim.api.nvim_buf_set_lines(output_buf, 0, -1, false, vim.split(formatted_output, "\n"))
-		vim.api.nvim_buf_call(output_buf, function()
-			vim.cmd.write()
-		end)
+			if exec_result.stdout and exec_result.stdout ~= "" then
+				table.insert(all_outputs, exec_result.stdout)
+			end
+
+			total_time = total_time + exec_result.time_ms
+			if exec_result.code ~= 0 then
+				final_exit_code = exec_result.code
+			end
+		end
+
+		local combined_stdout = table.concat(all_outputs, "\n")
+		local mock_exec_result = {
+			stdout = combined_stdout,
+			stderr = "",
+			code = final_exit_code,
+			time_ms = total_time,
+			timed_out = false,
+		}
+
+		local formatted_output = format_output(mock_exec_result, ctx.expected_file, is_debug)
+		local output_buf = vim.fn.bufnr(ctx.output_file)
+		if output_buf ~= -1 then
+			vim.api.nvim_buf_set_lines(output_buf, 0, -1, false, vim.split(formatted_output, "\n"))
+			vim.api.nvim_buf_call(output_buf, function()
+				vim.cmd.write()
+			end)
+		else
+			vim.fn.writefile(vim.split(formatted_output, "\n"), ctx.output_file)
+		end
 	else
-		vim.fn.writefile(vim.split(formatted_output, "\n"), ctx.output_file)
+		local input_data = ""
+		if vim.fn.filereadable(ctx.input_file) == 1 then
+			input_data = table.concat(vim.fn.readfile(ctx.input_file), "\n") .. "\n"
+		end
+
+		local run_cmd = build_command(language_config.run, language_config.executable, substitutions)
+		local exec_result = execute_command(run_cmd, input_data, contest_config.timeout_ms)
+		local formatted_output = format_output(exec_result, ctx.expected_file, is_debug)
+
+		local output_buf = vim.fn.bufnr(ctx.output_file)
+		if output_buf ~= -1 then
+			vim.api.nvim_buf_set_lines(output_buf, 0, -1, false, vim.split(formatted_output, "\n"))
+			vim.api.nvim_buf_call(output_buf, function()
+				vim.cmd.write()
+			end)
+		else
+			vim.fn.writefile(vim.split(formatted_output, "\n"), ctx.output_file)
+		end
 	end
 end
 

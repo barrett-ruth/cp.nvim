@@ -86,6 +86,7 @@ local function setup_problem(contest_id, problem_id, language)
 		local test_count = scrape_result.test_count or 0
 		logger.log(("scraped %d test case(s) for %s"):format(test_count, scrape_result.problem_id))
 		state.test_cases = scrape_result.test_cases
+		state.run_cases = scrape_result.run_cases
 
 		if scrape_result.test_cases then
 			cache.set_test_cases(state.platform, contest_id, problem_id, scrape_result.test_cases)
@@ -176,7 +177,7 @@ local function run_problem()
 	end
 
 	vim.schedule(function()
-		execute.run_problem(ctx, contest_config, false)
+		execute.run_problem(ctx, contest_config, false, state.run_cases)
 		vim.cmd.checktime()
 	end)
 end
@@ -200,7 +201,7 @@ local function debug_problem()
 	end
 
 	vim.schedule(function()
-		execute.run_problem(ctx, contest_config, true)
+		execute.run_problem(ctx, contest_config, true, state.run_cases)
 		vim.cmd.checktime()
 	end)
 end

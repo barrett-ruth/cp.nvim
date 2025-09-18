@@ -198,15 +198,19 @@ def main() -> None:
             print(json.dumps(result))
             sys.exit(1)
 
-        test_cases: list[dict[str, str]] = []
+        test = []
+        run = []
+
         for input_data, output_data in tests:
-            test_cases.append({"input": input_data, "output": output_data})
+            test.append({"input": input_data, "output": output_data})
+            run.append({"input": input_data, "output": output_data})
 
         result = {
             "success": True,
             "problem_id": problem_id,
             "url": url,
-            "test_cases": test_cases,
+            "test": test,
+            "run": run,
         }
         print(json.dumps(result))
 
