@@ -174,15 +174,15 @@ def main() -> None:
             print(json.dumps(result))
             sys.exit(1)
 
-        test_cases: list[dict[str, str]] = []
+        test_list: list[dict[str, str]] = []
         for input_data, output_data in tests:
-            test_cases.append({"input": input_data, "output": output_data})
+            test_list.append({"input": input_data, "expected": output_data})
 
         result = {
             "success": True,
             "problem_id": problem_id,
             "url": url,
-            "test_cases": test_cases,
+            "tests": test_list,
         }
         print(json.dumps(result))
 
