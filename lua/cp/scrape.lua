@@ -278,6 +278,8 @@ function M.scrape_problem(ctx)
 				"\n"
 			)
 
+		-- with atcoder, we combine together multiple test cases
+		-- TODO: per-platform settings to do this (i.e. do we stitch?)
 		if ctx.contest == "atcoder" then
 			combined_input = tostring(#data.test_cases) .. "\n" .. combined_input
 		end

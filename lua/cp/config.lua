@@ -36,6 +36,7 @@
 ---@field snippets table[]
 ---@field hooks Hooks
 ---@field debug boolean
+---@field scrapers table<string, boolean>
 ---@field tile? fun(source_buf: number, input_buf: number, output_buf: number)
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 
@@ -44,6 +45,7 @@
 ---@field snippets? table[]
 ---@field hooks? Hooks
 ---@field debug? boolean
+---@field scrapers? table<string, boolean>
 ---@field tile? fun(source_buf: number, input_buf: number, output_buf: number)
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 
@@ -60,6 +62,11 @@ M.defaults = {
 		setup_code = nil,
 	},
 	debug = false,
+	scrapers = vim.iter(constants.PLATFORMS)
+		:map(function(platform)
+			return platform, true
+		end)
+		:totable(),
 	tile = nil,
 	filename = nil,
 }
@@ -77,6 +84,7 @@ function M.setup(user_config)
 			snippets = { user_config.snippets, { "table", "nil" }, true },
 			hooks = { user_config.hooks, { "table", "nil" }, true },
 			debug = { user_config.debug, { "boolean", "nil" }, true },
+			scrapers = { user_config.scrapers, { "table", "nil" }, true },
 			tile = { user_config.tile, { "function", "nil" }, true },
 			filename = { user_config.filename, { "function", "nil" }, true },
 		})
@@ -118,6 +126,22 @@ function M.setup(user_config)
 							)
 						end
 					end
+				end
+			end
+		end
+
+		if user_config.scrapers then
+			for contest_name, enabled in pairs(user_config.scrapers) do
+				if not vim.tbl_contains(constants.PLATFORMS, contest_name) then
+					error(
+						("Invalid contest '%s' in scrapers config. Valid contests: %s"):format(
+							contest_name,
+							table.concat(constants.PLATFORMS, ", ")
+						)
+					)
+				end
+				if type(enabled) ~= "boolean" then
+					error(("Scraper setting for '%s' must be boolean, got %s"):format(contest_name, type(enabled)))
 				end
 			end
 		end

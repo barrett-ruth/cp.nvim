@@ -80,6 +80,11 @@ Optional configuration with lazy.nvim: >
         cmd = 'CP',
         opts = {
           debug = false,
+          scrapers = {
+            atcoder = true,
+            codeforces = false,  -- disable codeforces scraping
+            cses = true,
+          },
           contests = {
             codeforces = {
               cpp = {
@@ -132,6 +137,8 @@ Optional configuration with lazy.nvim: >
       • {snippets}      (`table[]`) LuaSnip snippet definitions.
       • {debug}         (`boolean`, default: `false`) Show info messages
                         during operation.
+      • {scrapers}      (`table<string,boolean>`) Per-platform scraper control.
+                         Default enables all platforms.
       • {tile}?         (`function`) Custom window arrangement function.
                         `function(source_buf, input_buf, output_buf)`
       • {filename}?     (`function`) Custom filename generation function.
