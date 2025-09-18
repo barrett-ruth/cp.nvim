@@ -58,33 +58,31 @@ local function setup_problem(contest_id, problem_id, language)
 	local problem_name = state.platform == "cses" and contest_id or (contest_id .. (problem_id or ""))
 	logger.log(("setting up problem: %s"):format(problem_name))
 
-	local metadata_result = scrape.scrape_contest_metadata(state.platform, contest_id)
-	if not metadata_result.success then
-		logger.log(
-			"failed to load contest metadata: " .. (metadata_result.error or "unknown error"),
-			vim.log.levels.WARN
-		)
+	local ctx = problem.create_context(state.platform, contest_id, problem_id, config, language)
+
+	if config.scrapers[state.platform] then
+		local metadata_result = scrape.scrape_contest_metadata(state.platform, contest_id)
+		if not metadata_result.success then
+			logger.log(
+				"failed to load contest metadata: " .. (metadata_result.error or "unknown error"),
+				vim.log.levels.WARN
+			)
+		end
 	end
-
-	vim.cmd("silent only")
-
-	state.contest_id = contest_id
-	state.problem_id = problem_id
 
 	local cached_test_cases = cache.get_test_cases(state.platform, contest_id, problem_id)
 	if cached_test_cases then
 		state.test_cases = cached_test_cases
 	end
 
-	local scrape_ctx = problem.create_context(state.platform, contest_id, problem_id, config, language)
+	if config.scrapers[state.platform] then
+		local scrape_result = scrape.scrape_problem(ctx)
 
-	local scrape_result = scrape.scrape_problem(scrape_ctx)
+		if not scrape_result.success then
+			logger.log("scraping failed: " .. (scrape_result.error or "unknown error"), vim.log.levels.ERROR)
+			return
+		end
 
-	if not scrape_result.success then
-		logger.log("scraping failed: " .. (scrape_result.error or "unknown error"), vim.log.levels.WARN)
-		logger.log("you can manually add test cases to io/ directory", vim.log.levels.INFO)
-		state.test_cases = nil
-	else
 		local test_count = scrape_result.test_count or 0
 		logger.log(("scraped %d test case(s) for %s"):format(test_count, scrape_result.problem_id))
 		state.test_cases = scrape_result.test_cases
@@ -92,9 +90,17 @@ local function setup_problem(contest_id, problem_id, language)
 		if scrape_result.test_cases then
 			cache.set_test_cases(state.platform, contest_id, problem_id, scrape_result.test_cases)
 		end
+	else
+		logger.log(("scraping disabled for %s"):format(state.platform))
+		state.test_cases = nil
 	end
 
-	vim.cmd.e(scrape_ctx.source_file)
+	vim.cmd("silent only")
+
+	state.contest_id = contest_id
+	state.problem_id = problem_id
+
+	vim.cmd.e(ctx.source_file)
 	local source_buf = vim.api.nvim_get_current_buf()
 
 	if vim.api.nvim_buf_get_lines(source_buf, 0, -1, true)[1] == "" then
@@ -122,8 +128,6 @@ local function setup_problem(contest_id, problem_id, language)
 			vim.api.nvim_input(("i%s<c-space><esc>"):format(state.platform))
 		end
 	end
-
-	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config, language)
 
 	if config.hooks and config.hooks.setup_code then
 		config.hooks.setup_code(ctx)
@@ -572,7 +576,21 @@ local function parse_command(args)
 	end
 
 	if state.platform and state.contest_id then
-		return { type = "problem_switch", problem = first, language = language }
+		cache.load()
+		local contest_data = cache.get_contest_data(state.platform, state.contest_id)
+		if contest_data and contest_data.problems then
+			local problem_ids = vim.tbl_map(function(prob) return prob.id end, contest_data.problems)
+			if vim.tbl_contains(problem_ids, first) then
+				return { type = "problem_switch", problem = first, language = language }
+			end
+		end
+		return {
+			type = "error",
+			message = ("Invalid command '%s'. Valid actions: [%s] or valid problem IDs from contest"):format(
+				first,
+				table.concat(actions, ", ")
+			)
+		}
 	end
 
 	return { type = "error", message = "Unknown command or no contest context" }
@@ -609,16 +627,18 @@ function M.handle_command(opts)
 	if cmd.type == "contest_setup" then
 		if set_platform(cmd.platform) then
 			state.contest_id = cmd.contest
-			local metadata_result = scrape.scrape_contest_metadata(cmd.platform, cmd.contest)
-			if not metadata_result.success then
-				logger.log(
-					"failed to load contest metadata: " .. (metadata_result.error or "unknown error"),
-					vim.log.levels.WARN
-				)
-			else
-				logger.log(
-					("loaded %d problems for %s %s"):format(#metadata_result.problems, cmd.platform, cmd.contest)
-				)
+			if config.scrapers[cmd.platform] then
+				local metadata_result = scrape.scrape_contest_metadata(cmd.platform, cmd.contest)
+				if not metadata_result.success then
+					logger.log(
+						"failed to load contest metadata: " .. (metadata_result.error or "unknown error"),
+						vim.log.levels.WARN
+					)
+				else
+					logger.log(
+						("loaded %d problems for %s %s"):format(#metadata_result.problems, cmd.platform, cmd.contest)
+					)
+				end
 			end
 		end
 		return
@@ -627,16 +647,43 @@ function M.handle_command(opts)
 	if cmd.type == "full_setup" then
 		if set_platform(cmd.platform) then
 			state.contest_id = cmd.contest
-			local metadata_result = scrape.scrape_contest_metadata(cmd.platform, cmd.contest)
-			if not metadata_result.success then
-				logger.log(
-					"failed to load contest metadata: " .. (metadata_result.error or "unknown error"),
-					vim.log.levels.WARN
-				)
-			else
+			local problem_ids = {}
+			local has_metadata = false
+
+			if config.scrapers[cmd.platform] then
+				local metadata_result = scrape.scrape_contest_metadata(cmd.platform, cmd.contest)
+				if not metadata_result.success then
+					logger.log(
+						"failed to load contest metadata: " .. (metadata_result.error or "unknown error"),
+						vim.log.levels.ERROR
+					)
+					return
+				end
+
 				logger.log(
 					("loaded %d problems for %s %s"):format(#metadata_result.problems, cmd.platform, cmd.contest)
 				)
+				problem_ids = vim.tbl_map(function(prob) return prob.id end, metadata_result.problems)
+				has_metadata = true
+			else
+				cache.load()
+				local contest_data = cache.get_contest_data(cmd.platform, cmd.contest)
+				if contest_data and contest_data.problems then
+					problem_ids = vim.tbl_map(function(prob) return prob.id end, contest_data.problems)
+					has_metadata = true
+				end
+			end
+
+			if has_metadata and not vim.tbl_contains(problem_ids, cmd.problem) then
+				logger.log(
+					("Invalid problem '%s' for contest %s %s"):format(
+						cmd.problem,
+						cmd.platform,
+						cmd.contest
+					),
+					vim.log.levels.ERROR
+				)
+				return
 			end
 
 			setup_problem(cmd.contest, cmd.problem, cmd.language)
@@ -646,12 +693,14 @@ function M.handle_command(opts)
 
 	if cmd.type == "cses_problem" then
 		if set_platform(cmd.platform) then
-			local metadata_result = scrape.scrape_contest_metadata(cmd.platform, "")
-			if not metadata_result.success then
-				logger.log(
-					"failed to load contest metadata: " .. (metadata_result.error or "unknown error"),
-					vim.log.levels.WARN
-				)
+			if config.scrapers[cmd.platform] then
+				local metadata_result = scrape.scrape_contest_metadata(cmd.platform, "")
+				if not metadata_result.success then
+					logger.log(
+						"failed to load contest metadata: " .. (metadata_result.error or "unknown error"),
+						vim.log.levels.WARN
+					)
+				end
 			end
 			setup_problem(cmd.problem, nil, cmd.language)
 		end
