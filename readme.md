@@ -66,6 +66,7 @@ follows:
 
 ## TODO
 
+- fzf/telescope integration (whichever available)
+- autocomplete with --lang and --debug
 - finer-tuned problem limits (i.e. per-problem codeforces time, memory)
-- better highlighting
 - notify discord members

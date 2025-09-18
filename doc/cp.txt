@@ -49,17 +49,10 @@ Setup Commands ~
 
 Action Commands ~
 
-:CP run                         Compile and run current problem with test input.
-                                Shows execution time and output comparison.
-                                Requires contest setup first.
-
-:CP debug                       Compile with debug flags and run current problem.
-                                Includes sanitizers and debug symbols.
-                                Requires contest setup first.
-
-:CP test                        Toggle test panel for individual test case
+:CP test [--debug]              Toggle test panel for individual test case
                                 debugging. Shows per-test results with three-pane
                                 layout for easy Expected/Actual comparison.
+                                Use --debug flag to compile with debug flags
                                 Requires contest setup first.
 
 Navigation Commands ~
@@ -123,7 +116,6 @@ Optional configuration with lazy.nvim: >
             end,
           },
           snippets = { ... },  -- LuaSnip snippets
-          tile = function(source_buf, input_buf, output_buf) ... end,
           filename = function(contest, contest_id, problem_id, config, language) ... end,
         }
     }
@@ -139,8 +131,6 @@ Optional configuration with lazy.nvim: >
                         during operation.
       • {scrapers}      (`table<string,boolean>`) Per-platform scraper control.
                          Default enables all platforms.
-      • {tile}?         (`function`) Custom window arrangement function.
-                        `function(source_buf, input_buf, output_buf)`
       • {filename}?     (`function`) Custom filename generation function.
                         `function(contest, contest_id, problem_id, config, language)`
                         Should return full filename with extension.
@@ -170,9 +160,7 @@ Optional configuration with lazy.nvim: >
 *cp.Hooks*
 
     Fields: ~
-      • {before_run}?   (`function`) Called before `:CP run`.
-                        `function(ctx: ProblemContext)`
-      • {before_debug}? (`function`) Called before `:CP debug`.
+      • {before_debug}? (`function`) Called before debug compilation.
                         `function(ctx: ProblemContext)`
       • {setup_code}?   (`function`) Called after source file is opened.
                         Used to configure buffer settings.
@@ -247,44 +235,38 @@ Example: Setting up and solving AtCoder contest ABC324
 <   This creates a.cc and scrapes test cases
 
 4. Code your solution, then test: >
-    :CP run
-<
-5. If test fails, debug individual test cases: >
     :CP test
 <   Navigate with j/k, run specific tests with <enter>
     Exit test panel with q or :CP test when done
 
-6. If needed, compile with debug flags: >
-    :CP debug
+5. If needed, debug with sanitizers: >
+    :CP test --debug
 <
-7. Move to next problem: >
+6. Move to next problem: >
     :CP next
 <   This automatically sets up problem B
 
-7. Continue solving problems with :CP next/:CP prev navigation
-8. Submit solutions on AtCoder website
+6. Continue solving problems with :CP next/:CP prev navigation
+7. Submit solutions on AtCoder website
 
 Example: Quick setup for single Codeforces problem >
     :CP codeforces 1933 a       " One command setup
-    :CP run                     " Test immediately
+    :CP test                    " Test immediately
 <
 
 TEST PANEL						*cp-test*
 
 The test panel provides individual test case debugging with a three-pane
 layout showing test list, expected output, and actual output side-by-side.
-Currently supported for AtCoder and CSES.
-
-Note: Codeforces is not supported due to the ambiguity of identifying
-individual test case output. See https://codeforces.com/blog/entry/138406
-for ongoing efforts to resolve this.
 
 Activation ~
 								*:CP-test*
-:CP test                        Toggle test panel on/off. When activated,
+:CP test [--debug]              Toggle test panel on/off. When activated,
                                 replaces current layout with test interface.
                                 Automatically compiles and runs all tests.
-                                Toggle again to restore original layout.
+                                Use --debug flag to compile with debug symbols
+                                and sanitizers. Toggle again to restore original
+                                layout.
 
 Interface ~
 
@@ -293,8 +275,6 @@ The test panel uses a three-pane layout for easy comparison: >
     ┌─ Test List ─────────────────────────────────────────────────┐
     │  1. PASS   12ms                                             │
     │> 2. FAIL   45ms                                             │
-    │  3.        8ms                                              │
-    │  4.                                                         │
     │                                                             │
     │ ── Input ──                                                 │
     │ 5 3                                                         │
@@ -317,7 +297,7 @@ q                               Exit test panel (restore layout)
 Execution Details ~
 
 Test cases are executed individually using the same compilation and
-execution pipeline as |:CP-run|, but with isolated input/output for
+execution pipeline, but with isolated input/output for
 precise failure analysis. All tests are automatically run when the
 panel opens.
 

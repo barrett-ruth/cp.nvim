@@ -2,9 +2,7 @@ local M = {}
 
 local config_module = require("cp.config")
 local snippets = require("cp.snippets")
-local execute = require("cp.execute")
 local scrape = require("cp.scrape")
-local window = require("cp.window")
 local logger = require("cp.log")
 local problem = require("cp.problem")
 local cache = require("cp.cache")
@@ -60,7 +58,7 @@ local function setup_problem(contest_id, problem_id, language)
 
 	local ctx = problem.create_context(state.platform, contest_id, problem_id, config, language)
 
-	if config.scrapers[state.platform] then
+	if vim.tbl_contains(config.scrapers, state.platform) then
 		local metadata_result = scrape.scrape_contest_metadata(state.platform, contest_id)
 		if not metadata_result.success then
 			logger.log(
@@ -75,7 +73,7 @@ local function setup_problem(contest_id, problem_id, language)
 		state.test_cases = cached_test_cases
 	end
 
-	if config.scrapers[state.platform] then
+	if vim.tbl_contains(config.scrapers, state.platform) then
 		local scrape_result = scrape.scrape_problem(ctx)
 
 		if not scrape_result.success then
@@ -133,13 +131,6 @@ local function setup_problem(contest_id, problem_id, language)
 		config.hooks.setup_code(ctx)
 	end
 
-	local src_buf = vim.api.nvim_get_current_buf()
-	local input_buf = vim.fn.bufnr(ctx.input_file, true)
-	local output_buf = vim.fn.bufnr(ctx.output_file, true)
-
-	local tile_fn = config.tile or window.default_tile
-	tile_fn(src_buf, input_buf, output_buf)
-
 	logger.log(("switched to problem %s"):format(ctx.problem_name))
 end
 
@@ -152,60 +143,7 @@ local function get_current_problem()
 	return filename
 end
 
-local function run_problem()
-	local problem_id = get_current_problem()
-	if not problem_id then
-		return
-	end
-
-	logger.log(("running problem: %s"):format(problem_id))
-
-	if not state.platform then
-		logger.log(
-			"No contest configured. Use :CP <platform> <contest> <problem> to set up first.",
-			vim.log.levels.ERROR
-		)
-		return
-	end
-
-	local contest_config = config.contests[state.platform]
-	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
-
-	if config.hooks and config.hooks.before_run then
-		config.hooks.before_run(ctx)
-	end
-
-	vim.schedule(function()
-		execute.run_problem(ctx, contest_config, false)
-		vim.cmd.checktime()
-	end)
-end
-
-local function debug_problem()
-	local problem_id = get_current_problem()
-	if not problem_id then
-		return
-	end
-
-	if not state.platform then
-		logger.log("no platform set", vim.log.levels.ERROR)
-		return
-	end
-
-	local contest_config = config.contests[state.platform]
-	local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
-
-	if config.hooks and config.hooks.before_debug then
-		config.hooks.before_debug(ctx)
-	end
-
-	vim.schedule(function()
-		execute.run_problem(ctx, contest_config, true)
-		vim.cmd.checktime()
-	end)
-end
-
-local function toggle_test_panel()
+local function toggle_test_panel(is_debug)
 	if state.test_panel_active then
 		if state.saved_session then
 			vim.cmd(("source %s"):format(state.saved_session))
@@ -222,11 +160,6 @@ local function toggle_test_panel()
 			"No contest configured. Use :CP <platform> <contest> <problem> to set up first.",
 			vim.log.levels.ERROR
 		)
-		return
-	end
-
-	if state.platform == "codeforces" then
-		logger.log("test panel not yet supported for codeforces", vim.log.levels.ERROR)
 		return
 	end
 
@@ -260,19 +193,20 @@ local function toggle_test_panel()
 	vim.api.nvim_win_set_buf(main_win, tab_buf)
 	vim.api.nvim_set_option_value("filetype", "cptest", { buf = tab_buf })
 
-	vim.cmd("split")
-	local content_win = vim.api.nvim_get_current_win()
-	vim.api.nvim_win_set_buf(content_win, actual_buf)
+	vim.cmd.split()
+	vim.api.nvim_win_set_buf(0, actual_buf)
 	vim.api.nvim_set_option_value("filetype", "cptest", { buf = actual_buf })
 
-	vim.cmd("vsplit")
-	local expected_win = vim.api.nvim_get_current_win()
-	vim.api.nvim_win_set_buf(expected_win, expected_buf)
+	vim.cmd.vsplit()
+	vim.api.nvim_win_set_buf(0, expected_buf)
 	vim.api.nvim_set_option_value("filetype", "cptest", { buf = expected_buf })
+
+	local expected_win = vim.fn.bufwinid(expected_buf)
+	local actual_win = vim.fn.bufwinid(actual_buf)
 
 	local test_windows = {
 		tab_win = main_win,
-		actual_win = content_win,
+		actual_win = actual_win,
 		expected_win = expected_win,
 	}
 	local test_buffers = {
@@ -347,14 +281,14 @@ local function toggle_test_panel()
 			return
 		end
 
-		local expected_lines = {}
-
 		local expected_text = current_test.expected
-		for _, line in ipairs(vim.split(expected_text, "\n", { plain = true, trimempty = true })) do
-			table.insert(expected_lines, line)
-		end
+		local expected_lines = vim.split(expected_text, "\n", { plain = true, trimempty = true })
 
 		vim.api.nvim_buf_set_lines(test_buffers.expected_buf, 0, -1, false, expected_lines)
+
+		if vim.fn.has("nvim-0.8.0") == 1 then
+			vim.api.nvim_set_option_value("winbar", "Expected", { win = test_windows.expected_win })
+		end
 	end
 
 	local function update_actual_pane()
@@ -366,27 +300,32 @@ local function toggle_test_panel()
 		end
 
 		local actual_lines = {}
+		local enable_diff = false
 
 		if current_test.actual then
-			for _, line in ipairs(vim.split(current_test.actual, "\n", { plain = true, trimempty = true })) do
-				table.insert(actual_lines, line)
-			end
-
-			if current_test.status == "fail" then
-				vim.api.nvim_set_option_value("diff", true, { win = test_windows.expected_win })
-				vim.api.nvim_set_option_value("diff", true, { win = test_windows.actual_win })
-			else
-				vim.api.nvim_set_option_value("diff", false, { win = test_windows.expected_win })
-				vim.api.nvim_set_option_value("diff", false, { win = test_windows.actual_win })
-			end
+			actual_lines = vim.split(current_test.actual, "\n", { plain = true, trimempty = true })
+			enable_diff = current_test.status == "fail"
 		else
-			table.insert(actual_lines, "(not run yet)")
-
-			vim.api.nvim_set_option_value("diff", false, { win = test_windows.expected_win })
-			vim.api.nvim_set_option_value("diff", false, { win = test_windows.actual_win })
+			actual_lines = { "(not run yet)" }
 		end
 
 		vim.api.nvim_buf_set_lines(test_buffers.actual_buf, 0, -1, false, actual_lines)
+
+		if vim.fn.has("nvim-0.8.0") == 1 then
+			vim.api.nvim_set_option_value("winbar", "Actual", { win = test_windows.actual_win })
+		end
+
+		vim.api.nvim_set_option_value("diff", enable_diff, { win = test_windows.expected_win })
+		vim.api.nvim_set_option_value("diff", enable_diff, { win = test_windows.actual_win })
+
+		if enable_diff then
+			vim.api.nvim_win_call(test_windows.expected_win, function()
+				vim.cmd.diffthis()
+			end)
+			vim.api.nvim_win_call(test_windows.actual_win, function()
+				vim.cmd.diffthis()
+			end)
+		end
 	end
 
 	local function refresh_test_panel()
@@ -417,10 +356,10 @@ local function toggle_test_panel()
 		refresh_test_panel()
 	end
 
-	vim.keymap.set("n", "j", function()
+	vim.keymap.set("n", "<c-n>", function()
 		navigate_test_case(1)
 	end, { buffer = test_buffers.tab_buf, silent = true })
-	vim.keymap.set("n", "k", function()
+	vim.keymap.set("n", "<c-p>", function()
 		navigate_test_case(-1)
 	end, { buffer = test_buffers.tab_buf, silent = true })
 
@@ -430,9 +369,13 @@ local function toggle_test_panel()
 		end, { buffer = buf, silent = true })
 	end
 
+	if is_debug and config.hooks and config.hooks.before_debug then
+		config.hooks.before_debug(ctx)
+	end
+
 	local execute_module = require("cp.execute")
 	local contest_config = config.contests[state.platform]
-	if execute_module.compile_problem(ctx, contest_config) then
+	if execute_module.compile_problem(ctx, contest_config, is_debug) then
 		test_module.run_all_test_cases(ctx, contest_config)
 	end
 
@@ -515,6 +458,7 @@ local function parse_command(args)
 	end
 
 	local language = nil
+	local debug = false
 
 	for i, arg in ipairs(args) do
 		local lang_match = arg:match("^--lang=(.+)$")
@@ -526,17 +470,19 @@ local function parse_command(args)
 			else
 				return { type = "error", message = "--lang requires a value" }
 			end
+		elseif arg == "--debug" then
+			debug = true
 		end
 	end
 
 	local filtered_args = vim.tbl_filter(function(arg)
-		return not (arg:match("^--lang") or arg == language)
+		return not (arg:match("^--lang") or arg == language or arg == "--debug")
 	end, args)
 
 	local first = filtered_args[1]
 
 	if vim.tbl_contains(actions, first) then
-		return { type = "action", action = first, language = language }
+		return { type = "action", action = first, language = language, debug = debug }
 	end
 
 	if vim.tbl_contains(platforms, first) then
@@ -604,12 +550,8 @@ function M.handle_command(opts)
 	end
 
 	if cmd.type == "action" then
-		if cmd.action == "run" then
-			run_problem()
-		elseif cmd.action == "debug" then
-			debug_problem()
-		elseif cmd.action == "test" then
-			toggle_test_panel()
+		if cmd.action == "test" then
+			toggle_test_panel(cmd.debug)
 		elseif cmd.action == "next" then
 			navigate_problem(1, cmd.language)
 		elseif cmd.action == "prev" then
@@ -626,7 +568,7 @@ function M.handle_command(opts)
 	if cmd.type == "contest_setup" then
 		if set_platform(cmd.platform) then
 			state.contest_id = cmd.contest
-			if config.scrapers[cmd.platform] then
+			if vim.tbl_contains(config.scrapers, cmd.platform) then
 				local metadata_result = scrape.scrape_contest_metadata(cmd.platform, cmd.contest)
 				if not metadata_result.success then
 					logger.log(
@@ -649,7 +591,7 @@ function M.handle_command(opts)
 			local problem_ids = {}
 			local has_metadata = false
 
-			if config.scrapers[cmd.platform] then
+			if vim.tbl_contains(config.scrapers, cmd.platform) then
 				local metadata_result = scrape.scrape_contest_metadata(cmd.platform, cmd.contest)
 				if not metadata_result.success then
 					logger.log(
@@ -692,7 +634,7 @@ function M.handle_command(opts)
 
 	if cmd.type == "cses_problem" then
 		if set_platform(cmd.platform) then
-			if config.scrapers[cmd.platform] then
+			if vim.tbl_contains(config.scrapers, cmd.platform) then
 				local metadata_result = scrape.scrape_contest_metadata(cmd.platform, "")
 				if not metadata_result.success then
 					logger.log(

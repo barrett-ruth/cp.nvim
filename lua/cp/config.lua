@@ -37,7 +37,6 @@
 ---@field hooks Hooks
 ---@field debug boolean
 ---@field scrapers table<string, boolean>
----@field tile? fun(source_buf: number, input_buf: number, output_buf: number)
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 
 ---@class cp.UserConfig
@@ -46,7 +45,6 @@
 ---@field hooks? Hooks
 ---@field debug? boolean
 ---@field scrapers? table<string, boolean>
----@field tile? fun(source_buf: number, input_buf: number, output_buf: number)
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 
 local M = {}
@@ -62,12 +60,7 @@ M.defaults = {
 		setup_code = nil,
 	},
 	debug = false,
-	scrapers = vim.iter(constants.PLATFORMS)
-		:map(function(platform)
-			return platform, true
-		end)
-		:totable(),
-	tile = nil,
+	scrapers = constants.PLATFORMS,
 	filename = nil,
 }
 
@@ -85,7 +78,6 @@ function M.setup(user_config)
 			hooks = { user_config.hooks, { "table", "nil" }, true },
 			debug = { user_config.debug, { "boolean", "nil" }, true },
 			scrapers = { user_config.scrapers, { "table", "nil" }, true },
-			tile = { user_config.tile, { "function", "nil" }, true },
 			filename = { user_config.filename, { "function", "nil" }, true },
 		})
 

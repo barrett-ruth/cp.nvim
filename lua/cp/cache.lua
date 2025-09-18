@@ -15,7 +15,8 @@
 ---@class CachedTestCase
 ---@field index? number
 ---@field input string
----@field output string
+---@field expected? string
+---@field output? string
 
 local M = {}
 

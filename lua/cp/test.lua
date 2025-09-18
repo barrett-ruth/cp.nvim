@@ -68,7 +68,8 @@ local function parse_test_cases_from_cache(platform, contest_id, problem_id)
 
 	for i, test_case in ipairs(cached_test_cases) do
 		local index = test_case.index or i
-		table.insert(test_cases, create_test_case(index, test_case.input, test_case.output))
+		local expected = test_case.expected or test_case.output or ""
+		table.insert(test_cases, create_test_case(index, test_case.input, expected))
 	end
 
 	return test_cases
@@ -171,9 +172,6 @@ local function run_single_test_case(ctx, contest_config, test_case)
 	local run_cmd = build_command(language_config.run, language_config.executable, substitutions)
 
 	local stdin_content = test_case.input .. "\n"
-	if ctx.contest == "atcoder" then
-		stdin_content = "1\n" .. stdin_content
-	end
 
 	local start_time = vim.uv.hrtime()
 	local result = vim.system(run_cmd, {

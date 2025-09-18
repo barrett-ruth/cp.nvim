@@ -1,3 +1,14 @@
+---@class ScraperTestCase
+---@field input string
+---@field expected string
+
+---@class ScraperResult
+---@field success boolean
+---@field problem_id string
+---@field url? string
+---@field tests? ScraperTestCase[]
+---@field error? string
+
 local M = {}
 local logger = require("cp.log")
 local cache = require("cp.cache")
@@ -139,7 +150,7 @@ function M.scrape_contest_metadata(platform, contest_id)
 end
 
 ---@param ctx ProblemContext
----@return {success: boolean, problem_id: string, test_count?: number, test_cases?: table[], url?: string, error?: string}
+---@return {success: boolean, problem_id: string, test_count?: number, test_cases?: ScraperTestCase[], url?: string, error?: string}
 function M.scrape_problem(ctx)
 	vim.validate({
 		ctx = { ctx, "table" },
@@ -249,50 +260,26 @@ function M.scrape_problem(ctx)
 		return data
 	end
 
-	if data.test_cases and #data.test_cases > 0 then
+	if data.tests and #data.tests > 0 then
 		local base_name = vim.fn.fnamemodify(ctx.input_file, ":r")
 
-		for i, test_case in ipairs(data.test_cases) do
+		for i, test_case in ipairs(data.tests) do
 			local input_file = base_name .. "." .. i .. ".cpin"
 			local expected_file = base_name .. "." .. i .. ".cpout"
 
 			local input_content = test_case.input:gsub("\r", "")
-			local expected_content = test_case.output:gsub("\r", "")
+			local expected_content = test_case.expected:gsub("\r", "")
 
 			vim.fn.writefile(vim.split(input_content, "\n", true), input_file)
 			vim.fn.writefile(vim.split(expected_content, "\n", true), expected_file)
 		end
-
-		local combined_input = data.combined and data.combined.input:gsub("\r", "")
-			or table.concat(
-				vim.tbl_map(function(tc)
-					return tc.input
-				end, data.test_cases),
-				"\n"
-			)
-		local combined_output = data.combined and data.combined.output:gsub("\r", "")
-			or table.concat(
-				vim.tbl_map(function(tc)
-					return tc.output
-				end, data.test_cases),
-				"\n"
-			)
-
-		-- with atcoder, we combine together multiple test cases
-		-- TODO: per-platform settings to do this (i.e. do we stitch?)
-		if ctx.contest == "atcoder" then
-			combined_input = tostring(#data.test_cases) .. "\n" .. combined_input
-		end
-
-		vim.fn.writefile(vim.split(combined_input, "\n", true), ctx.input_file)
-		vim.fn.writefile(vim.split(combined_output, "\n", true), ctx.expected_file)
 	end
 
 	return {
 		success = true,
 		problem_id = ctx.problem_name,
-		test_count = data.test_cases and #data.test_cases or 0,
-		test_cases = data.test_cases,
+		test_count = data.tests and #data.tests or 0,
+		test_cases = data.tests,
 		url = data.url,
 	}
 end
