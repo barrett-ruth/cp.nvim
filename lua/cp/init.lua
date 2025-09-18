@@ -193,19 +193,20 @@ local function toggle_test_panel(is_debug)
 	vim.api.nvim_win_set_buf(main_win, tab_buf)
 	vim.api.nvim_set_option_value("filetype", "cptest", { buf = tab_buf })
 
-	vim.cmd("split")
-	local content_win = vim.api.nvim_get_current_win()
-	vim.api.nvim_win_set_buf(content_win, actual_buf)
+	vim.cmd.split()
+	vim.api.nvim_win_set_buf(0, actual_buf)
 	vim.api.nvim_set_option_value("filetype", "cptest", { buf = actual_buf })
 
-	vim.cmd("vsplit")
-	local expected_win = vim.api.nvim_get_current_win()
-	vim.api.nvim_win_set_buf(expected_win, expected_buf)
+	vim.cmd.vsplit()
+	vim.api.nvim_win_set_buf(0, expected_buf)
 	vim.api.nvim_set_option_value("filetype", "cptest", { buf = expected_buf })
+
+	local expected_win = vim.fn.bufwinid(expected_buf)
+	local actual_win = vim.fn.bufwinid(actual_buf)
 
 	local test_windows = {
 		tab_win = main_win,
-		actual_win = content_win,
+		actual_win = actual_win,
 		expected_win = expected_win,
 	}
 	local test_buffers = {
@@ -319,10 +320,10 @@ local function toggle_test_panel(is_debug)
 
 		if enable_diff then
 			vim.api.nvim_win_call(test_windows.expected_win, function()
-				vim.cmd("diffthis")
+				vim.cmd.diffthis()
 			end)
 			vim.api.nvim_win_call(test_windows.actual_win, function()
-				vim.cmd("diffthis")
+				vim.cmd.diffthis()
 			end)
 		end
 	end
@@ -355,10 +356,10 @@ local function toggle_test_panel(is_debug)
 		refresh_test_panel()
 	end
 
-	vim.keymap.set("n", "j", function()
+	vim.keymap.set("n", "<c-n>", function()
 		navigate_test_case(1)
 	end, { buffer = test_buffers.tab_buf, silent = true })
-	vim.keymap.set("n", "k", function()
+	vim.keymap.set("n", "<c-p>", function()
 		navigate_test_case(-1)
 	end, { buffer = test_buffers.tab_buf, silent = true })
 

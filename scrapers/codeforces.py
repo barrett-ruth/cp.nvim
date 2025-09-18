@@ -32,11 +32,12 @@ def scrape(url: str) -> list[tuple[str, str]]:
                 continue
 
             for div in test_line_divs:
+                classes = div.get("class", [])
                 class_name = next(
                     (
                         cls
-                        for cls in div.get("class", [])
-                        if "test-example-line-" in cls
+                        for cls in classes
+                        if "test-example-line-" in cls and cls.split("-")[-1].isdigit()
                     ),
                     None,
                 )
@@ -60,11 +61,12 @@ def scrape(url: str) -> list[tuple[str, str]]:
                 continue
 
             for div in test_line_divs:
+                classes = div.get("class", [])
                 class_name = next(
                     (
                         cls
-                        for cls in div.get("class", [])
-                        if "test-example-line-" in cls
+                        for cls in classes
+                        if "test-example-line-" in cls and cls.split("-")[-1].isdigit()
                     ),
                     None,
                 )
@@ -88,7 +90,6 @@ def scrape(url: str) -> list[tuple[str, str]]:
                     prefixed_input = "1\n" + input_text
                     tests.append((prefixed_input, output_text))
                 return tests
-
         all_inputs = []
         all_outputs = []
 

@@ -200,8 +200,7 @@ def main() -> None:
 
         test_list: list[dict[str, str]] = []
         for input_data, output_data in tests:
-            normalized_input = "1\n" + input_data
-            test_list.append({"input": normalized_input, "expected": output_data})
+            test_list.append({"input": input_data, "expected": output_data})
 
         result = {
             "success": True,
