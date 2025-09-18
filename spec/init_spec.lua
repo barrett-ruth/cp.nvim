@@ -1,0 +1,18 @@
+describe('cp.nvim', function()
+  it('can be required', function()
+    local cp = require('cp')
+    assert.is_not_nil(cp)
+    assert.is_function(cp.setup)
+    assert.is_function(cp.handle_command)
+  end)
+
+  it('has health check', function()
+    local health = require('cp.health')
+    assert.is_not_nil(health)
+  end)
+
+  it('initializes properly', function()
+    local cp = require('cp')
+    assert.is_true(cp.is_initialized())
+  end)
+end)
