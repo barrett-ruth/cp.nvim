@@ -273,22 +273,6 @@ function M.scrape_problem(ctx)
 			vim.fn.writefile(vim.split(input_content, "\n", true), input_file)
 			vim.fn.writefile(vim.split(expected_content, "\n", true), expected_file)
 		end
-
-		local combined_input = table.concat(
-			vim.tbl_map(function(tc)
-				return tc.input
-			end, data.tests),
-			"\n"
-		)
-		local combined_output = table.concat(
-			vim.tbl_map(function(tc)
-				return tc.expected
-			end, data.tests),
-			"\n"
-		)
-
-		vim.fn.writefile(vim.split(combined_input, "\n", true), ctx.input_file)
-		vim.fn.writefile(vim.split(combined_output, "\n", true), ctx.expected_file)
 	end
 
 	return {

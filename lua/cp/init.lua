@@ -58,7 +58,7 @@ local function setup_problem(contest_id, problem_id, language)
 
 	local ctx = problem.create_context(state.platform, contest_id, problem_id, config, language)
 
-	if config.scrapers[state.platform] then
+	if vim.tbl_contains(config.scrapers, state.platform) then
 		local metadata_result = scrape.scrape_contest_metadata(state.platform, contest_id)
 		if not metadata_result.success then
 			logger.log(
@@ -73,7 +73,7 @@ local function setup_problem(contest_id, problem_id, language)
 		state.test_cases = cached_test_cases
 	end
 
-	if config.scrapers[state.platform] then
+	if vim.tbl_contains(config.scrapers, state.platform) then
 		local scrape_result = scrape.scrape_problem(ctx)
 
 		if not scrape_result.success then
@@ -567,7 +567,7 @@ function M.handle_command(opts)
 	if cmd.type == "contest_setup" then
 		if set_platform(cmd.platform) then
 			state.contest_id = cmd.contest
-			if config.scrapers[cmd.platform] then
+			if vim.tbl_contains(config.scrapers, cmd.platform) then
 				local metadata_result = scrape.scrape_contest_metadata(cmd.platform, cmd.contest)
 				if not metadata_result.success then
 					logger.log(
@@ -590,7 +590,7 @@ function M.handle_command(opts)
 			local problem_ids = {}
 			local has_metadata = false
 
-			if config.scrapers[cmd.platform] then
+			if vim.tbl_contains(config.scrapers, cmd.platform) then
 				local metadata_result = scrape.scrape_contest_metadata(cmd.platform, cmd.contest)
 				if not metadata_result.success then
 					logger.log(
@@ -633,7 +633,7 @@ function M.handle_command(opts)
 
 	if cmd.type == "cses_problem" then
 		if set_platform(cmd.platform) then
-			if config.scrapers[cmd.platform] then
+			if vim.tbl_contains(config.scrapers, cmd.platform) then
 				local metadata_result = scrape.scrape_contest_metadata(cmd.platform, "")
 				if not metadata_result.success then
 					logger.log(
