@@ -62,7 +62,11 @@ M.defaults = {
 		setup_code = nil,
 	},
 	debug = false,
-	scrapers = vim.iter(constants.PLATFORMS):map(function(platform) return platform, true end):totable(),
+	scrapers = vim.iter(constants.PLATFORMS)
+		:map(function(platform)
+			return platform, true
+		end)
+		:totable(),
 	tile = nil,
 	filename = nil,
 }

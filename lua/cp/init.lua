@@ -579,17 +579,16 @@ local function parse_command(args)
 		cache.load()
 		local contest_data = cache.get_contest_data(state.platform, state.contest_id)
 		if contest_data and contest_data.problems then
-			local problem_ids = vim.tbl_map(function(prob) return prob.id end, contest_data.problems)
+			local problem_ids = vim.tbl_map(function(prob)
+				return prob.id
+			end, contest_data.problems)
 			if vim.tbl_contains(problem_ids, first) then
 				return { type = "problem_switch", problem = first, language = language }
 			end
 		end
 		return {
 			type = "error",
-			message = ("Invalid command '%s'. Valid actions: [%s] or valid problem IDs from contest"):format(
-				first,
-				table.concat(actions, ", ")
-			)
+			message = ("invalid subcommand '%s'"):format(first),
 		}
 	end
 
@@ -663,24 +662,24 @@ function M.handle_command(opts)
 				logger.log(
 					("loaded %d problems for %s %s"):format(#metadata_result.problems, cmd.platform, cmd.contest)
 				)
-				problem_ids = vim.tbl_map(function(prob) return prob.id end, metadata_result.problems)
+				problem_ids = vim.tbl_map(function(prob)
+					return prob.id
+				end, metadata_result.problems)
 				has_metadata = true
 			else
 				cache.load()
 				local contest_data = cache.get_contest_data(cmd.platform, cmd.contest)
 				if contest_data and contest_data.problems then
-					problem_ids = vim.tbl_map(function(prob) return prob.id end, contest_data.problems)
+					problem_ids = vim.tbl_map(function(prob)
+						return prob.id
+					end, contest_data.problems)
 					has_metadata = true
 				end
 			end
 
 			if has_metadata and not vim.tbl_contains(problem_ids, cmd.problem) then
 				logger.log(
-					("Invalid problem '%s' for contest %s %s"):format(
-						cmd.problem,
-						cmd.platform,
-						cmd.contest
-					),
+					("Invalid problem '%s' for contest %s %s"):format(cmd.problem, cmd.platform, cmd.contest),
 					vim.log.levels.ERROR
 				)
 				return
