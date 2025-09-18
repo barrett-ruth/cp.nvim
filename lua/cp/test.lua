@@ -68,7 +68,7 @@ local function parse_test_cases_from_cache(platform, contest_id, problem_id)
 
 	for i, test_case in ipairs(cached_test_cases) do
 		local index = test_case.index or i
-		local expected = test_case.expected or test_case.output
+		local expected = test_case.expected or test_case.output or ""
 		table.insert(test_cases, create_test_case(index, test_case.input, expected))
 	end
 

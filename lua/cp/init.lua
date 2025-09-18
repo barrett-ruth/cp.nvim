@@ -2,7 +2,6 @@ local M = {}
 
 local config_module = require("cp.config")
 local snippets = require("cp.snippets")
-local execute = require("cp.execute")
 local scrape = require("cp.scrape")
 local logger = require("cp.log")
 local problem = require("cp.problem")
