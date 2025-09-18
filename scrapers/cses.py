@@ -15,10 +15,36 @@ def parse_problem_url(problem_input: str) -> str | None:
     return None
 
 
+def process_problem_element(
+    element, current_category: str, all_categories: dict
+) -> str | None:
+    if element.name == "h1":
+        category_name = element.get_text().strip()
+        if category_name not in all_categories:
+            all_categories[category_name] = []
+        return category_name
+
+    if element.name != "a" or "/problemset/task/" not in element.get("href", ""):
+        return current_category
+
+    href = element.get("href", "")
+    if not href:
+        return current_category
+
+    problem_id = href.split("/")[-1]
+    problem_name = element.get_text(strip=True)
+
+    if not (problem_id.isdigit() and problem_name and current_category):
+        return current_category
+
+    all_categories[current_category].append({"id": problem_id, "name": problem_name})
+    return current_category
+
+
 def scrape_all_problems() -> dict[str, list[dict[str, str]]]:
     try:
-        problemset_url: str = "https://cses.fi/problemset/"
-        headers: dict[str, str] = {
+        problemset_url = "https://cses.fi/problemset/"
+        headers = {
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
 
@@ -26,28 +52,18 @@ def scrape_all_problems() -> dict[str, list[dict[str, str]]]:
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
-        all_categories: dict[str, list[dict[str, str]]] = {}
+        all_categories = {}
 
         problem_links = soup.find_all(
             "a", href=lambda x: x and "/problemset/task/" in x
         )
         print(f"Found {len(problem_links)} problem links", file=sys.stderr)
 
-        current_category: str | None = None
+        current_category = None
         for element in soup.find_all(["h1", "a"]):
-            if element.name == "h1":
-                current_category = element.get_text().strip()
-                if current_category not in all_categories:
-                    all_categories[current_category] = []
-            elif element.name == "a" and "/problemset/task/" in element.get("href", ""):
-                href: str = element.get("href", "")
-                problem_id: str = href.split("/")[-1]
-                problem_name: str = element.get_text(strip=True)
-
-                if problem_id.isdigit() and problem_name and current_category:
-                    all_categories[current_category].append(
-                        {"id": problem_id, "name": problem_name}
-                    )
+            current_category = process_problem_element(
+                element, current_category, all_categories
+            )
 
         for category in all_categories:
             all_categories[category].sort(key=lambda x: int(x["id"]))
@@ -60,9 +76,36 @@ def scrape_all_problems() -> dict[str, list[dict[str, str]]]:
         return {}
 
 
+def extract_example_test_case(soup) -> tuple[str, str] | None:
+    example_header = soup.find("h1", string="Example")
+    if not example_header:
+        return None
+
+    current = example_header.find_next_sibling()
+    input_text = None
+    output_text = None
+
+    while current:
+        if current.name == "p" and "Input:" in current.get_text():
+            input_pre = current.find_next_sibling("pre")
+            if input_pre:
+                input_text = input_pre.get_text().strip()
+        elif current.name == "p" and "Output:" in current.get_text():
+            output_pre = current.find_next_sibling("pre")
+            if output_pre:
+                output_text = output_pre.get_text().strip()
+                break
+        current = current.find_next_sibling()
+
+    if not input_text or not output_text:
+        return None
+
+    return (input_text, output_text)
+
+
 def scrape(url: str) -> list[tuple[str, str]]:
     try:
-        headers: dict[str, str] = {
+        headers = {
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
 
@@ -71,30 +114,11 @@ def scrape(url: str) -> list[tuple[str, str]]:
 
         soup = BeautifulSoup(response.text, "html.parser")
 
-        tests: list[tuple[str, str]] = []
-        example_header = soup.find("h1", string="Example")
+        test_case = extract_example_test_case(soup)
+        if not test_case:
+            return []
 
-        if example_header:
-            current = example_header.find_next_sibling()
-            input_text: str | None = None
-            output_text: str | None = None
-
-            while current:
-                if current.name == "p" and "Input:" in current.get_text():
-                    input_pre = current.find_next_sibling("pre")
-                    if input_pre:
-                        input_text = input_pre.get_text().strip()
-                elif current.name == "p" and "Output:" in current.get_text():
-                    output_pre = current.find_next_sibling("pre")
-                    if output_pre:
-                        output_text = output_pre.get_text().strip()
-                        break
-                current = current.find_next_sibling()
-
-            if input_text and output_text:
-                tests.append((input_text, output_text))
-
-        return tests
+        return [test_case]
 
     except Exception as e:
         print(f"Error scraping CSES: {e}", file=sys.stderr)
