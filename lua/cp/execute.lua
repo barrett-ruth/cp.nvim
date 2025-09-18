@@ -193,8 +193,9 @@ end
 
 ---@param ctx ProblemContext
 ---@param contest_config ContestConfig
+---@param is_debug? boolean
 ---@return boolean success
-function M.compile_problem(ctx, contest_config)
+function M.compile_problem(ctx, contest_config, is_debug)
 	vim.validate({
 		ctx = { ctx, "table" },
 		contest_config = { contest_config, "table" },
@@ -214,13 +215,15 @@ function M.compile_problem(ctx, contest_config)
 		version = tostring(language_config.version),
 	}
 
-	if language_config.compile then
+	local compile_cmd = (is_debug and language_config.debug) and language_config.debug or language_config.compile
+	if compile_cmd then
+		language_config.compile = compile_cmd
 		local compile_result = M.compile_generic(language_config, substitutions)
 		if compile_result.code ~= 0 then
 			logger.log("compilation failed: " .. (compile_result.stderr or "unknown error"), vim.log.levels.ERROR)
 			return false
 		end
-		logger.log("compilation successful")
+		logger.log(("compilation successful (%s)"):format(is_debug and "debug mode" or "test mode"))
 	end
 
 	return true

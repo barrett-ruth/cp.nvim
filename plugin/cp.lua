@@ -14,37 +14,14 @@ end, {
 	nargs = "*",
 	desc = "Competitive programming helper",
 	complete = function(ArgLead, CmdLine, _)
-		local languages = vim.tbl_keys(constants.canonical_filetypes)
-
-		if ArgLead:match("^--lang=") then
-			local lang_completions = {}
-			for _, lang in ipairs(languages) do
-				table.insert(lang_completions, "--lang=" .. lang)
-			end
-			return vim.tbl_filter(function(completion)
-				return completion:find(ArgLead, 1, true) == 1
-			end, lang_completions)
-		end
-
-		if ArgLead:match("^%-") and not ArgLead:match("^--lang") then
-			return vim.tbl_filter(function(completion)
-				return completion:find(ArgLead, 1, true) == 1
-			end, { "--lang" })
-		end
-
 		local args = vim.split(vim.trim(CmdLine), "%s+")
 		local num_args = #args
 		if CmdLine:sub(-1) == " " then
 			num_args = num_args + 1
 		end
 
-		local lang_flag_present = vim.tbl_contains(args, "--lang")
-			or vim.iter(args):any(function(arg)
-				return arg:match("^--lang=")
-			end)
-
 		if num_args == 2 then
-			local candidates = { "--lang" }
+			local candidates = {}
 			local cp = require("cp")
 			local context = cp.get_current_context()
 			if context.platform and context.contest_id then
@@ -63,17 +40,13 @@ end, {
 			return vim.tbl_filter(function(cmd)
 				return cmd:find(ArgLead, 1, true) == 1
 			end, candidates)
-		elseif args[#args - 1] == "--lang" then
-			return vim.tbl_filter(function(lang)
-				return lang:find(ArgLead, 1, true) == 1
-			end, languages)
-		elseif num_args == 4 and not lang_flag_present then
+		elseif num_args == 4 then
 			if vim.tbl_contains(platforms, args[2]) then
 				local cache = require("cp.cache")
 				cache.load()
 				local contest_data = cache.get_contest_data(args[2], args[3])
 				if contest_data and contest_data.problems then
-					local candidates = { "--lang" }
+					local candidates = {}
 					for _, problem in ipairs(contest_data.problems) do
 						table.insert(candidates, problem.id)
 					end
