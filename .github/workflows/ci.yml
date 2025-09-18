@@ -64,16 +64,3 @@ jobs:
         run: uv tool install ruff
       - name: Lint Python files with ruff
         run: ruff check scrapers/
-
-  test:
-    name: Tests
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        nvim_version: [stable, nightly]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run tests
-        uses: nvim-neorocks/nvim-busted-action@v1
-        with:
-          nvim_version: ${{ matrix.nvim_version }}

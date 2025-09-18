@@ -1,8 +1,13 @@
 return {
   _all = {
-    lua = 'nlua',
+    coverage = false,
     lpath = 'lua/?.lua;lua/?/init.lua',
-    helper = 'tests/minimal.lua',
+    lua = 'nlua',
   },
-  default = { verbose = true },
+  default = {
+    verbose = true,
+  },
+  tests = {
+    verbose = true,
+  },
 }
