@@ -346,9 +346,21 @@ local function toggle_run_panel(is_debug)
     local desired_mode = should_show_diff and config.run_panel.diff_mode or 'vim'
 
     if current_diff_layout and current_mode ~= desired_mode then
+      local saved_pos = vim.api.nvim_win_get_cursor(0)
       current_diff_layout.cleanup()
       current_diff_layout = nil
       current_mode = nil
+
+      current_diff_layout =
+        create_diff_layout(desired_mode, main_win, expected_content, actual_content)
+      current_mode = desired_mode
+
+      for _, buf in ipairs(current_diff_layout.buffers) do
+        setup_keybindings_for_buffer(buf)
+      end
+
+      pcall(vim.api.nvim_win_set_cursor, 0, saved_pos)
+      return
     end
 
     if not current_diff_layout then
