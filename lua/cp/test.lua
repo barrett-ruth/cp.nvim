@@ -21,8 +21,8 @@
 ---@field saved_layout table?
 
 local M = {}
-local logger = require('cp.log')
 local constants = require('cp.constants')
+local logger = require('cp.log')
 
 ---@type TestPanelState
 local test_panel_state = {

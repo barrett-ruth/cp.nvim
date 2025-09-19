@@ -1,11 +1,11 @@
 local M = {}
 
+local cache = require('cp.cache')
 local config_module = require('cp.config')
-local snippets = require('cp.snippets')
-local scrape = require('cp.scrape')
 local logger = require('cp.log')
 local problem = require('cp.problem')
-local cache = require('cp.cache')
+local scrape = require('cp.scrape')
+local snippets = require('cp.snippets')
 
 if not vim.fn.has('nvim-0.10.0') then
   vim.notify('[cp.nvim]: requires nvim-0.10.0+', vim.log.levels.ERROR)

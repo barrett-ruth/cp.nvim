@@ -10,8 +10,8 @@
 ---@field error? string
 
 local M = {}
-local logger = require('cp.log')
 local cache = require('cp.cache')
+local logger = require('cp.log')
 
 local function get_plugin_path()
   local plugin_path = debug.getinfo(1, 'S').source:sub(2)

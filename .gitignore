@@ -1,4 +1,7 @@
 .venv/
 doc/tags
+*.log
+build
+debug
 venv/
 CLAUDE.md

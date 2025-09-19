@@ -1,3 +1,1 @@
 std = "lua51+vim"
-
-exclude = ["spec"]
