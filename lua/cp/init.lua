@@ -470,7 +470,7 @@ local function toggle_run_panel(is_debug)
   local execute_module = require('cp.execute')
   local contest_config = config.contests[state.platform]
   if execute_module.compile_problem(ctx, contest_config, is_debug) then
-    test_module.run_all_test_cases(ctx, contest_config)
+    test_module.run_all_test_cases(ctx, contest_config, config)
   end
 
   refresh_run_panel()

@@ -259,7 +259,7 @@ function M.run_test_case(ctx, contest_config, cp_config, index)
   logger.log(('running test case %d'):format(index))
   test_case.status = 'running'
 
-  local result = run_single_test_case(ctx, contest_config, test_case)
+  local result = run_single_test_case(ctx, contest_config, cp_config, test_case)
 
   test_case.status = result.status
   test_case.actual = result.actual
@@ -276,10 +276,10 @@ end
 ---@param ctx ProblemContext
 ---@param contest_config ContestConfig
 ---@return TestCase[]
-function M.run_all_test_cases(ctx, contest_config)
+function M.run_all_test_cases(ctx, contest_config, cp_config)
   local results = {}
   for i, _ in ipairs(run_panel_state.test_cases) do
-    M.run_test_case(ctx, contest_config, i)
+    M.run_test_case(ctx, contest_config, cp_config, i)
     table.insert(results, run_panel_state.test_cases[i])
   end
   return results

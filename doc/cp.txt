@@ -117,6 +117,7 @@ Here's an example configuration with lazy.nvim: >
             next_test_key = "<c-n>",
             prev_test_key = "<c-p>",
             toggle_diff_key = "t",
+            max_output_lines = 50,
           },
           diff = {
             git = {
