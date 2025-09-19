@@ -1,48 +1,262 @@
 describe('cp command parsing', function()
   local cp
+  local logged_messages
 
   before_each(function()
     cp = require('cp')
     cp.setup()
+
+    logged_messages = {}
+    local mock_logger = {
+      log = function(msg, level)
+        table.insert(logged_messages, { msg = msg, level = level })
+      end
+    }
+    package.loaded['cp.log'] = mock_logger
   end)
 
-  describe('contest commands', function()
-    it('parses contest selection command', function() end)
-
-    it('validates contest parameters', function() end)
-
-    it('handles invalid contest names', function() end)
+  after_each(function()
+    package.loaded['cp.log'] = nil
   end)
 
-  describe('problem commands', function()
-    it('parses problem selection command', function() end)
+  describe('empty arguments', function()
+    it('logs error for no arguments', function()
+      local opts = { fargs = {} }
 
-    it('handles problem identifiers correctly', function() end)
+      cp.handle_command(opts)
 
-    it('validates problem parameters', function() end)
+      assert.is_true(#logged_messages > 0)
+      local error_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if log_entry.level == vim.log.levels.ERROR and log_entry.msg:match('Usage:') then
+          error_logged = true
+          break
+        end
+      end
+      assert.is_true(error_logged)
+    end)
   end)
 
-  describe('scraping commands', function()
-    it('parses scrape command with platform', function() end)
+  describe('action commands', function()
+    it('handles test action without error', function()
+      local opts = { fargs = { 'test' } }
 
-    it('handles platform-specific parameters', function() end)
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+    end)
 
-    it('validates scraper availability', function() end)
+    it('handles next action without error', function()
+      local opts = { fargs = { 'next' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+    end)
+
+    it('handles prev action without error', function()
+      local opts = { fargs = { 'prev' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+    end)
   end)
 
-  describe('test commands', function()
-    it('parses test execution command', function() end)
+  describe('platform commands', function()
+    it('handles platform-only command', function()
+      local opts = { fargs = { 'atcoder' } }
 
-    it('handles test navigation commands', function() end)
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+    end)
 
-    it('parses test panel commands', function() end)
+    it('handles contest setup command', function()
+      local opts = { fargs = { 'atcoder', 'abc123' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+    end)
+
+    it('handles cses problem command', function()
+      local opts = { fargs = { 'cses', '1234' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+    end)
+
+    it('handles full setup command', function()
+      local opts = { fargs = { 'atcoder', 'abc123', 'a' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+    end)
+
+    it('logs error for too many arguments', function()
+      local opts = { fargs = { 'atcoder', 'abc123', 'a', 'b', 'extra' } }
+
+      cp.handle_command(opts)
+
+      local error_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if log_entry.level == vim.log.levels.ERROR then
+          error_logged = true
+          break
+        end
+      end
+      assert.is_true(error_logged)
+    end)
   end)
 
-  describe('error handling', function()
-    it('handles malformed commands gracefully', function() end)
+  describe('language flag parsing', function()
+    it('logs error for --lang flag missing value', function()
+      local opts = { fargs = { 'test', '--lang' } }
 
-    it('provides helpful error messages', function() end)
+      cp.handle_command(opts)
 
-    it('suggests corrections for typos', function() end)
+      local error_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if log_entry.level == vim.log.levels.ERROR and log_entry.msg:match('--lang requires a value') then
+          error_logged = true
+          break
+        end
+      end
+      assert.is_true(error_logged)
+    end)
+
+    it('handles language with equals format', function()
+      local opts = { fargs = { 'atcoder', '--lang=python' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+    end)
+
+    it('handles language with space format', function()
+      local opts = { fargs = { 'atcoder', '--lang', 'cpp' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+    end)
+
+    it('handles contest with language flag', function()
+      local opts = { fargs = { 'atcoder', 'abc123', '--lang=python' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+    end)
+  end)
+
+  describe('debug flag parsing', function()
+    it('handles debug flag without error', function()
+      local opts = { fargs = { 'test', '--debug' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+    end)
+
+    it('handles combined language and debug flags', function()
+      local opts = { fargs = { 'test', '--lang=cpp', '--debug' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+    end)
+  end)
+
+  describe('invalid commands', function()
+    it('logs error for invalid platform', function()
+      local opts = { fargs = { 'invalid_platform' } }
+
+      cp.handle_command(opts)
+
+      local error_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if log_entry.level == vim.log.levels.ERROR then
+          error_logged = true
+          break
+        end
+      end
+      assert.is_true(error_logged)
+    end)
+
+    it('logs error for invalid action', function()
+      local opts = { fargs = { 'invalid_action' } }
+
+      cp.handle_command(opts)
+
+      local error_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if log_entry.level == vim.log.levels.ERROR then
+          error_logged = true
+          break
+        end
+      end
+      assert.is_true(error_logged)
+    end)
+  end)
+
+  describe('edge cases', function()
+    it('handles empty string arguments', function()
+      local opts = { fargs = { '' } }
+
+      cp.handle_command(opts)
+
+      local error_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if log_entry.level == vim.log.levels.ERROR then
+          error_logged = true
+          break
+        end
+      end
+      assert.is_true(error_logged)
+    end)
+
+    it('handles flag order variations', function()
+      local opts = { fargs = { '--debug', 'test', '--lang=python' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+    end)
+
+    it('handles multiple language flags', function()
+      local opts = { fargs = { 'test', '--lang=cpp', '--lang=python' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+    end)
+  end)
+
+  describe('command validation', function()
+    it('validates platform names against constants', function()
+      local constants = require('cp.constants')
+
+      for _, platform in ipairs(constants.PLATFORMS) do
+        local opts = { fargs = { platform } }
+        assert.has_no_errors(function()
+          cp.handle_command(opts)
+        end)
+      end
+    end)
+
+    it('validates action names against constants', function()
+      local constants = require('cp.constants')
+
+      for _, action in ipairs(constants.ACTIONS) do
+        local opts = { fargs = { action } }
+        assert.has_no_errors(function()
+          cp.handle_command(opts)
+        end)
+      end
+    end)
   end)
 end)
