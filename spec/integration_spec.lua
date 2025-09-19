@@ -32,7 +32,8 @@ describe('cp integration', function()
         result = { code = 0, stdout = '', stderr = '' }
       elseif cmd[1] == 'uv' and cmd[2] == 'run' then
         if vim.tbl_contains(cmd, 'metadata') then
-          result.stdout = '{"success": true, "problems": [{"id": "a", "name": "Problem A"}, {"id": "b", "name": "Problem B"}]}'
+          result.stdout =
+            '{"success": true, "problems": [{"id": "a", "name": "Problem A"}, {"id": "b", "name": "Problem B"}]}'
         elseif vim.tbl_contains(cmd, 'tests') then
           result.stdout = '{"success": true, "tests": [{"input": "1 2", "expected": "3"}]}'
         end
@@ -71,6 +72,40 @@ describe('cp integration', function()
         return path
       end,
     })
+
+    vim.api = vim.tbl_extend('force', vim.api or {}, {
+      nvim_get_current_buf = function()
+        return 1
+      end,
+      nvim_buf_get_lines = function()
+        return { '' }
+      end,
+      nvim_get_option_value = function()
+        return 'cpp'
+      end,
+      nvim_buf_set_lines = function() end,
+      nvim_win_set_cursor = function() end,
+      nvim_input = function() end,
+    })
+
+    vim.cmd = function(cmd_str)
+      if cmd_str == 'silent only' then
+        return
+      end
+      if cmd_str:match('^e ') then
+        return
+      end
+      if cmd_str == 'startinsert' then
+        return
+      end
+      if cmd_str == 'stopinsert' then
+        return
+      end
+    end
+
+    vim.schedule = function(fn)
+      fn()
+    end
 
     package.loaded['cp.cache'] = mock_cache
     package.loaded['cp.log'] = {
