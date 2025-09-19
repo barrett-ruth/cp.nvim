@@ -2,6 +2,7 @@
 doc/tags
 *.log
 build
+io
 debug
 venv/
 CLAUDE.md

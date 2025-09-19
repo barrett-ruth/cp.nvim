@@ -5,13 +5,13 @@ describe('cp test panel', function()
   local mock_execute_module
   local mock_cache
   local mock_log_messages
-  local temp_files
+  local _temp_files
   local created_buffers
   local created_windows
 
   before_each(function()
     mock_log_messages = {}
-    temp_files = {}
+    _temp_files = {}
     created_buffers = {}
     created_windows = {}
 
@@ -104,7 +104,7 @@ describe('cp test panel', function()
       end,
     })
 
-    local original_nvim_create_buf = vim.api.nvim_create_buf
+    local _original_nvim_create_buf = vim.api.nvim_create_buf
     vim.api.nvim_create_buf = function(listed, scratch)
       local buf_id = #created_buffers + 100
       created_buffers[buf_id] = { listed = listed, scratch = scratch }
@@ -122,7 +122,7 @@ describe('cp test panel', function()
     vim.api.nvim_buf_is_valid = function()
       return true
     end
-    vim.api.nvim_win_call = function(win, fn)
+    vim.api.nvim_win_call = function(_win, fn)
       fn()
     end
     vim.api.nvim_set_current_win = function() end
@@ -136,7 +136,7 @@ describe('cp test panel', function()
       set = function() end,
     }
 
-    vim.split = function(str, sep, opts)
+    vim.split = function(str, sep, _opts)
       local result = {}
       for part in string.gmatch(str, '[^' .. sep .. ']+') do
         table.insert(result, part)
@@ -172,7 +172,7 @@ describe('cp test panel', function()
       cp.handle_command({ fargs = { 'test' } })
 
       assert.is_true(#created_buffers >= 3)
-      for buf_id, buf_info in pairs(created_buffers) do
+      for _buf_id, buf_info in pairs(created_buffers) do
         assert.is_false(buf_info.listed)
         assert.is_true(buf_info.scratch)
       end

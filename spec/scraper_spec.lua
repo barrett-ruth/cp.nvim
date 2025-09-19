@@ -110,6 +110,10 @@ describe('cp.scrape', function()
         stored_data = { platform = platform, contest_id = contest_id, problems = problems }
       end
 
+      -- Reload the scraper module to pick up the updated mock
+      package.loaded['cp.scrape'] = nil
+      scrape = require('cp.scrape')
+
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
 
       assert.is_true(result.success)
@@ -249,7 +253,7 @@ describe('cp.scrape', function()
 
       assert.is_false(result.success)
       assert.is_not_nil(result.error:match('Failed to run metadata scraper'))
-      assert.is_true(result.error:match('execution failed'))
+      assert.is_not_nil(result.error:match('execution failed'))
     end)
   end)
 
