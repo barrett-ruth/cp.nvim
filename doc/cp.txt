@@ -3,7 +3,7 @@
 Author:  Barrett Ruth <br.barrettruth@gmail.com>
 License: Same terms as Vim itself (see |license|)
 
-INTRODUCTION						*cp* *cp.nvim*
+INTRODUCTION                                            *cp* *cp.nvim*
 
 cp.nvim is a competitive programming plugin that automates problem setup,
 compilation, and testing workflow for online judges.
@@ -11,7 +11,7 @@ compilation, and testing workflow for online judges.
 Supported platforms: AtCoder, Codeforces, CSES
 Supported languages: C++, Python
 
-REQUIREMENTS						*cp-requirements*
+REQUIREMENTS                                        *cp-requirements*
 
 - Neovim 0.10.0+
 - uv package manager (https://docs.astral.sh/uv/)
@@ -20,9 +20,9 @@ REQUIREMENTS						*cp-requirements*
 Optional:
 - LuaSnip for template expansion (https://github.com/L3MON4D3/LuaSnip)
 
-COMMANDS						*cp-commands*
+COMMANDS                                            *cp-commands*
 
-								*:CP*
+                                                            *:CP*
 cp.nvim uses a single :CP command with intelligent argument parsing:
 
 Setup Commands ~
@@ -63,7 +63,7 @@ Navigation Commands ~
 :CP prev                        Navigate to previous problem in current contest.
                                 Stops at first problem (no wrapping).
 
-CONFIGURATION						*cp-config*
+CONFIGURATION                                       *cp-config*
 
 cp.nvim works out of the box. No setup required.
 
@@ -166,16 +166,16 @@ Optional configuration with lazy.nvim: >
                         Used to configure buffer settings.
                         `function(ctx: ProblemContext)`
 
-WORKFLOW						*cp-workflow*
+WORKFLOW                                            *cp-workflow*
 
 For the sake of consistency and simplicity, cp.nvim extracts contest/problem identifiers from
 URLs. This means that, for example, CodeForces/AtCoder contests are configured by
 their round id rather than round number. See below.
 
-PLATFORM-SPECIFIC USAGE					*cp-platforms*
+PLATFORM-SPECIFIC USAGE                        *cp-platforms*
 
 AtCoder ~
-									*cp-atcoder*
+                                                   *cp-atcoder*
 URL format: https://atcoder.jp/contests/abc123/tasks/abc123_a
 
 In terms of cp.nvim, this corresponds to:
