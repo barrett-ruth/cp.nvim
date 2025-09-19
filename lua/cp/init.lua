@@ -238,21 +238,19 @@ local function toggle_test_panel(is_debug)
     vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
     vim.api.nvim_set_option_value('readonly', was_readonly, { buf = bufnr })
 
-    if highlights then
-      vim.api.nvim_buf_clear_namespace(bufnr, test_list_namespace, 0, -1)
-      for _, highlight in ipairs(highlights) do
-        vim.api.nvim_buf_set_extmark(
-          bufnr,
-          test_list_namespace,
-          highlight.line,
-          highlight.col_start,
-          {
-            end_col = highlight.col_end,
-            hl_group = highlight.highlight_group,
-            priority = 100,
-          }
-        )
-      end
+    vim.api.nvim_buf_clear_namespace(bufnr, test_list_namespace, 0, -1)
+    for _, highlight in ipairs(highlights) do
+      vim.api.nvim_buf_set_extmark(
+        bufnr,
+        test_list_namespace,
+        highlight.line,
+        highlight.col_start,
+        {
+          end_col = highlight.col_end,
+          hl_group = highlight.highlight_group,
+          priority = 100,
+        }
+      )
     end
   end
 
@@ -267,7 +265,7 @@ local function toggle_test_panel(is_debug)
     local expected_text = current_test.expected
     local expected_lines = vim.split(expected_text, '\n', { plain = true, trimempty = true })
 
-    update_buffer_content(test_buffers.expected_buf, expected_lines)
+    update_buffer_content(test_buffers.expected_buf, expected_lines, {})
 
     local diff_backend = require('cp.diff')
     local backend = diff_backend.get_best_backend(config.test_panel.diff_mode)
@@ -316,10 +314,10 @@ local function toggle_test_panel(is_debug)
             diff_namespace
           )
         else
-          update_buffer_content(test_buffers.actual_buf, actual_lines)
+          update_buffer_content(test_buffers.actual_buf, actual_lines, {})
         end
       else
-        update_buffer_content(test_buffers.actual_buf, actual_lines)
+        update_buffer_content(test_buffers.actual_buf, actual_lines, {})
         vim.api.nvim_set_option_value('diff', true, { win = test_windows.actual_win })
         vim.api.nvim_win_call(test_windows.expected_win, function()
           vim.cmd.diffthis()
@@ -329,7 +327,7 @@ local function toggle_test_panel(is_debug)
         end)
       end
     else
-      update_buffer_content(test_buffers.actual_buf, actual_lines)
+      update_buffer_content(test_buffers.actual_buf, actual_lines, {})
       vim.api.nvim_set_option_value('diff', false, { win = test_windows.expected_win })
       vim.api.nvim_set_option_value('diff', false, { win = test_windows.actual_win })
     end
