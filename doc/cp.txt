@@ -178,6 +178,7 @@ Here's an example configuration with lazy.nvim: >
       • {next_test_key} (`string`, default: `"<c-n>"`) Key to navigate to next test case.
       • {prev_test_key} (`string`, default: `"<c-p>"`) Key to navigate to previous test case.
       • {toggle_diff_key} (`string`, default: `"t"`) Key to toggle diff mode between vim and git.
+      • {max_output_lines} (`number`, default: `50`) Maximum lines of test output to display.
 
 *cp.DiffConfig*
 
