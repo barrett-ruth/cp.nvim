@@ -6,9 +6,32 @@ on:
       - main
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      lua: ${{ steps.changes.outputs.lua }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            lua:
+              - 'lua/**'
+              - 'spec/**'
+              - 'plugin/**'
+              - 'after/**'
+              - 'ftdetect/**'
+              - '*.lua'
+              - '.luarc.json'
+              - 'stylua.toml'
+              - 'selene.toml'
+
   build:
     name: Run tests
     runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.lua == 'true' }}
     strategy:
       matrix:
         neovim_version: ['nightly', 'stable']
