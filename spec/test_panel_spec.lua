@@ -142,6 +142,9 @@ describe('cp test panel', function()
       split = function() end,
       vsplit = function() end,
       diffthis = function() end,
+      e = function() end,
+      startinsert = function() end,
+      stopinsert = function() end,
     }
 
     vim.cmd = setmetatable(cmd_table, {
