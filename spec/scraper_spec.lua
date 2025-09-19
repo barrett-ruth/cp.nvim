@@ -5,7 +5,6 @@ describe('cp.scrape', function()
   local temp_files
 
   before_each(function()
-    scrape = require('cp.scrape')
     temp_files = {}
 
     mock_cache = {
@@ -45,6 +44,7 @@ describe('cp.scrape', function()
     end
 
     package.loaded['cp.cache'] = mock_cache
+    scrape = require('cp.scrape')
 
     local original_fn = vim.fn
     vim.fn = vim.tbl_extend('force', vim.fn, {
@@ -133,7 +133,7 @@ describe('cp.scrape', function()
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
 
       assert.is_false(result.success)
-      assert.is_true(result.error:match('Python environment setup failed'))
+      assert.is_not_nil(result.error:match('Python environment setup failed'))
     end)
 
     it('handles python environment setup failure', function()
@@ -165,7 +165,7 @@ describe('cp.scrape', function()
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
 
       assert.is_false(result.success)
-      assert.is_true(result.error:match('Python environment setup failed'))
+      assert.is_not_nil(result.error:match('Python environment setup failed'))
     end)
 
     it('handles network connectivity issues', function()
@@ -252,7 +252,7 @@ describe('cp.scrape', function()
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
 
       assert.is_false(result.success)
-      assert.is_true(result.error:match('Failed to run metadata scraper'))
+      assert.is_not_nil(result.error:match('Failed to run metadata scraper'))
       assert.is_true(result.error:match('execution failed'))
     end)
   end)
@@ -283,7 +283,7 @@ describe('cp.scrape', function()
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
 
       assert.is_false(result.success)
-      assert.is_true(result.error:match('Failed to parse metadata scraper output'))
+      assert.is_not_nil(result.error:match('Failed to parse metadata scraper output'))
     end)
 
     it('handles scraper-reported failures', function()

@@ -3,16 +3,22 @@ describe('cp command parsing', function()
   local logged_messages
 
   before_each(function()
-    cp = require('cp')
-    cp.setup()
-
     logged_messages = {}
     local mock_logger = {
       log = function(msg, level)
         table.insert(logged_messages, { msg = msg, level = level })
       end,
+      set_config = function() end,
     }
     package.loaded['cp.log'] = mock_logger
+
+    cp = require('cp')
+    cp.setup({
+      contests = {
+        atcoder = { default_language = 'cpp' },
+        cses = { default_language = 'cpp' },
+      },
+    })
   end)
 
   after_each(function()

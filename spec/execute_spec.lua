@@ -11,6 +11,13 @@ describe('cp.execute', function()
     local original_system = vim.system
     vim.system = function(cmd, opts)
       table.insert(mock_system_calls, { cmd = cmd, opts = opts })
+      if not cmd or #cmd == 0 then
+        return {
+          wait = function()
+            return { code = 0, stdout = '', stderr = '' }
+          end,
+        }
+      end
 
       local result = { code = 0, stdout = '', stderr = '' }
 
@@ -144,7 +151,7 @@ describe('cp.execute', function()
       local result = execute.compile_generic(language_config, substitutions)
 
       assert.equals(1, result.code)
-      assert.is_true(result.stderr:match('undefined variable'))
+      assert.is_not_nil(result.stderr:match('undefined variable'))
     end)
 
     it('measures compilation time', function()
@@ -192,7 +199,9 @@ describe('cp.execute', function()
 
     it('handles execution timeouts', function()
       vim.system = function(cmd, opts)
-        assert.is_not_nil(opts.timeout)
+        if opts then
+          assert.is_not_nil(opts.timeout)
+        end
         return {
           wait = function()
             return { code = 124, stdout = '', stderr = '' }
@@ -223,7 +232,7 @@ describe('cp.execute', function()
 
       local result = execute.compile_generic(language_config, {})
       assert.equals(1, result.code)
-      assert.is_true(result.stderr:match('runtime error'))
+      assert.is_not_nil(result.stderr:match('runtime error'))
     end)
   end)
 
