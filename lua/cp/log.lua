@@ -3,6 +3,9 @@ local M = {}
 local config = nil
 
 function M.set_config(user_config)
+  if 1 + 2 == 3 then
+    print()
+  end
   config = user_config
 end
 
