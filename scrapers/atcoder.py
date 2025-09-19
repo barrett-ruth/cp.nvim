@@ -2,9 +2,10 @@
 
 import json
 import sys
+from typing import Any
 
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 
 def parse_problem_url(contest_id: str, problem_letter: str) -> str:
@@ -23,7 +24,6 @@ def extract_problem_from_row(row, contest_id: str) -> dict[str, str] | None:
 
     task_name = task_link.get_text(strip=True)
     task_href = task_link.get("href", "")
-
     if not task_href:
         return None
 
@@ -50,13 +50,11 @@ def scrape_contest_problems(contest_id: str) -> list[dict[str, str]]:
 
         soup = BeautifulSoup(response.text, "html.parser")
         task_table = soup.find("table", class_="table")
-
-        if not task_table:
+        if not task_table or not isinstance(task_table, Tag):
             return []
 
-        rows = task_table.find_all("tr")[1:]
-        problems = []
-
+        rows = task_table.find_all("tr")[1:]  # skip header
+        problems: list[dict[str, str]] = []
         for row in rows:
             problem = extract_problem_from_row(row, contest_id)
             if problem:
@@ -92,7 +90,6 @@ def extract_test_case_from_headers(sample_headers, i: int) -> tuple[str, str] | 
 
     input_text = input_pre.get_text().strip().replace("\r", "")
     output_text = output_pre.get_text().strip().replace("\r", "")
-
     if not input_text or not output_text:
         return None
 
@@ -109,19 +106,17 @@ def scrape(url: str) -> list[tuple[str, str]]:
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
-
         sample_headers = soup.find_all(
             "h3", string=lambda x: x and "sample" in x.lower() if x else False
         )
 
-        tests = []
+        tests: list[tuple[str, str]] = []
         i = 0
-
         while i < len(sample_headers):
             test_case = extract_test_case_from_headers(sample_headers, i)
             if test_case:
                 tests.append(test_case)
-                i += 2
+                i += 2  # move from "Sample Input n" to after "Sample Output n"
             else:
                 i += 1
 
@@ -134,88 +129,111 @@ def scrape(url: str) -> list[tuple[str, str]]:
 
 def main() -> None:
     if len(sys.argv) < 2:
-        result: dict[str, str | bool] = {
-            "success": False,
-            "error": "Usage: atcoder.py metadata <contest_id> OR atcoder.py tests <contest_id> <problem_letter>",
-        }
-        print(json.dumps(result))
+        print(
+            json.dumps(
+                {
+                    "success": False,
+                    "error": "Usage: atcoder.py metadata <contest_id> OR atcoder.py tests <contest_id> <problem_letter>",
+                }
+            )
+        )
         sys.exit(1)
 
     mode: str = sys.argv[1]
 
     if mode == "metadata":
         if len(sys.argv) != 3:
-            result = {
-                "success": False,
-                "error": "Usage: atcoder.py metadata <contest_id>",
-            }
-            print(json.dumps(result))
+            print(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": "Usage: atcoder.py metadata <contest_id>",
+                    }
+                )
+            )
             sys.exit(1)
 
         contest_id: str = sys.argv[2]
         problems: list[dict[str, str]] = scrape_contest_problems(contest_id)
 
         if not problems:
-            result = {
-                "success": False,
-                "error": f"No problems found for contest {contest_id}",
-            }
-            print(json.dumps(result))
+            print(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": f"No problems found for contest {contest_id}",
+                    }
+                )
+            )
             sys.exit(1)
 
-        result = {
-            "success": True,
-            "contest_id": contest_id,
-            "problems": problems,
-        }
-        print(json.dumps(result))
+        print(
+            json.dumps(
+                {
+                    "success": True,
+                    "contest_id": contest_id,
+                    "problems": problems,
+                }
+            )
+        )
 
     elif mode == "tests":
         if len(sys.argv) != 4:
-            result = {
-                "success": False,
-                "error": "Usage: atcoder.py tests <contest_id> <problem_letter>",
-            }
-            print(json.dumps(result))
+            print(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": "Usage: atcoder.py tests <contest_id> <problem_letter>",
+                    }
+                )
+            )
             sys.exit(1)
 
-        contest_id: str = sys.argv[2]
+        test_contest_id: str = sys.argv[2]
         problem_letter: str = sys.argv[3]
-        problem_id: str = contest_id + problem_letter.lower()
+        problem_id: str = f"{test_contest_id}_{problem_letter.lower()}"
 
-        url: str = parse_problem_url(contest_id, problem_letter)
+        url: str = parse_problem_url(test_contest_id, problem_letter)
         print(f"Scraping: {url}", file=sys.stderr)
 
         tests: list[tuple[str, str]] = scrape(url)
-
         if not tests:
-            result = {
-                "success": False,
-                "error": f"No tests found for {contest_id} {problem_letter}",
-                "problem_id": problem_id,
-                "url": url,
-            }
-            print(json.dumps(result))
+            print(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": f"No tests found for {test_contest_id} {problem_letter}",
+                        "problem_id": problem_id,
+                        "url": url,
+                    }
+                )
+            )
             sys.exit(1)
 
-        test_list: list[dict[str, str]] = []
-        for input_data, output_data in tests:
-            test_list.append({"input": input_data, "expected": output_data})
+        test_list: list[dict[str, str]] = [
+            {"input": i, "expected": o} for i, o in tests
+        ]
 
-        result = {
-            "success": True,
-            "problem_id": problem_id,
-            "url": url,
-            "tests": test_list,
-        }
-        print(json.dumps(result))
+        print(
+            json.dumps(
+                {
+                    "success": True,
+                    "problem_id": problem_id,
+                    "url": url,
+                    "tests": test_list,
+                }
+            )
+        )
 
     else:
-        result = {
-            "success": False,
-            "error": f"Unknown mode: {mode}. Use 'metadata' or 'tests'",
-        }
-        print(json.dumps(result))
+        print(
+            json.dumps(
+                {
+                    "success": False,
+                    "error": f"Unknown mode: {mode}. Use 'metadata' or 'tests'",
+                }
+            )
+        )
         sys.exit(1)
 
 

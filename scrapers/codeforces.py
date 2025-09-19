@@ -2,9 +2,10 @@
 
 import json
 import sys
+from typing import Any
 
 import cloudscraper
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 
 def scrape(url: str) -> list[tuple[str, str]]:
@@ -17,12 +18,12 @@ def scrape(url: str) -> list[tuple[str, str]]:
         input_sections = soup.find_all("div", class_="input")
         output_sections = soup.find_all("div", class_="output")
 
-        individual_inputs = {}
-        individual_outputs = {}
+        individual_inputs: dict[str, list[str]] = {}
+        individual_outputs: dict[str, list[str]] = {}
 
         for inp_section in input_sections:
             inp_pre = inp_section.find("pre")
-            if not inp_pre:
+            if not inp_pre or not isinstance(inp_pre, Tag):
                 continue
 
             test_line_divs = inp_pre.find_all(
@@ -51,7 +52,7 @@ def scrape(url: str) -> list[tuple[str, str]]:
 
         for out_section in output_sections:
             out_pre = out_section.find("pre")
-            if not out_pre:
+            if not out_pre or not isinstance(out_pre, Tag):
                 continue
 
             test_line_divs = out_pre.find_all(
@@ -95,12 +96,12 @@ def scrape(url: str) -> list[tuple[str, str]]:
 
         for inp_section in input_sections:
             inp_pre = inp_section.find("pre")
-            if not inp_pre:
+            if not inp_pre or not isinstance(inp_pre, Tag):
                 continue
 
             divs = inp_pre.find_all("div")
             if divs:
-                lines = [div.get_text().strip() for div in divs]
+                lines = [div.get_text().strip() for div in divs if isinstance(div, Tag)]
                 text = "\n".join(lines)
             else:
                 text = inp_pre.get_text().replace("\r", "").strip()
@@ -108,12 +109,12 @@ def scrape(url: str) -> list[tuple[str, str]]:
 
         for out_section in output_sections:
             out_pre = out_section.find("pre")
-            if not out_pre:
+            if not out_pre or not isinstance(out_pre, Tag):
                 continue
 
             divs = out_pre.find_all("div")
             if divs:
-                lines = [div.get_text().strip() for div in divs]
+                lines = [div.get_text().strip() for div in divs if isinstance(div, Tag)]
                 text = "\n".join(lines)
             else:
                 text = out_pre.get_text().replace("\r", "").strip()
@@ -152,7 +153,9 @@ def scrape_contest_problems(contest_id: str) -> list[dict[str, str]]:
         )
 
         for link in problem_links:
-            href: str = link.get("href", "")
+            if not isinstance(link, Tag):
+                continue
+            href: str = str(link.get("href", ""))
             if f"/contest/{contest_id}/problem/" in href:
                 problem_letter: str = href.split("/")[-1].lower()
                 problem_name: str = link.get_text(strip=True)
@@ -183,86 +186,110 @@ def scrape_sample_tests(url: str) -> list[tuple[str, str]]:
 
 def main() -> None:
     if len(sys.argv) < 2:
-        result: dict[str, str | bool] = {
-            "success": False,
-            "error": "Usage: codeforces.py metadata <contest_id> OR codeforces.py tests <contest_id> <problem_letter>",
-        }
-        print(json.dumps(result))
+        print(
+            json.dumps(
+                {
+                    "success": False,
+                    "error": "Usage: codeforces.py metadata <contest_id> OR codeforces.py tests <contest_id> <problem_letter>",
+                }
+            )
+        )
         sys.exit(1)
 
     mode: str = sys.argv[1]
 
     if mode == "metadata":
         if len(sys.argv) != 3:
-            result: dict[str, str | bool] = {
-                "success": False,
-                "error": "Usage: codeforces.py metadata <contest_id>",
-            }
-            print(json.dumps(result))
+            print(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": "Usage: codeforces.py metadata <contest_id>",
+                    }
+                )
+            )
             sys.exit(1)
 
         contest_id: str = sys.argv[2]
         problems: list[dict[str, str]] = scrape_contest_problems(contest_id)
 
         if not problems:
-            result: dict[str, str | bool] = {
-                "success": False,
-                "error": f"No problems found for contest {contest_id}",
-            }
-            print(json.dumps(result))
+            print(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": f"No problems found for contest {contest_id}",
+                    }
+                )
+            )
             sys.exit(1)
 
-        result: dict[str, str | bool | list] = {
-            "success": True,
-            "contest_id": contest_id,
-            "problems": problems,
-        }
-        print(json.dumps(result))
+        print(
+            json.dumps(
+                {
+                    "success": True,
+                    "contest_id": contest_id,
+                    "problems": problems,
+                }
+            )
+        )
 
     elif mode == "tests":
         if len(sys.argv) != 4:
-            result: dict[str, str | bool] = {
-                "success": False,
-                "error": "Usage: codeforces.py tests <contest_id> <problem_letter>",
-            }
-            print(json.dumps(result))
+            print(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": "Usage: codeforces.py tests <contest_id> <problem_letter>",
+                    }
+                )
+            )
             sys.exit(1)
 
-        contest_id: str = sys.argv[2]
+        tests_contest_id: str = sys.argv[2]
         problem_letter: str = sys.argv[3]
-        problem_id: str = contest_id + problem_letter.lower()
+        problem_id: str = tests_contest_id + problem_letter.lower()
 
-        url: str = parse_problem_url(contest_id, problem_letter)
+        url: str = parse_problem_url(tests_contest_id, problem_letter)
         tests: list[tuple[str, str]] = scrape_sample_tests(url)
 
         if not tests:
-            result: dict[str, str | bool] = {
-                "success": False,
-                "error": f"No tests found for {contest_id} {problem_letter}",
-                "problem_id": problem_id,
-                "url": url,
-            }
-            print(json.dumps(result))
+            print(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": f"No tests found for {tests_contest_id} {problem_letter}",
+                        "problem_id": problem_id,
+                        "url": url,
+                    }
+                )
+            )
             sys.exit(1)
 
         test_list: list[dict[str, str]] = []
         for input_data, output_data in tests:
             test_list.append({"input": input_data, "expected": output_data})
 
-        result: dict[str, str | bool | list] = {
-            "success": True,
-            "problem_id": problem_id,
-            "url": url,
-            "tests": test_list,
-        }
-        print(json.dumps(result))
+        print(
+            json.dumps(
+                {
+                    "success": True,
+                    "problem_id": problem_id,
+                    "url": url,
+                    "tests": test_list,
+                }
+            )
+        )
 
     else:
-        result: dict[str, str | bool] = {
-            "success": False,
-            "error": f"Unknown mode: {mode}. Use 'metadata' or 'tests'",
-        }
-        print(json.dumps(result))
+        print(
+            json.dumps(
+                {
+                    "success": False,
+                    "error": f"Unknown mode: {mode}. Use 'metadata' or 'tests'",
+                }
+            )
+        )
         sys.exit(1)
 
 
