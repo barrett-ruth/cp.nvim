@@ -36,6 +36,7 @@
 ---@field next_test_key string Key to navigate to next test case
 ---@field prev_test_key string Key to navigate to previous test case
 ---@field toggle_diff_key string Key to toggle diff mode
+---@field max_output_lines number Maximum lines of test output to display
 
 ---@class DiffGitConfig
 ---@field command string Git executable name
@@ -84,6 +85,7 @@ M.defaults = {
     next_test_key = '<c-n>',
     prev_test_key = '<c-p>',
     toggle_diff_key = 't',
+    max_output_lines = 50,
   },
   diff = {
     git = {
@@ -202,6 +204,13 @@ function M.setup(user_config)
         return type(value) == 'string' and value ~= ''
       end,
       'toggle_diff_key must be a non-empty string',
+    },
+    max_output_lines = {
+      config.run_panel.max_output_lines,
+      function(value)
+        return type(value) == 'number' and value > 0 and value == math.floor(value)
+      end,
+      'max_output_lines must be a positive integer',
     },
   })
 

@@ -118,7 +118,7 @@ end
 ---@param contest_config ContestConfig
 ---@param test_case TestCase
 ---@return table
-local function run_single_test_case(ctx, contest_config, test_case)
+local function run_single_test_case(ctx, contest_config, cp_config, test_case)
   local language = vim.fn.fnamemodify(ctx.source_file, ':e')
   local language_name = constants.filetype_to_language[language] or contest_config.default_language
   local language_config = contest_config[language_name]
@@ -187,6 +187,18 @@ local function run_single_test_case(ctx, contest_config, test_case)
   local execution_time = (vim.uv.hrtime() - start_time) / 1000000
 
   local actual_output = (result.stdout or ''):gsub('\n$', '')
+
+  local max_lines = cp_config.run_panel.max_output_lines
+  local output_lines = vim.split(actual_output, '\n')
+  if #output_lines > max_lines then
+    local trimmed_lines = {}
+    for i = 1, max_lines do
+      table.insert(trimmed_lines, output_lines[i])
+    end
+    table.insert(trimmed_lines, string.format('... (output trimmed after %d lines)', max_lines))
+    actual_output = table.concat(trimmed_lines, '\n')
+  end
+
   local expected_output = test_case.expected:gsub('\n$', '')
   local ok = actual_output == expected_output
 
@@ -238,7 +250,7 @@ end
 ---@param contest_config ContestConfig
 ---@param index number
 ---@return boolean
-function M.run_test_case(ctx, contest_config, index)
+function M.run_test_case(ctx, contest_config, cp_config, index)
   local test_case = run_panel_state.test_cases[index]
   if not test_case then
     return false
@@ -247,7 +259,7 @@ function M.run_test_case(ctx, contest_config, index)
   logger.log(('running test case %d'):format(index))
   test_case.status = 'running'
 
-  local result = run_single_test_case(ctx, contest_config, test_case)
+  local result = run_single_test_case(ctx, contest_config, cp_config, test_case)
 
   test_case.status = result.status
   test_case.actual = result.actual
@@ -264,10 +276,10 @@ end
 ---@param ctx ProblemContext
 ---@param contest_config ContestConfig
 ---@return TestCase[]
-function M.run_all_test_cases(ctx, contest_config)
+function M.run_all_test_cases(ctx, contest_config, cp_config)
   local results = {}
   for i, _ in ipairs(run_panel_state.test_cases) do
-    M.run_test_case(ctx, contest_config, i)
+    M.run_test_case(ctx, contest_config, cp_config, i)
     table.insert(results, run_panel_state.test_cases[i])
   end
   return results
