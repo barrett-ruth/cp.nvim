@@ -49,7 +49,9 @@ function M.render_test_list(test_state, config)
     table.insert(lines, line)
 
     if is_current and test_case.input and test_case.input ~= '' then
-      for _, input_line in ipairs(vim.split(test_case.input, '\n', { plain = true, trimempty = false })) do
+      for _, input_line in
+        ipairs(vim.split(test_case.input, '\n', { plain = true, trimempty = false }))
+      do
         table.insert(lines, '  ' .. input_line)
       end
     end

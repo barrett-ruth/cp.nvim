@@ -83,14 +83,14 @@ M.defaults = {
   scrapers = constants.PLATFORMS,
   filename = nil,
   test_panel = {
-    diff_mode = "vim",
-    toggle_key = "t",
-    status_format = "compact",
+    diff_mode = 'vim',
+    toggle_key = 't',
+    status_format = 'compact',
   },
   diff = {
     git = {
-      command = "git",
-      args = {"diff", "--no-index", "--word-diff=plain", "--word-diff-regex=.", "--no-prefix"},
+      command = 'git',
+      args = { 'diff', '--no-index', '--word-diff=plain', '--word-diff-regex=.', '--no-prefix' },
     },
     vim = {
       enable_diffthis = true,
@@ -142,7 +142,7 @@ function M.setup(user_config)
         diff_mode = {
           user_config.test_panel.diff_mode,
           function(value)
-            return vim.tbl_contains({"vim", "git"}, value)
+            return vim.tbl_contains({ 'vim', 'git' }, value)
           end,
           "diff_mode must be 'vim' or 'git'",
         },
@@ -150,7 +150,7 @@ function M.setup(user_config)
         status_format = {
           user_config.test_panel.status_format,
           function(value)
-            return vim.tbl_contains({"compact", "verbose"}, value)
+            return vim.tbl_contains({ 'compact', 'verbose' }, value)
           end,
           "status_format must be 'compact' or 'verbose'",
         },

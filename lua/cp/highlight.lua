@@ -23,7 +23,7 @@ local function parse_diff_line(text)
     local start_pos = text:find('%[%-' .. vim.pesc(removed_text) .. '%-%]', 1, false)
     if start_pos then
       -- Remove the marker and adjust positions
-      local marker_len = #('[-%-%]') + #removed_text
+      local marker_len = #'[-%-%]' + #removed_text
       cleaned_text = cleaned_text:gsub('%[%-' .. vim.pesc(removed_text) .. '%-%]', '', 1)
 
       -- Since we're removing text, we don't add highlights for removed content in the actual pane
@@ -41,20 +41,20 @@ local function parse_diff_line(text)
     local start_pos = final_text:find('{%+' .. vim.pesc(added_text) .. '%+}', 1, false)
     if start_pos then
       -- Calculate position after previous highlights
-      local highlight_start = start_pos - offset - 1  -- 0-based for extmarks
+      local highlight_start = start_pos - offset - 1 -- 0-based for extmarks
       local highlight_end = highlight_start + #added_text
 
       table.insert(final_highlights, {
         line = 0, -- Will be set by caller
         col_start = highlight_start,
         col_end = highlight_end,
-        highlight_group = 'CpDiffAdded'
+        highlight_group = 'CpDiffAdded',
       })
 
       -- Remove the marker
-      local marker_len = #{'{+'} + #{'+}'} + #added_text
+      local marker_len = #{ '{+' } + #{ '+}' } + #added_text
       final_text = final_text:gsub('{%+' .. vim.pesc(added_text) .. '%+}', added_text, 1)
-      offset = offset + #{'{+'} + #{'+}'}
+      offset = offset + #{ '{+' } + #{ '+}' }
     end
   end
 
@@ -73,13 +73,16 @@ function M.parse_git_diff(diff_output)
   local content_started = false
   for _, line in ipairs(lines) do
     -- Skip header lines (@@, +++, ---, index, etc.)
-    if content_started or (
-      not line:match('^@@') and
-      not line:match('^%+%+%+') and
-      not line:match('^%-%-%-') and
-      not line:match('^index') and
-      not line:match('^diff %-%-git')
-    ) then
+    if
+      content_started
+      or (
+        not line:match('^@@')
+        and not line:match('^%+%+%+')
+        and not line:match('^%-%-%-')
+        and not line:match('^index')
+        and not line:match('^diff %-%-git')
+      )
+    then
       content_started = true
 
       -- Process content lines
@@ -115,7 +118,7 @@ function M.parse_git_diff(diff_output)
 
   return {
     content = content_lines,
-    highlights = all_highlights
+    highlights = all_highlights,
   }
 end
 

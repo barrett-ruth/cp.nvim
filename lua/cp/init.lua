@@ -193,7 +193,7 @@ local function toggle_test_panel(is_debug)
 
   -- Set buffer options
   local buffer_opts = { 'bufhidden', 'wipe' }
-  for _, buf in ipairs({tab_buf, expected_buf, actual_buf}) do
+  for _, buf in ipairs({ tab_buf, expected_buf, actual_buf }) do
     vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = buf })
     vim.api.nvim_set_option_value('readonly', true, { buf = buf })
     vim.api.nvim_set_option_value('modifiable', false, { buf = buf })
@@ -295,7 +295,11 @@ local function toggle_test_panel(is_debug)
       if backend.name == 'git' then
         local diff_result = backend.render(current_test.expected, current_test.actual)
         if diff_result.raw_diff and diff_result.raw_diff ~= '' then
-          highlight.parse_and_apply_diff(test_buffers.actual_buf, diff_result.raw_diff, diff_namespace)
+          highlight.parse_and_apply_diff(
+            test_buffers.actual_buf,
+            diff_result.raw_diff,
+            diff_namespace
+          )
         else
           update_buffer_content(test_buffers.actual_buf, actual_lines)
         end

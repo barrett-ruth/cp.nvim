@@ -19,9 +19,9 @@ local vim_backend = {
 
     return {
       content = actual_lines,
-      highlights = nil -- diffthis handles highlighting
+      highlights = nil, -- diffthis handles highlighting
     }
-  end
+  end,
 }
 
 ---Git word-diff backend for character-level precision
@@ -37,8 +37,14 @@ local git_backend = {
     vim.fn.writefile(vim.split(actual, '\n', { plain = true }), tmp_actual)
 
     local cmd = {
-      'git', 'diff', '--no-index', '--word-diff=plain', '--word-diff-regex=.',
-      '--no-prefix', tmp_expected, tmp_actual
+      'git',
+      'diff',
+      '--no-index',
+      '--word-diff=plain',
+      '--word-diff-regex=.',
+      '--no-prefix',
+      tmp_expected,
+      tmp_actual,
     }
 
     local result = vim.system(cmd, { text = true }):wait()
@@ -50,17 +56,17 @@ local git_backend = {
     if result.code == 0 then
       return {
         content = vim.split(actual, '\n', { plain = true, trimempty = true }),
-        highlights = {}
+        highlights = {},
       }
     else
       local highlight_module = require('cp.highlight')
       return {
         content = {},
         highlights = {},
-        raw_diff = result.stdout or ''
+        raw_diff = result.stdout or '',
       }
     end
-  end
+  end,
 }
 
 ---Available diff backends
@@ -86,7 +92,7 @@ end
 ---Check if git backend is available
 ---@return boolean
 function M.is_git_available()
-  local result = vim.system({'git', '--version'}, { text = true }):wait()
+  local result = vim.system({ 'git', '--version' }, { text = true }):wait()
   return result.code == 0
 end
 
