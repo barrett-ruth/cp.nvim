@@ -144,8 +144,12 @@ describe('cp test panel', function()
           return
         end
       end,
-      __index = cmd_table,
-      __newindex = cmd_table,
+      __index = function(_, key)
+        return cmd_table[key]
+      end,
+      __newindex = function(_, key, value)
+        cmd_table[key] = value
+      end,
     })
     vim.keymap = {
       set = function() end,
