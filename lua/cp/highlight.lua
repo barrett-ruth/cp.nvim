@@ -151,10 +151,15 @@ end
 function M.parse_and_apply_diff(bufnr, diff_output, namespace)
   local parsed = M.parse_git_diff(diff_output)
 
-  -- Set buffer content
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, parsed.content)
+  local was_modifiable = vim.api.nvim_get_option_value('modifiable', { buf = bufnr })
+  local was_readonly = vim.api.nvim_get_option_value('readonly', { buf = bufnr })
 
-  -- Apply highlights
+  vim.api.nvim_set_option_value('readonly', false, { buf = bufnr })
+  vim.api.nvim_set_option_value('modifiable', true, { buf = bufnr })
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, parsed.content)
+  vim.api.nvim_set_option_value('modifiable', was_modifiable, { buf = bufnr })
+  vim.api.nvim_set_option_value('readonly', was_readonly, { buf = bufnr })
+
   M.apply_highlights(bufnr, parsed.highlights, namespace)
 
   return parsed.content

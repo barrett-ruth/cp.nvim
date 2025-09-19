@@ -227,17 +227,33 @@ local function toggle_test_panel(is_debug)
   local highlight = require('cp.highlight')
   local diff_namespace = highlight.create_namespace()
 
-  local function render_test_tabs()
-    local test_render = require('cp.test_render')
-    test_render.setup_highlights()
-    local test_state = test_module.get_test_panel_state()
-    return test_render.render_test_list(test_state)
-  end
+  local test_list_namespace = vim.api.nvim_create_namespace('cp_test_list')
 
-  local function update_buffer_content(bufnr, lines)
+  local function update_buffer_content(bufnr, lines, highlights)
+    local was_readonly = vim.api.nvim_get_option_value('readonly', { buf = bufnr })
+
+    vim.api.nvim_set_option_value('readonly', false, { buf = bufnr })
     vim.api.nvim_set_option_value('modifiable', true, { buf = bufnr })
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
     vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
+    vim.api.nvim_set_option_value('readonly', was_readonly, { buf = bufnr })
+
+    if highlights then
+      vim.api.nvim_buf_clear_namespace(bufnr, test_list_namespace, 0, -1)
+      for _, highlight in ipairs(highlights) do
+        vim.api.nvim_buf_set_extmark(
+          bufnr,
+          test_list_namespace,
+          highlight.line,
+          highlight.col_start,
+          {
+            end_col = highlight.col_end,
+            hl_group = highlight.highlight_group,
+            priority = 100,
+          }
+        )
+      end
+    end
   end
 
   local function update_expected_pane()
@@ -324,8 +340,11 @@ local function toggle_test_panel(is_debug)
       return
     end
 
-    local tab_lines = render_test_tabs()
-    update_buffer_content(test_buffers.tab_buf, tab_lines)
+    local test_render = require('cp.test_render')
+    test_render.setup_highlights()
+    local test_state = test_module.get_test_panel_state()
+    local tab_lines, tab_highlights = test_render.render_test_list(test_state)
+    update_buffer_content(test_buffers.tab_buf, tab_lines, tab_highlights)
 
     update_expected_pane()
     update_actual_pane()

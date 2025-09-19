@@ -284,7 +284,13 @@ function M.run_problem(ctx, contest_config, is_debug)
 
   local output_buf = vim.fn.bufnr(ctx.output_file)
   if output_buf ~= -1 then
+    local was_modifiable = vim.api.nvim_get_option_value('modifiable', { buf = output_buf })
+    local was_readonly = vim.api.nvim_get_option_value('readonly', { buf = output_buf })
+    vim.api.nvim_set_option_value('readonly', false, { buf = output_buf })
+    vim.api.nvim_set_option_value('modifiable', true, { buf = output_buf })
     vim.api.nvim_buf_set_lines(output_buf, 0, -1, false, vim.split(formatted_output, '\n'))
+    vim.api.nvim_set_option_value('modifiable', was_modifiable, { buf = output_buf })
+    vim.api.nvim_set_option_value('readonly', was_readonly, { buf = output_buf })
     vim.api.nvim_buf_call(output_buf, function()
       vim.cmd.write()
     end)

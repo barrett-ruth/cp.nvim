@@ -27,32 +27,53 @@ function M.get_status_info(test_case)
   end
 end
 
----Render test cases list with improved layout
+---Render test cases as a clean table
 ---@param test_state TestPanelState
----@return string[]
+---@return string[], table[] lines and highlight positions
 function M.render_test_list(test_state)
   local lines = {}
+  local highlights = {}
+
+  local header = ' #  │ Status │ Time │ Exit │ Input'
+  local separator =
+    '────┼────────┼──────┼──────┼─────────────────'
+  table.insert(lines, header)
+  table.insert(lines, separator)
 
   for i, test_case in ipairs(test_state.test_cases) do
     local is_current = i == test_state.current_index
-    local prefix = is_current and '> ' or '  '
+    local prefix = is_current and '>' or ' '
     local status_info = M.get_status_info(test_case)
 
-    local status_text = status_info.text ~= '' and status_info.text or ''
-    local line = string.format('%s%d. %s', prefix, i, status_text)
+    local num_col = string.format('%s%-2d', prefix, i)
+    local status_col = string.format(' %-6s', status_info.text)
+    local time_col = test_case.time_ms and string.format('%4.0fms', test_case.time_ms) or '  —  '
+    local exit_col = test_case.code and string.format(' %-3d', test_case.code) or ' — '
+    local input_col = test_case.input and test_case.input:gsub('\n', ' ') or ''
 
+    local line = string.format(
+      '%s │%s │ %s │%s │ %s',
+      num_col,
+      status_col,
+      time_col,
+      exit_col,
+      input_col
+    )
     table.insert(lines, line)
 
-    if is_current and test_case.input and test_case.input ~= '' then
-      for _, input_line in
-        ipairs(vim.split(test_case.input, '\n', { plain = true, trimempty = false }))
-      do
-        table.insert(lines, '  ' .. input_line)
-      end
+    if status_info.text ~= '' then
+      local status_start = #num_col + 3
+      local status_end = status_start + #status_info.text
+      table.insert(highlights, {
+        line = #lines - 1,
+        col_start = status_start,
+        col_end = status_end,
+        highlight_group = status_info.highlight_group,
+      })
     end
   end
 
-  return lines
+  return lines, highlights
 end
 
 ---Create status bar content for diff pane
