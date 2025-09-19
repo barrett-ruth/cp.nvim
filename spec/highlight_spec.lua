@@ -100,8 +100,11 @@ index 1234567..abcdefg 100644
 
       highlight.apply_highlights(1, highlights, 100)
 
-      local call_args = mock_extmark.calls[1].vals
-      assert.equals('CpDiffAdded', call_args[4].hl_group)
+      assert.stub(mock_extmark).was_called_with(1, 100, 0, 0, {
+        end_col = 5,
+        hl_group = 'CpDiffAdded',
+        priority = 100,
+      })
       mock_extmark:revert()
       mock_clear:revert()
     end)

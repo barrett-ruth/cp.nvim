@@ -97,8 +97,9 @@ function M.parse_git_diff(diff_output)
           table.insert(all_highlights, highlight)
         end
       elseif not line:match('^%-') and not line:match('^\\') then -- Skip removed lines and "\ No newline" messages
-        -- Unchanged line
-        local parsed_line, line_highlights = parse_diff_line(line)
+        -- Unchanged line - remove leading space if present
+        local clean_line = line:match('^%s') and line:sub(2) or line
+        local parsed_line, line_highlights = parse_diff_line(clean_line)
         table.insert(content_lines, parsed_line)
 
         -- Set line numbers for any highlights (shouldn't be any for unchanged lines)
