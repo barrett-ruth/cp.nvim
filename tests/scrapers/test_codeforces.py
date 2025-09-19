@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 from scrapers.codeforces import scrape, scrape_contest_problems
-from scrapers.models import Problem, TestCase
+from scrapers.models import Problem
 
 
 def test_scrape_success(mocker, mock_codeforces_html):
