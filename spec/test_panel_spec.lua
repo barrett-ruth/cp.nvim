@@ -251,8 +251,8 @@ describe('cp test panel', function()
   describe('test case display', function()
     it('renders test case tabs correctly', function()
       local tab_content = {}
-      vim.api.nvim_buf_set_lines = function(buf, _start, _end_line, _strict, lines)
-        tab_content[buf] = lines
+      vim.api.nvim_buf_set_lines = function(_buf, _start, _end_line, _strict, lines)
+        tab_content[_buf] = lines
       end
 
       cp.handle_command({ fargs = { 'atcoder', 'abc123', 'a' } })
@@ -275,8 +275,8 @@ describe('cp test panel', function()
 
     it('displays input correctly', function()
       local tab_content = {}
-      vim.api.nvim_buf_set_lines = function(buf, _start, _end_line, _strict, lines)
-        tab_content[buf] = lines
+      vim.api.nvim_buf_set_lines = function(_buf, _start, _end_line, _strict, lines)
+        tab_content[_buf] = lines
       end
 
       cp.handle_command({ fargs = { 'atcoder', 'abc123', 'a' } })
@@ -297,7 +297,7 @@ describe('cp test panel', function()
 
     it('displays expected output correctly', function()
       local expected_content = nil
-      vim.api.nvim_buf_set_lines = function(buf, _start, _end_line, _strict, lines)
+      vim.api.nvim_buf_set_lines = function(_buf, _start, _end_line, _strict, lines)
         if lines and #lines == 1 and lines[1] == '3' then
           expected_content = lines[1]
         end
@@ -311,7 +311,7 @@ describe('cp test panel', function()
 
     it('displays actual output correctly', function()
       local actual_outputs = {}
-      vim.api.nvim_buf_set_lines = function(buf, _start, _end_line, _strict, lines)
+      vim.api.nvim_buf_set_lines = function(_buf, _start, _end_line, _strict, lines)
         if lines and #lines > 0 then
           table.insert(actual_outputs, lines)
         end
@@ -484,8 +484,8 @@ describe('cp test panel', function()
 
     it('shows execution time', function()
       local tab_content = {}
-      vim.api.nvim_buf_set_lines = function(buf, _start, _end_line, _strict, lines)
-        tab_content[buf] = lines
+      vim.api.nvim_buf_set_lines = function(_buf, _start, _end_line, _strict, lines)
+        tab_content[_buf] = lines
       end
 
       cp.handle_command({ fargs = { 'atcoder', 'abc123', 'a' } })
