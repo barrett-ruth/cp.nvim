@@ -23,7 +23,6 @@ local exit_code_names = {
   [143] = 'SIGCHLD',
 }
 
----Convert test status to CP terminology with colors
 ---@param test_case TestCase
 ---@return StatusInfo
 function M.get_status_info(test_case)
@@ -51,140 +50,224 @@ local function format_exit_code(code)
     return '—'
   end
   local signal_name = exit_code_names[code]
-  if signal_name then
-    return string.format('%d (%s)', code, signal_name)
-  else
-    return tostring(code)
-  end
+  return signal_name and string.format('%d (%s)', code, signal_name) or tostring(code)
 end
 
-local function calculate_column_widths(test_state)
-  local widths = { num = 3, status = 6, time = 4, exit = 4 }
+-- Compute column widths + aggregates
+local function compute_cols(test_state)
+  local w = { num = 3, status = 8, time = 6, exit = 11 }
 
-  for i, test_case in ipairs(test_state.test_cases) do
-    local prefix = i == test_state.current_index and '>' or ' '
-    local num_text = string.format('%s%d', prefix, i)
-    widths.num = math.max(widths.num, #num_text)
-
-    local status_info = M.get_status_info(test_case)
-    widths.status = math.max(widths.status, #status_info.text)
-
-    local time_text = test_case.time_ms and string.format('%dms', test_case.time_ms) or '—'
-    widths.time = math.max(widths.time, #time_text)
-
-    local exit_text = format_exit_code(test_case.code)
-    widths.exit = math.max(widths.exit, #exit_text)
+  for i, tc in ipairs(test_state.test_cases) do
+    local prefix = (i == test_state.current_index) and '>' or ' '
+    w.num = math.max(w.num, #(prefix .. i))
+    w.status = math.max(w.status, #(' ' .. M.get_status_info(tc).text))
+    local time_str = tc.time_ms and (string.format('%.2f', tc.time_ms) .. 'ms') or '—'
+    w.time = math.max(w.time, #time_str)
+    w.exit = math.max(w.exit, #(' ' .. format_exit_code(tc.code)))
   end
 
-  return widths
+  w.num = math.max(w.num, #' #')
+  w.status = math.max(w.status, #' Status')
+  w.time = math.max(w.time, #' Time')
+  w.exit = math.max(w.exit, #' Exit Code')
+
+  local sum = w.num + w.status + w.time + w.exit
+  local inner = sum + 3 -- three inner vertical dividers
+  local total = inner + 2 -- two outer borders
+  return { w = w, sum = sum, inner = inner, total = total }
 end
 
-local function create_separator(widths)
-  local parts = {
-    string.rep('─', widths.num),
-    string.rep('─', widths.status),
-    string.rep('─', widths.time),
-    string.rep('─', widths.exit),
-  }
-  return table.concat(parts, '┼')
+local function center(text, width)
+  local pad = width - #text
+  if pad <= 0 then
+    return text
+  end
+  local left = math.floor(pad / 2)
+  return string.rep(' ', left) .. text .. string.rep(' ', pad - left)
 end
 
----Render test cases as a clean table
+local function top_border(c)
+  local w = c.w
+  return '┌'
+    .. string.rep('─', w.num)
+    .. '┬'
+    .. string.rep('─', w.status)
+    .. '┬'
+    .. string.rep('─', w.time)
+    .. '┬'
+    .. string.rep('─', w.exit)
+    .. '┐'
+end
+
+local function row_sep(c)
+  local w = c.w
+  return '├'
+    .. string.rep('─', w.num)
+    .. '┼'
+    .. string.rep('─', w.status)
+    .. '┼'
+    .. string.rep('─', w.time)
+    .. '┼'
+    .. string.rep('─', w.exit)
+    .. '┤'
+end
+
+local function bottom_border(c)
+  local w = c.w
+  return '└'
+    .. string.rep('─', w.num)
+    .. '┴'
+    .. string.rep('─', w.status)
+    .. '┴'
+    .. string.rep('─', w.time)
+    .. '┴'
+    .. string.rep('─', w.exit)
+    .. '┘'
+end
+
+local function flat_fence_above(c)
+  local w = c.w
+  return '├'
+    .. string.rep('─', w.num)
+    .. '┴'
+    .. string.rep('─', w.status)
+    .. '┴'
+    .. string.rep('─', w.time)
+    .. '┴'
+    .. string.rep('─', w.exit)
+    .. '┤'
+end
+
+local function flat_fence_below(c)
+  local w = c.w
+  return '├'
+    .. string.rep('─', w.num)
+    .. '┬'
+    .. string.rep('─', w.status)
+    .. '┬'
+    .. string.rep('─', w.time)
+    .. '┬'
+    .. string.rep('─', w.exit)
+    .. '┤'
+end
+
+local function flat_bottom_border(c)
+  return '└' .. string.rep('─', c.inner) .. '┘'
+end
+
+local function header_line(c)
+  local w = c.w
+  return '│'
+    .. center('#', w.num)
+    .. '│'
+    .. center('Status', w.status)
+    .. '│'
+    .. center('Time', w.time)
+    .. '│'
+    .. center('Exit Code', w.exit)
+    .. '│'
+end
+
+local function data_row(c, idx, tc, is_current)
+  local w = c.w
+  local prefix = is_current and '>' or ' '
+  local status = M.get_status_info(tc)
+  local time = tc.time_ms and (string.format('%.2f', tc.time_ms) .. 'ms') or '—'
+  local exit = format_exit_code(tc.code)
+
+  local line = '│'
+    .. center(prefix .. idx, w.num)
+    .. '│'
+    .. center(status.text, w.status)
+    .. '│'
+    .. center(time, w.time)
+    .. '│'
+    .. center(exit, w.exit)
+    .. '│'
+
+  local hi
+  if status.text ~= '' then
+    local pad = w.status - #status.text
+    local left = math.floor(pad / 2)
+    local status_start_col = 1 + w.num + 1 + left
+    local status_end_col = status_start_col + #status.text
+    hi = {
+      col_start = status_start_col,
+      col_end = status_end_col,
+      highlight_group = status.highlight_group,
+    }
+  end
+
+  return line, hi
+end
+
 ---@param test_state TestPanelState
 ---@return string[], table[] lines and highlight positions
 function M.render_test_list(test_state)
-  local lines = {}
-  local highlights = {}
+  local lines, highlights = {}, {}
+  local c = compute_cols(test_state)
 
-  local widths = calculate_column_widths(test_state)
-  local separator = create_separator(widths)
+  table.insert(lines, top_border(c))
+  table.insert(lines, header_line(c))
+  table.insert(lines, row_sep(c))
 
-  local header = string.format(
-    '%-*s│%-*s│%-*s│%-*s',
-    widths.num,
-    ' #',
-    widths.status,
-    ' Status',
-    widths.time,
-    ' Time',
-    widths.exit,
-    ' Exit Code'
-  )
-
-  table.insert(lines, header)
-  table.insert(lines, separator)
-
-  for i, test_case in ipairs(test_state.test_cases) do
-    local is_current = i == test_state.current_index
-    local prefix = is_current and '>' or ' '
-    local status_info = M.get_status_info(test_case)
-
-    local num_text = string.format('%s%d', prefix, i)
-    local time_text = test_case.time_ms and string.format('%dms', test_case.time_ms) or '—'
-    local exit_text = format_exit_code(test_case.code)
-
-    local row = string.format(
-      '%-*s│ %-*s│%-*s│ %-*s',
-      widths.num,
-      num_text,
-      widths.status - 1,
-      status_info.text,
-      widths.time,
-      time_text,
-      widths.exit - 1,
-      exit_text
-    )
-
+  for i, tc in ipairs(test_state.test_cases) do
+    local is_current = (i == test_state.current_index)
+    local row, hi = data_row(c, i, tc, is_current)
     table.insert(lines, row)
-
-    if status_info.text ~= '' then
-      local status_start = widths.num + 2
-      local status_end = status_start + #status_info.text
-      table.insert(highlights, {
-        line = #lines - 1,
-        col_start = status_start,
-        col_end = status_end,
-        highlight_group = status_info.highlight_group,
-      })
+    if hi then
+      hi.line = #lines - 1
+      table.insert(highlights, hi)
     end
 
-    if is_current and test_case.input and test_case.input ~= '' then
-      table.insert(lines, separator)
-      for _, input_line in
-        ipairs(vim.split(test_case.input, '\n', { plain = true, trimempty = false }))
-      do
-        table.insert(lines, input_line)
+    local has_next = (i < #test_state.test_cases)
+    local has_input = is_current and tc.input and tc.input ~= ''
+
+    if has_input then
+      table.insert(lines, flat_fence_above(c))
+
+      for _, input_line in ipairs(vim.split(tc.input, '\n', { plain = true, trimempty = false })) do
+        local s = input_line or ''
+        if #s > c.inner then
+          s = string.sub(s, 1, c.inner)
+        end
+        local pad = c.inner - #s
+        table.insert(lines, '│' .. s .. string.rep(' ', pad) .. '│')
+      end
+
+      if has_next then
+        table.insert(lines, flat_fence_below(c))
+      else
+        table.insert(lines, flat_bottom_border(c))
+      end
+    else
+      if has_next then
+        table.insert(lines, row_sep(c))
+      else
+        table.insert(lines, bottom_border(c))
       end
     end
-
-    table.insert(lines, separator)
   end
 
   return lines, highlights
 end
 
----Create status bar content for diff pane
 ---@param test_case TestCase?
 ---@return string
 function M.render_status_bar(test_case)
   if not test_case then
     return ''
   end
-
   local parts = {}
-
   if test_case.time_ms then
-    table.insert(parts, string.format('%.0fms', test_case.time_ms))
+    table.insert(parts, string.format('%.2fms', test_case.time_ms))
   end
-
   if test_case.code then
     table.insert(parts, string.format('Exit: %d', test_case.code))
   end
-
   return table.concat(parts, ' │ ')
 end
 
----Get highlight groups needed for test rendering
 ---@return table<string, table>
 function M.get_highlight_groups()
   return {
@@ -196,11 +279,10 @@ function M.get_highlight_groups()
   }
 end
 
----Setup highlight groups
 function M.setup_highlights()
   local groups = M.get_highlight_groups()
-  for group_name, opts in pairs(groups) do
-    vim.api.nvim_set_hl(0, group_name, opts)
+  for name, opts in pairs(groups) do
+    vim.api.nvim_set_hl(0, name, opts)
   end
 end
 

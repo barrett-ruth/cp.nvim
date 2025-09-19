@@ -295,12 +295,6 @@ local function toggle_test_panel(is_debug)
       actual_lines = { '(not run yet)' }
     end
 
-    local test_render = require('cp.test_render')
-    local status_bar_text = test_render.render_status_bar(current_test)
-    if status_bar_text ~= '' then
-      vim.api.nvim_set_option_value('winbar', status_bar_text, { win = test_windows.actual_win })
-    end
-
     if enable_diff then
       local diff_backend = require('cp.diff')
       local backend = diff_backend.get_best_backend(config.test_panel.diff_mode)
