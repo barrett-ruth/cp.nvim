@@ -205,7 +205,7 @@ Usage examples: >
     :CP prev                    " Navigate to previous problem in contest
 <
 CSES ~
-									*cp-cses*
+                                                      *cp-cses*
 URL format: https://cses.fi/problemset/task/1068
 
 CSES is organized by categories rather than contests. Currently all problems
@@ -221,7 +221,7 @@ Usage examples: >
     :CP 1070                    " Switch to problem 1070 (if CSES loaded)
     :CP next                    " Navigate to next problem in CSES
 <
-COMPLETE WORKFLOW EXAMPLE					*cp-example*
+COMPLETE WORKFLOW EXAMPLE                      *cp-example*
 
 Example: Setting up and solving AtCoder contest ABC324
 
@@ -254,13 +254,13 @@ Example: Quick setup for single Codeforces problem >
     :CP test                    " Test immediately
 <
 
-TEST PANEL						*cp-test*
+TEST PANEL                                          *cp-test*
 
 The test panel provides individual test case debugging with a three-pane
 layout showing test list, expected output, and actual output side-by-side.
 
 Activation ~
-								*:CP-test*
+                                                      *:CP-test*
 :CP test [--debug]              Toggle test panel on/off. When activated,
                                 replaces current layout with test interface.
                                 Automatically compiles and runs all tests.
