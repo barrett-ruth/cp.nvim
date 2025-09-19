@@ -66,7 +66,7 @@ follows:
 
 ## TODO
 
+- general `:CP test` window improvements
 - fzf/telescope integration (whichever available)
-- autocomplete with --lang and --debug
 - finer-tuned problem limits (i.e. per-problem codeforces time, memory)
 - notify discord members
