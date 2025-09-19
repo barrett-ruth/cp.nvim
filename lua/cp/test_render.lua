@@ -46,6 +46,49 @@ function M.get_status_info(test_case)
   end
 end
 
+local function format_exit_code(code)
+  if not code then
+    return '—'
+  end
+  local signal_name = exit_code_names[code]
+  if signal_name then
+    return string.format('%d (%s)', code, signal_name)
+  else
+    return tostring(code)
+  end
+end
+
+local function calculate_column_widths(test_state)
+  local widths = { num = 3, status = 6, time = 4, exit = 4 }
+
+  for i, test_case in ipairs(test_state.test_cases) do
+    local prefix = i == test_state.current_index and '>' or ' '
+    local num_text = string.format('%s%d', prefix, i)
+    widths.num = math.max(widths.num, #num_text)
+
+    local status_info = M.get_status_info(test_case)
+    widths.status = math.max(widths.status, #status_info.text)
+
+    local time_text = test_case.time_ms and string.format('%dms', test_case.time_ms) or '—'
+    widths.time = math.max(widths.time, #time_text)
+
+    local exit_text = format_exit_code(test_case.code)
+    widths.exit = math.max(widths.exit, #exit_text)
+  end
+
+  return widths
+end
+
+local function create_separator(widths)
+  local parts = {
+    string.rep('─', widths.num),
+    string.rep('─', widths.status),
+    string.rep('─', widths.time),
+    string.rep('─', widths.exit),
+  }
+  return table.concat(parts, '┼')
+end
+
 ---Render test cases as a clean table
 ---@param test_state TestPanelState
 ---@return string[], table[] lines and highlight positions
@@ -53,9 +96,21 @@ function M.render_test_list(test_state)
   local lines = {}
   local highlights = {}
 
-  local header = ' #  │ Status │ Time │ Exit Code'
-  local separator =
-    '────┼────────┼──────┼───────────'
+  local widths = calculate_column_widths(test_state)
+  local separator = create_separator(widths)
+
+  local header = string.format(
+    '%-*s│%-*s│%-*s│%-*s',
+    widths.num,
+    ' #',
+    widths.status,
+    ' Status',
+    widths.time,
+    ' Time',
+    widths.exit,
+    ' Exit Code'
+  )
+
   table.insert(lines, header)
   table.insert(lines, separator)
 
@@ -64,24 +119,26 @@ function M.render_test_list(test_state)
     local prefix = is_current and '>' or ' '
     local status_info = M.get_status_info(test_case)
 
-    local num_col = string.format('%s%-2d', prefix, i)
-    local status_col = string.format(' %-6s', status_info.text)
-    local time_col = test_case.time_ms and string.format('%4.0fms', test_case.time_ms) or '  —  '
-    local exit_col = ' — '
-    if test_case.code then
-      local signal_name = exit_code_names[test_case.code]
-      if signal_name then
-        exit_col = string.format(' %d (%s)', test_case.code, signal_name)
-      else
-        exit_col = string.format(' %d', test_case.code)
-      end
-    end
+    local num_text = string.format('%s%d', prefix, i)
+    local time_text = test_case.time_ms and string.format('%dms', test_case.time_ms) or '—'
+    local exit_text = format_exit_code(test_case.code)
 
-    local line = string.format('%s │%s │ %s │%s', num_col, status_col, time_col, exit_col)
-    table.insert(lines, line)
+    local row = string.format(
+      '%-*s│ %-*s│%-*s│ %-*s',
+      widths.num,
+      num_text,
+      widths.status - 1,
+      status_info.text,
+      widths.time,
+      time_text,
+      widths.exit - 1,
+      exit_text
+    )
+
+    table.insert(lines, row)
 
     if status_info.text ~= '' then
-      local status_start = #num_col + 3
+      local status_start = widths.num + 2
       local status_end = status_start + #status_info.text
       table.insert(highlights, {
         line = #lines - 1,
@@ -92,6 +149,7 @@ function M.render_test_list(test_state)
     end
 
     if is_current and test_case.input and test_case.input ~= '' then
+      table.insert(lines, separator)
       for _, input_line in
         ipairs(vim.split(test_case.input, '\n', { plain = true, trimempty = false }))
       do
@@ -99,8 +157,6 @@ function M.render_test_list(test_state)
       end
     end
 
-    local separator =
-      '─────────────────────────────────────────────────────────────'
     table.insert(lines, separator)
   end
 

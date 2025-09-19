@@ -1,0 +1,29 @@
+minimum_pre_commit_version: "3.5.0"
+repos:
+  - repo: https://github.com/JohnnyMorganz/StyLua
+    rev: v2.1.0
+    hooks:
+      - id: stylua-github
+        name: stylua (Lua formatter)
+        args: ["--check", "."]
+        files: ^(lua/|spec/|plugin/|after/|ftdetect/|.*\.lua$)
+        additional_dependencies: []
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff-format
+        name: ruff (format)
+        files: ^(scrapers/|tests/scrapers/|.*\.py$)
+      - id: ruff
+        name: ruff (lint)
+        args: ["--no-fix"]
+        files: ^(scrapers/|tests/scrapers/|.*\.py$)
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (type check)
+        entry: uv run mypy
+        language: system
+        args: ["scrapers/", "tests/scrapers/"]
+        files: ^(scrapers/|tests/scrapers/|.*\.py$)
+        pass_filenames: false
