@@ -49,7 +49,7 @@ Setup Commands ~
 
 Action Commands ~
 
-:CP test [--debug]              Toggle test panel for individual test case
+:CP run [--debug]               Toggle run panel for individual test case
                                 debugging. Shows per-test results with redesigned
                                 layout for efficient comparison.
                                 Use --debug flag to compile with debug flags
@@ -112,9 +112,8 @@ Optional configuration with lazy.nvim: >
               vim.diagnostic.enable(false)
             end,
           },
-          test_panel = {
+          run_panel = {
             diff_mode = "vim",         -- "vim" or "git"
-            toggle_key = "t",          -- toggle test panel
             next_test_key = "<c-n>",   -- navigate to next test case
             prev_test_key = "<c-p>",   -- navigate to previous test case
           },
@@ -141,7 +140,7 @@ Optional configuration with lazy.nvim: >
                         during operation.
       • {scrapers}      (`table<string,boolean>`) Per-platform scraper control.
                          Default enables all platforms.
-      • {test_panel}    (`TestPanelConfig`) Test panel behavior configuration.
+      • {run_panel}     (`RunPanelConfig`) Test panel behavior configuration.
       • {diff}          (`DiffConfig`) Diff backend configuration.
       • {filename}?     (`function`) Custom filename generation function.
                         `function(contest, contest_id, problem_id, config, language)`
@@ -169,12 +168,11 @@ Optional configuration with lazy.nvim: >
       • {extension}     (`string`) File extension (e.g. "cc", "py").
       • {executable}?   (`string`) Executable name for interpreted languages.
 
-*cp.TestPanelConfig*
+*cp.RunPanelConfig*
 
     Fields: ~
       • {diff_mode}     (`string`, default: `"vim"`) Diff backend: "vim" or "git".
                         Git provides character-level precision, vim uses built-in diff.
-      • {toggle_key}    (`string`, default: `"t"`) Key to toggle test panel.
       • {next_test_key} (`string`, default: `"<c-n>"`) Key to navigate to next test case.
       • {prev_test_key} (`string`, default: `"<c-p>"`) Key to navigate to previous test case.
 
@@ -295,15 +293,15 @@ Example: Quick setup for single Codeforces problem >
     :CP test                    " Test immediately
 <
 
-TEST PANEL                                          *cp-test*
+RUN PANEL                                          *cp-run*
 
-The test panel provides individual test case debugging with a streamlined
+The run panel provides individual test case debugging with a streamlined
 layout optimized for modern screens. Shows test status with competitive
 programming terminology and efficient space usage.
 
 Activation ~
-                                                      *:CP-test*
-:CP test [--debug]              Toggle test panel on/off. When activated,
+                                                      *:CP-run*
+:CP run [--debug]               Toggle run panel on/off. When activated,
                                 replaces current layout with test interface.
                                 Automatically compiles and runs all tests.
                                 Use --debug flag to compile with debug symbols
@@ -312,7 +310,7 @@ Activation ~
 
 Interface ~
 
-The test panel uses a redesigned two-pane layout for efficient comparison:
+The run panel uses a redesigned two-pane layout for efficient comparison:
 (note that the diff is indeed highlighted, not the weird amalgamation of
 characters below) >
 
@@ -338,10 +336,9 @@ Test cases use competitive programming terminology:
 
 Keymaps ~
                                                 *cp-test-keys*
-<c-n>                           Navigate to next test case (configurable via test_panel.next_test_key)
-<c-p>                           Navigate to previous test case (configurable via test_panel.prev_test_key)
+<c-n>                           Navigate to next test case (configurable via run_panel.next_test_key)
+<c-p>                           Navigate to previous test case (configurable via run_panel.prev_test_key)
 q                               Exit test panel (restore layout)
-t                               Toggle test panel (configurable via test_panel.toggle_key)
 
 Diff Modes ~
 

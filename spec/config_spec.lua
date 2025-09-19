@@ -74,20 +74,10 @@ describe('cp.config', function()
       end)
     end)
 
-    describe('test_panel config validation', function()
+    describe('run_panel config validation', function()
       it('validates diff_mode values', function()
         local invalid_config = {
-          test_panel = { diff_mode = 'invalid' },
-        }
-
-        assert.has_error(function()
-          config.setup(invalid_config)
-        end)
-      end)
-
-      it('validates toggle_key is non-empty string', function()
-        local invalid_config = {
-          test_panel = { toggle_key = '' },
+          run_panel = { diff_mode = 'invalid' },
         }
 
         assert.has_error(function()
@@ -97,7 +87,7 @@ describe('cp.config', function()
 
       it('validates next_test_key is non-empty string', function()
         local invalid_config = {
-          test_panel = { next_test_key = nil },
+          run_panel = { next_test_key = nil },
         }
 
         assert.has_error(function()
@@ -107,7 +97,7 @@ describe('cp.config', function()
 
       it('validates prev_test_key is non-empty string', function()
         local invalid_config = {
-          test_panel = { prev_test_key = '' },
+          run_panel = { prev_test_key = '' },
         }
 
         assert.has_error(function()
@@ -115,11 +105,10 @@ describe('cp.config', function()
         end)
       end)
 
-      it('accepts valid test_panel config', function()
+      it('accepts valid run_panel config', function()
         local valid_config = {
-          test_panel = {
+          run_panel = {
             diff_mode = 'git',
-            toggle_key = 'x',
             next_test_key = 'j',
             prev_test_key = 'k',
           },

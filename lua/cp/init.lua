@@ -25,7 +25,7 @@ local state = {
   saved_session = nil,
   test_cases = nil,
   test_states = {},
-  test_panel_active = false,
+  run_panel_active = false,
 }
 
 local constants = require('cp.constants')
@@ -149,14 +149,14 @@ local function get_current_problem()
   return filename
 end
 
-local function toggle_test_panel(is_debug)
-  if state.test_panel_active then
+local function toggle_run_panel(is_debug)
+  if state.run_panel_active then
     if state.saved_session then
       vim.cmd(('source %s'):format(state.saved_session))
       vim.fn.delete(state.saved_session)
       state.saved_session = nil
     end
-    state.test_panel_active = false
+    state.run_panel_active = false
     logger.log('test panel closed')
     return
   end
@@ -249,7 +249,7 @@ local function toggle_test_panel(is_debug)
   end
 
   local function update_expected_pane()
-    local test_state = test_module.get_test_panel_state()
+    local test_state = test_module.get_run_panel_state()
     local current_test = test_state.test_cases[test_state.current_index]
 
     if not current_test then
@@ -262,7 +262,7 @@ local function toggle_test_panel(is_debug)
     update_buffer_content(test_buffers.expected_buf, expected_lines, {})
 
     local diff_backend = require('cp.diff')
-    local backend = diff_backend.get_best_backend(config.test_panel.diff_mode)
+    local backend = diff_backend.get_best_backend(config.run_panel.diff_mode)
 
     if backend.name == 'vim' and current_test.status == 'fail' then
       vim.api.nvim_set_option_value('diff', true, { win = test_windows.expected_win })
@@ -272,7 +272,7 @@ local function toggle_test_panel(is_debug)
   end
 
   local function update_actual_pane()
-    local test_state = test_module.get_test_panel_state()
+    local test_state = test_module.get_run_panel_state()
     local current_test = test_state.test_cases[test_state.current_index]
 
     if not current_test then
@@ -291,7 +291,7 @@ local function toggle_test_panel(is_debug)
 
     if enable_diff then
       local diff_backend = require('cp.diff')
-      local backend = diff_backend.get_best_backend(config.test_panel.diff_mode)
+      local backend = diff_backend.get_best_backend(config.run_panel.diff_mode)
 
       if backend.name == 'git' then
         local diff_result = backend.render(current_test.expected, current_test.actual)
@@ -321,14 +321,14 @@ local function toggle_test_panel(is_debug)
     end
   end
 
-  local function refresh_test_panel()
+  local function refresh_run_panel()
     if not test_buffers.tab_buf or not vim.api.nvim_buf_is_valid(test_buffers.tab_buf) then
       return
     end
 
     local test_render = require('cp.test_render')
     test_render.setup_highlights()
-    local test_state = test_module.get_test_panel_state()
+    local test_state = test_module.get_run_panel_state()
     local tab_lines, tab_highlights = test_render.render_test_list(test_state)
     update_buffer_content(test_buffers.tab_buf, tab_lines, tab_highlights)
 
@@ -337,7 +337,7 @@ local function toggle_test_panel(is_debug)
   end
 
   local function navigate_test_case(delta)
-    local test_state = test_module.get_test_panel_state()
+    local test_state = test_module.get_run_panel_state()
     if #test_state.test_cases == 0 then
       return
     end
@@ -349,22 +349,19 @@ local function toggle_test_panel(is_debug)
       test_state.current_index = 1
     end
 
-    refresh_test_panel()
+    refresh_run_panel()
   end
 
-  vim.keymap.set('n', config.test_panel.next_test_key, function()
+  vim.keymap.set('n', config.run_panel.next_test_key, function()
     navigate_test_case(1)
   end, { buffer = test_buffers.tab_buf, silent = true })
-  vim.keymap.set('n', config.test_panel.prev_test_key, function()
+  vim.keymap.set('n', config.run_panel.prev_test_key, function()
     navigate_test_case(-1)
   end, { buffer = test_buffers.tab_buf, silent = true })
 
   for _, buf in pairs(test_buffers) do
     vim.keymap.set('n', 'q', function()
-      toggle_test_panel()
-    end, { buffer = buf, silent = true })
-    vim.keymap.set('n', config.test_panel.toggle_key, function()
-      toggle_test_panel()
+      toggle_run_panel()
     end, { buffer = buf, silent = true })
   end
 
@@ -382,14 +379,14 @@ local function toggle_test_panel(is_debug)
     test_module.run_all_test_cases(ctx, contest_config)
   end
 
-  refresh_test_panel()
+  refresh_run_panel()
 
   vim.api.nvim_set_current_win(test_windows.tab_win)
 
-  state.test_panel_active = true
+  state.run_panel_active = true
   state.test_buffers = test_buffers
   state.test_windows = test_windows
-  local test_state = test_module.get_test_panel_state()
+  local test_state = test_module.get_run_panel_state()
   logger.log(string.format('test panel opened (%d test cases)', #test_state.test_cases))
 end
 
@@ -556,8 +553,8 @@ function M.handle_command(opts)
   end
 
   if cmd.type == 'action' then
-    if cmd.action == 'test' then
-      toggle_test_panel(cmd.debug)
+    if cmd.action == 'run' then
+      toggle_run_panel(cmd.debug)
     elseif cmd.action == 'next' then
       navigate_problem(1, cmd.language)
     elseif cmd.action == 'prev' then

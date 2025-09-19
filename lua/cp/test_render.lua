@@ -201,7 +201,7 @@ local function data_row(c, idx, tc, is_current)
   return line, hi
 end
 
----@param test_state TestPanelState
+---@param test_state RunPanelState
 ---@return string[], table[] lines and highlight positions
 function M.render_test_list(test_state)
   local lines, highlights = {}, {}

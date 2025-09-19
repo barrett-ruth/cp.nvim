@@ -31,9 +31,8 @@
 ---@field before_debug? fun(ctx: ProblemContext)
 ---@field setup_code? fun(ctx: ProblemContext)
 
----@class TestPanelConfig
+---@class RunPanelConfig
 ---@field diff_mode "vim"|"git" Diff backend to use
----@field toggle_key string Key to toggle test panel
 ---@field next_test_key string Key to navigate to next test case
 ---@field prev_test_key string Key to navigate to previous test case
 
@@ -51,7 +50,7 @@
 ---@field debug boolean
 ---@field scrapers table<string, boolean>
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
----@field test_panel TestPanelConfig
+---@field run_panel RunPanelConfig
 ---@field diff DiffConfig
 
 ---@class cp.UserConfig
@@ -61,7 +60,7 @@
 ---@field debug? boolean
 ---@field scrapers? table<string, boolean>
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
----@field test_panel? TestPanelConfig
+---@field run_panel? RunPanelConfig
 ---@field diff? DiffConfig
 
 local M = {}
@@ -79,9 +78,8 @@ M.defaults = {
   debug = false,
   scrapers = constants.PLATFORMS,
   filename = nil,
-  test_panel = {
+  run_panel = {
     diff_mode = 'vim',
-    toggle_key = 't',
     next_test_key = '<c-n>',
     prev_test_key = '<c-p>',
   },
@@ -108,7 +106,7 @@ function M.setup(user_config)
       debug = { user_config.debug, { 'boolean', 'nil' }, true },
       scrapers = { user_config.scrapers, { 'table', 'nil' }, true },
       filename = { user_config.filename, { 'function', 'nil' }, true },
-      test_panel = { user_config.test_panel, { 'table', 'nil' }, true },
+      run_panel = { user_config.run_panel, { 'table', 'nil' }, true },
       diff = { user_config.diff, { 'table', 'nil' }, true },
     })
 
@@ -132,31 +130,24 @@ function M.setup(user_config)
       })
     end
 
-    if user_config.test_panel then
+    if user_config.run_panel then
       vim.validate({
         diff_mode = {
-          user_config.test_panel.diff_mode,
+          user_config.run_panel.diff_mode,
           function(value)
             return vim.tbl_contains({ 'vim', 'git' }, value)
           end,
           "diff_mode must be 'vim' or 'git'",
         },
-        toggle_key = {
-          user_config.test_panel.toggle_key,
-          function(value)
-            return type(value) == 'string' and value ~= ''
-          end,
-          'toggle_key must be a non-empty string',
-        },
         next_test_key = {
-          user_config.test_panel.next_test_key,
+          user_config.run_panel.next_test_key,
           function(value)
             return type(value) == 'string' and value ~= ''
           end,
           'next_test_key must be a non-empty string',
         },
         prev_test_key = {
-          user_config.test_panel.prev_test_key,
+          user_config.run_panel.prev_test_key,
           function(value)
             return type(value) == 'string' and value ~= ''
           end,
