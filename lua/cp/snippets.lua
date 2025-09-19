@@ -101,7 +101,7 @@ if __name__ == "__main__":
   }
 
   local user_overrides = {}
-  for _, snippet in ipairs((config and config.snippets) or {}) do
+  for _, snippet in ipairs(config.snippets) do
     user_overrides[snippet.trigger] = snippet
   end
 

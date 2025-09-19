@@ -173,9 +173,9 @@ describe('cp.snippets', function()
       assert.is_not_nil(mock_luasnip.added.python)
     end)
 
-    it('handles nil config gracefully', function()
+    it('handles empty config gracefully', function()
       assert.has_no_errors(function()
-        snippets.setup()
+        snippets.setup({ snippets = {} })
       end)
     end)
 
