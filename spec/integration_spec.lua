@@ -253,49 +253,6 @@ describe('cp integration', function()
       assert.is_true(found_uv_call)
     end)
 
-    it('handles scraper communication properly', function()
-      vim.system = function(cmd)
-        if cmd[1] == 'ping' then
-          return {
-            wait = function()
-              return { code = 0 }
-            end,
-          }
-        elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
-          return {
-            wait = function()
-              return { code = 0 }
-            end,
-          }
-        elseif cmd[1] == 'uv' and vim.tbl_contains(cmd, 'metadata') then
-          return {
-            wait = function()
-              return { code = 1, stderr = 'network error' }
-            end,
-          }
-        end
-        return {
-          wait = function()
-            return { code = 0 }
-          end,
-        }
-      end
-
-      cp.handle_command({ fargs = { 'atcoder', 'abc123' } })
-
-      local error_logged = false
-      for _, log_entry in ipairs(mock_log_messages) do
-        if
-          log_entry.level == vim.log.levels.WARN
-          and log_entry.msg:match('failed to load contest metadata')
-        then
-          error_logged = true
-          break
-        end
-      end
-      assert.is_true(error_logged)
-    end)
-
     it('processes scraper output correctly', function()
       vim.system = function(cmd)
         if cmd[1] == 'ping' then

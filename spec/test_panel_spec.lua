@@ -395,9 +395,15 @@ describe('cp test panel', function()
           diffthis = function() end,
         }
         vim.cmd = setmetatable(cmd_table, {
-          __call = function(_, cmd_str) return end,
-          __index = function(_, key) return cmd_table[key] end,
-          __newindex = function(_, key, value) cmd_table[key] = value end,
+          __call = function(_, cmd_str)
+            return
+          end,
+          __index = function(_, key)
+            return cmd_table[key]
+          end,
+          __newindex = function(_, key, value)
+            cmd_table[key] = value
+          end,
         })
       end
       vim.cmd.diffthis = function()
