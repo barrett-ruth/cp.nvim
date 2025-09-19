@@ -16,3 +16,9 @@ any = true
 
 [it]
 any = true
+
+[before_each]
+any = true
+
+[after_each]
+any = true
