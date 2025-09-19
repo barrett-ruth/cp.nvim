@@ -13,7 +13,7 @@ local function get_status_info(test_case)
   elseif test_case.status == 'fail' then
     if test_case.timed_out then
       return { text = 'TLE', highlight_group = 'CpTestError' }
-    elseif test_case.code and test_case.code ~= 0 then
+    elseif test_case.code and test_case.code >= 128 then
       return { text = 'RTE', highlight_group = 'CpTestError' }
     else
       return { text = 'WA', highlight_group = 'CpTestError' }

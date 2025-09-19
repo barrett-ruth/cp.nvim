@@ -1,0 +1,42 @@
+describe('cp.diff', function()
+  local diff = require('cp.diff')
+
+  describe('get_available_backends', function()
+    it('returns vim and git backends')
+  end)
+
+  describe('get_backend', function()
+    it('returns vim backend by name')
+    it('returns git backend by name')
+    it('returns nil for invalid name')
+  end)
+
+  describe('is_git_available', function()
+    it('returns true when git command succeeds')
+    it('returns false when git command fails')
+  end)
+
+  describe('get_best_backend', function()
+    it('returns preferred backend when available')
+    it('falls back to vim when git unavailable')
+    it('defaults to vim backend')
+  end)
+
+  describe('vim backend', function()
+    it('returns content as-is')
+    it('returns nil highlights')
+  end)
+
+  describe('git backend', function()
+    it('creates temp files for diff')
+    it('returns raw diff output')
+    it('cleans up temp files')
+    it('handles no differences')
+    it('handles git command failure')
+  end)
+
+  describe('render_diff', function()
+    it('uses best available backend')
+    it('passes parameters to backend')
+  end)
+end)

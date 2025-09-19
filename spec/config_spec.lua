@@ -66,11 +66,68 @@ describe('cp.config', function()
 
     it('validates hook functions', function()
       local invalid_config = {
-        hooks = { before_run = 'not_a_function' },
+        hooks = { before_test = 'not_a_function' },
       }
 
       assert.has_error(function()
         config.setup(invalid_config)
+      end)
+    end)
+
+    describe('test_panel config validation', function()
+      it('validates diff_mode values', function()
+        local invalid_config = {
+          test_panel = { diff_mode = 'invalid' },
+        }
+
+        assert.has_error(function()
+          config.setup(invalid_config)
+        end)
+      end)
+
+      it('validates toggle_key is non-empty string', function()
+        local invalid_config = {
+          test_panel = { toggle_key = '' },
+        }
+
+        assert.has_error(function()
+          config.setup(invalid_config)
+        end)
+      end)
+
+      it('validates next_test_key is non-empty string', function()
+        local invalid_config = {
+          test_panel = { next_test_key = nil },
+        }
+
+        assert.has_error(function()
+          config.setup(invalid_config)
+        end)
+      end)
+
+      it('validates prev_test_key is non-empty string', function()
+        local invalid_config = {
+          test_panel = { prev_test_key = '' },
+        }
+
+        assert.has_error(function()
+          config.setup(invalid_config)
+        end)
+      end)
+
+      it('accepts valid test_panel config', function()
+        local valid_config = {
+          test_panel = {
+            diff_mode = 'git',
+            toggle_key = 'x',
+            next_test_key = 'j',
+            prev_test_key = 'k',
+          },
+        }
+
+        assert.has_no.errors(function()
+          config.setup(valid_config)
+        end)
       end)
     end)
   end)
