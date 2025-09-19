@@ -102,6 +102,7 @@ describe('cp test panel', function()
       has = function()
         return 1
       end,
+      mkdir = function() end,
     })
 
     local _original_nvim_create_buf = vim.api.nvim_create_buf
@@ -127,11 +128,21 @@ describe('cp test panel', function()
     end
     vim.api.nvim_set_current_win = function() end
 
-    vim.cmd = {
+    local cmd_table = {
       split = function() end,
       vsplit = function() end,
       diffthis = function() end,
     }
+
+    vim.cmd = setmetatable(cmd_table, {
+      __call = function(_, cmd_str)
+        if cmd_str and cmd_str:match('silent! %%bwipeout!') then
+          return
+        end
+      end,
+      __index = cmd_table,
+      __newindex = cmd_table,
+    })
     vim.keymap = {
       set = function() end,
     }

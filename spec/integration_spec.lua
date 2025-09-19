@@ -26,9 +26,13 @@ describe('cp integration', function()
       table.insert(mock_system_calls, { cmd = cmd, opts = opts })
       local result = { code = 0, stdout = '{}', stderr = '' }
 
-      if cmd[1] == 'uv' and cmd[2] == 'run' then
+      if cmd[1] == 'ping' then
+        result = { code = 0, stdout = '', stderr = '' }
+      elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
+        result = { code = 0, stdout = '', stderr = '' }
+      elseif cmd[1] == 'uv' and cmd[2] == 'run' then
         if vim.tbl_contains(cmd, 'metadata') then
-          result.stdout = '{"success": true, "problems": [{"id": "a", "name": "Problem A"}]}'
+          result.stdout = '{"success": true, "problems": [{"id": "a", "name": "Problem A"}, {"id": "b", "name": "Problem B"}]}'
         elseif vim.tbl_contains(cmd, 'tests') then
           result.stdout = '{"success": true, "tests": [{"input": "1 2", "expected": "3"}]}'
         end
@@ -61,6 +65,8 @@ describe('cp integration', function()
       fnamemodify = function(path, modifier)
         if modifier == ':e' then
           return path:match('%.([^.]+)$') or ''
+        elseif modifier == ':h:h:h' then
+          return '/test/plugin/path'
         end
         return path
       end,
