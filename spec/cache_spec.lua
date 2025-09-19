@@ -36,7 +36,7 @@ describe('cp.cache', function()
     it('stores and retrieves contest data', function()
       local problems = {
         { id = 'A', name = 'First Problem' },
-        { id = 'B', name = 'Second Problem' }
+        { id = 'B', name = 'Second Problem' },
       }
 
       cache.set_contest_data('codeforces', 'test_contest', problems)
@@ -77,7 +77,7 @@ describe('cp.cache', function()
     it('stores and retrieves test cases', function()
       local test_cases = {
         { index = 1, input = '1 2', expected = '3' },
-        { index = 2, input = '4 5', expected = '9' }
+        { index = 2, input = '4 5', expected = '9' },
       }
 
       cache.set_test_cases('atcoder', 'test_contest', 'A', test_cases)
