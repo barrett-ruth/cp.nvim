@@ -290,8 +290,8 @@ The test panel uses a three-pane layout for easy comparison: >
 
 Keymaps ~
                                                 *cp-test-keys*
-j / <Down>                      Navigate to next test case
-k / <Up>                        Navigate to previous test case
+<c-n>                           Navigate to next test case
+<c-p>                           Navigate to previous test case
 q                               Exit test panel (restore layout)
 
 Execution Details ~
