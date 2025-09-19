@@ -211,6 +211,7 @@ local function toggle_run_panel(is_debug)
   local tab_buf = create_buffer_with_options()
   local main_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(main_win, tab_buf)
+  vim.api.nvim_set_option_value('filetype', 'cptest', { buf = tab_buf })
 
   local test_windows = {
     tab_win = main_win,
@@ -256,6 +257,9 @@ local function toggle_run_panel(is_debug)
     local expected_win = vim.api.nvim_get_current_win()
     vim.api.nvim_win_set_buf(expected_win, expected_buf)
 
+    vim.api.nvim_set_option_value('filetype', 'cptest', { buf = expected_buf })
+    vim.api.nvim_set_option_value('filetype', 'cptest', { buf = actual_buf })
+
     local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
     local actual_lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
 
@@ -290,6 +294,8 @@ local function toggle_run_panel(is_debug)
     vim.cmd.split()
     local diff_win = vim.api.nvim_get_current_win()
     vim.api.nvim_win_set_buf(diff_win, diff_buf)
+
+    vim.api.nvim_set_option_value('filetype', 'cptest', { buf = diff_buf })
 
     local diff_backend = require('cp.diff')
     local backend = diff_backend.get_best_backend('git')
