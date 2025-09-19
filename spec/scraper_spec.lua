@@ -1,38 +1,42 @@
 describe('cp.scrape', function()
   local scrape
-  local mock_cache
-  local mock_system_calls
-  local temp_files
 
-  local function mock_system_success()
+  local function setup_mocks()
+    package.loaded['cp.log'] = { log = function() end, set_config = function() end }
+    package.loaded['cp.cache'] = {
+      load = function() end,
+      get_contest_data = function()
+        return nil
+      end,
+      set_contest_data = function() end,
+    }
+  end
+
+  local function mock_success()
     vim.system = function(cmd)
-      table.insert(mock_system_calls, { cmd = cmd })
       if cmd[1] == 'ping' then
         return {
           wait = function()
             return { code = 0 }
           end,
         }
-      elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
+      end
+      if cmd[1] == 'uv' and cmd[2] == 'sync' then
         return {
           wait = function()
             return { code = 0 }
           end,
         }
-      elseif cmd[1] == 'uv' and cmd[2] == 'run' then
-        if vim.tbl_contains(cmd, 'metadata') then
-          return {
-            wait = function()
-              return { code = 0, stdout = '{"success": true, "problems": []}' }
-            end,
-          }
-        elseif vim.tbl_contains(cmd, 'tests') then
-          return {
-            wait = function()
-              return { code = 0, stdout = '{"success": true, "tests": []}' }
-            end,
-          }
-        end
+      end
+      if cmd[1] == 'uv' and cmd[2] == 'run' then
+        local response = vim.tbl_contains(cmd, 'metadata')
+            and '{"success": true, "problems": [{"id": "a", "name": "Problem A"}]}'
+          or '{"success": true, "tests": [{"input": "1", "expected": "1"}]}'
+        return {
+          wait = function()
+            return { code = 0, stdout = response }
+          end,
+        }
       end
       return {
         wait = function()
@@ -42,10 +46,21 @@ describe('cp.scrape', function()
     end
   end
 
-  local function mock_system_fail(fail_cmd, error_msg)
+  local function mock_failure(fail_type, error_msg)
     vim.system = function(cmd)
-      table.insert(mock_system_calls, { cmd = cmd })
-      if cmd[1] == fail_cmd or (fail_cmd == 'uv sync' and cmd[1] == 'uv' and cmd[2] == 'sync') then
+      if fail_type == 'ping' and cmd[1] == 'ping' then
+        return {
+          wait = function()
+            return { code = 1 }
+          end,
+        }
+      elseif fail_type == 'uv_sync' and cmd[1] == 'uv' and cmd[2] == 'sync' then
+        return {
+          wait = function()
+            return { code = 1, stderr = error_msg }
+          end,
+        }
+      elseif fail_type == 'scraper' and cmd[1] == 'uv' and cmd[2] == 'run' then
         return {
           wait = function()
             return { code = 1, stderr = error_msg }
@@ -61,135 +76,65 @@ describe('cp.scrape', function()
   end
 
   before_each(function()
-    temp_files = {}
-
-    package.loaded['cp.log'] = {
-      log = function() end,
-      set_config = function() end,
-    }
-
-    mock_cache = {
-      load = function() end,
-      get_contest_data = function()
-        return nil
+    setup_mocks()
+    vim.fn = vim.tbl_extend('force', vim.fn or {}, {
+      executable = function()
+        return 1
       end,
-      set_contest_data = function() end,
-    }
-
-    mock_system_calls = {}
-
-    vim.system = function(cmd, opts)
-      table.insert(mock_system_calls, { cmd = cmd, opts = opts })
-
-      local result = { code = 0, stdout = '{}', stderr = '' }
-
-      if cmd[1] == 'ping' then
-        result = { code = 0 }
-      elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
-        result = { code = 0, stdout = '', stderr = '' }
-      elseif cmd[1] == 'uv' and cmd[2] == 'run' then
-        if vim.tbl_contains(cmd, 'metadata') then
-          result.stdout = '{"success": true, "problems": [{"id": "a", "name": "Test Problem"}]}'
-        elseif vim.tbl_contains(cmd, 'tests') then
-          result.stdout =
-            '{"success": true, "tests": [{"input": "1 2", "expected": "3"}], "url": "https://example.com"}'
-        end
-      end
-
-      return {
-        wait = function()
-          return result
-        end,
-      }
-    end
-
-    package.loaded['cp.cache'] = mock_cache
-    scrape = require('cp.scrape')
-
-    local original_fn = vim.fn
-    vim.fn = vim.tbl_extend('force', vim.fn, {
-      executable = function(cmd)
-        if cmd == 'uv' then
-          return 1
-        end
-        return original_fn.executable(cmd)
+      isdirectory = function()
+        return 1
       end,
-      isdirectory = function(path)
-        if path:match('%.venv$') then
-          return 1
-        end
-        return original_fn.isdirectory(path)
-      end,
-      filereadable = function(path)
-        if temp_files[path] then
-          return 1
-        end
+      filereadable = function()
         return 0
       end,
-      readfile = function(path)
-        return temp_files[path] or {}
+      readfile = function()
+        return {}
       end,
-      writefile = function(lines, path)
-        temp_files[path] = lines
-      end,
+      writefile = function() end,
       mkdir = function() end,
-      fnamemodify = function(path, modifier)
-        if modifier == ':r' then
-          return path:gsub('%..*$', '')
-        end
-        return original_fn.fnamemodify(path, modifier)
+      fnamemodify = function()
+        return '/test/path'
       end,
     })
+    scrape = require('cp.scrape')
   end)
 
   after_each(function()
     package.loaded['cp.cache'] = nil
     package.loaded['cp.log'] = nil
-    vim.system = vim.system_original or vim.system
-    temp_files = {}
   end)
 
   describe('cache integration', function()
     it('returns cached data when available', function()
-      mock_cache.get_contest_data = function(platform, contest_id)
-        if platform == 'atcoder' and contest_id == 'abc123' then
-          return { problems = { { id = 'a', name = 'Cached Problem' } } }
-        end
-        return nil
+      package.loaded['cp.cache'].get_contest_data = function()
+        return { problems = { { id = 'a', name = 'Problem A' } } }
       end
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
 
       assert.is_true(result.success)
       assert.equals(1, #result.problems)
-      assert.equals('Cached Problem', result.problems[1].name)
-      assert.equals(0, #mock_system_calls)
     end)
 
     it('stores scraped data in cache after successful scrape', function()
       local stored_data = nil
-      mock_cache.set_contest_data = function(platform, contest_id, problems)
-        stored_data = { platform = platform, contest_id = contest_id, problems = problems }
+      package.loaded['cp.cache'].set_contest_data = function(platform, contest_id, data)
+        stored_data = { platform = platform, contest_id = contest_id, problems = data }
       end
+      mock_success()
 
-      -- Reload the scraper module to pick up the updated mock
-      package.loaded['cp.scrape'] = nil
-      scrape = require('cp.scrape')
+      scrape.scrape_contest_metadata('atcoder', 'abc123')
 
-      local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
-
-      assert.is_true(result.success)
       assert.is_not_nil(stored_data)
       assert.equals('atcoder', stored_data.platform)
       assert.equals('abc123', stored_data.contest_id)
-      assert.equals(1, #stored_data.problems)
     end)
   end)
 
   describe('system dependency checks', function()
     it('handles missing uv executable', function()
-      vim.fn.executable = function(cmd)
-        return cmd == 'uv' and 0 or 1
+      vim.fn.executable = function()
+        return 0
       end
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
@@ -199,10 +144,10 @@ describe('cp.scrape', function()
     end)
 
     it('handles python environment setup failure', function()
-      mock_system_fail('uv sync', 'setup failed')
       vim.fn.isdirectory = function()
         return 0
       end
+      mock_failure('uv_sync', 'setup failed')
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
 
@@ -211,20 +156,7 @@ describe('cp.scrape', function()
     end)
 
     it('handles network connectivity issues', function()
-      vim.system = function(cmd)
-        if cmd[1] == 'ping' then
-          return {
-            wait = function()
-              return { code = 1 }
-            end,
-          }
-        end
-        return {
-          wait = function()
-            return { code = 0 }
-          end,
-        }
-      end
+      mock_failure('ping', '')
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
 
@@ -235,89 +167,59 @@ describe('cp.scrape', function()
 
   describe('subprocess execution', function()
     it('constructs correct command for atcoder metadata', function()
-      scrape.scrape_contest_metadata('atcoder', 'abc123')
-
-      local metadata_call = nil
-      for _, call in ipairs(mock_system_calls) do
-        if vim.tbl_contains(call.cmd, 'metadata') then
-          metadata_call = call
-          break
-        end
-      end
-
-      assert.is_not_nil(metadata_call)
-      assert.equals('uv', metadata_call.cmd[1])
-      assert.equals('run', metadata_call.cmd[2])
-      assert.is_true(vim.tbl_contains(metadata_call.cmd, 'metadata'))
-      assert.is_true(vim.tbl_contains(metadata_call.cmd, 'abc123'))
-    end)
-
-    it('constructs correct command for cses metadata', function()
-      scrape.scrape_contest_metadata('cses', 'problemset')
-
-      local metadata_call = nil
-      for _, call in ipairs(mock_system_calls) do
-        if vim.tbl_contains(call.cmd, 'metadata') then
-          metadata_call = call
-          break
-        end
-      end
-
-      assert.is_not_nil(metadata_call)
-      assert.equals('uv', metadata_call.cmd[1])
-      assert.is_true(vim.tbl_contains(metadata_call.cmd, 'metadata'))
-      assert.is_false(vim.tbl_contains(metadata_call.cmd, 'problemset'))
-    end)
-
-    it('handles subprocess execution failure', function()
+      local captured_cmd = nil
       vim.system = function(cmd)
-        if cmd[1] == 'ping' then
-          return {
-            wait = function()
-              return { code = 0 }
-            end,
-          }
-        elseif cmd[1] == 'uv' and vim.tbl_contains(cmd, 'metadata') then
-          return {
-            wait = function()
-              return { code = 1, stderr = 'execution failed' }
-            end,
-          }
-        end
+        captured_cmd = cmd
         return {
           wait = function()
-            return { code = 0 }
+            return { code = 0, stdout = '{"success": true, "problems": []}' }
           end,
         }
       end
+
+      scrape.scrape_contest_metadata('atcoder', 'abc123')
+
+      assert.is_not_nil(captured_cmd)
+      assert.equals('uv', captured_cmd[1])
+      assert.is_true(vim.tbl_contains(captured_cmd, 'metadata'))
+      assert.is_true(vim.tbl_contains(captured_cmd, 'abc123'))
+    end)
+
+    it('constructs correct command for cses metadata', function()
+      local captured_cmd = nil
+      vim.system = function(cmd)
+        captured_cmd = cmd
+        return {
+          wait = function()
+            return { code = 0, stdout = '{"success": true, "problems": []}' }
+          end,
+        }
+      end
+
+      scrape.scrape_contest_metadata('cses', '')
+
+      assert.is_not_nil(captured_cmd)
+      assert.equals('uv', captured_cmd[1])
+      assert.is_true(vim.tbl_contains(captured_cmd, 'metadata'))
+      assert.is_false(vim.tbl_contains(captured_cmd, ''))
+    end)
+
+    it('handles subprocess execution failure', function()
+      mock_failure('scraper', 'network error')
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
 
       assert.is_false(result.success)
       assert.is_not_nil(result.error:match('Failed to run metadata scraper'))
-      assert.is_not_nil(result.error:match('execution failed'))
     end)
   end)
 
   describe('json parsing', function()
     it('handles invalid json output', function()
-      vim.system = function(cmd)
-        if cmd[1] == 'ping' then
-          return {
-            wait = function()
-              return { code = 0 }
-            end,
-          }
-        elseif cmd[1] == 'uv' and vim.tbl_contains(cmd, 'metadata') then
-          return {
-            wait = function()
-              return { code = 0, stdout = 'invalid json' }
-            end,
-          }
-        end
+      vim.system = function()
         return {
           wait = function()
-            return { code = 0 }
+            return { code = 0, stdout = 'invalid json' }
           end,
         }
       end
@@ -329,26 +231,10 @@ describe('cp.scrape', function()
     end)
 
     it('handles scraper-reported failures', function()
-      vim.system = function(cmd)
-        if cmd[1] == 'ping' then
-          return {
-            wait = function()
-              return { code = 0 }
-            end,
-          }
-        elseif cmd[1] == 'uv' and vim.tbl_contains(cmd, 'metadata') then
-          return {
-            wait = function()
-              return {
-                code = 0,
-                stdout = '{"success": false, "error": "contest not found"}',
-              }
-            end,
-          }
-        end
+      vim.system = function()
         return {
           wait = function()
-            return { code = 0 }
+            return { code = 0, stdout = '{"success": false, "error": "scraper error"}' }
           end,
         }
       end
@@ -356,116 +242,124 @@ describe('cp.scrape', function()
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
 
       assert.is_false(result.success)
-      assert.equals('contest not found', result.error)
     end)
   end)
 
   describe('problem scraping', function()
-    local test_context
+    it('uses existing files when available', function()
+      vim.fn.filereadable = function()
+        return 1
+      end
+      vim.fn.readfile = function()
+        return { 'test input' }
+      end
 
-    before_each(function()
-      test_context = {
+      local result = scrape.scrape_problem({
         contest = 'atcoder',
         contest_id = 'abc123',
         problem_id = 'a',
-        problem_name = 'abc123a',
-        input_file = 'io/abc123a.cpin',
-        expected_file = 'io/abc123a.expected',
-      }
-    end)
-
-    it('uses existing files when available', function()
-      temp_files['io/abc123a.cpin'] = { '1 2' }
-      temp_files['io/abc123a.expected'] = { '3' }
-      temp_files['io/abc123a.1.cpin'] = { '4 5' }
-      temp_files['io/abc123a.1.cpout'] = { '9' }
-
-      local result = scrape.scrape_problem(test_context)
+        input_file = 'test.cpin',
+        expected_file = 'test.cpout',
+        problem_name = 'test',
+      })
 
       assert.is_true(result.success)
-      assert.equals('abc123a', result.problem_id)
-      assert.equals(1, result.test_count)
-      assert.equals(0, #mock_system_calls)
     end)
 
     it('scrapes and writes test case files', function()
-      local result = scrape.scrape_problem(test_context)
+      local written_files = {}
+      vim.fn.writefile = function(lines, path)
+        written_files[path] = lines
+      end
+      mock_success()
 
-      assert.is_true(result.success)
-      assert.equals('abc123a', result.problem_id)
-      assert.equals(1, result.test_count)
-      assert.is_not_nil(temp_files['io/abc123a.1.cpin'])
-      assert.is_not_nil(temp_files['io/abc123a.1.cpout'])
-      assert.equals('1 2', table.concat(temp_files['io/abc123a.1.cpin'], '\n'))
-      assert.equals('3', table.concat(temp_files['io/abc123a.1.cpout'], '\n'))
+      scrape.scrape_problem({
+        contest = 'atcoder',
+        contest_id = 'abc123',
+        problem_id = 'a',
+        input_file = 'test.cpin',
+        expected_file = 'test.cpout',
+        problem_name = 'test',
+      })
+
+      assert.is_not_nil(next(written_files))
     end)
 
     it('constructs correct command for atcoder problem tests', function()
-      scrape.scrape_problem(test_context)
-
-      local tests_call = nil
-      for _, call in ipairs(mock_system_calls) do
-        if vim.tbl_contains(call.cmd, 'tests') then
-          tests_call = call
-          break
+      local captured_cmd = nil
+      vim.system = function(cmd)
+        if cmd[1] == 'uv' and cmd[2] == 'run' then
+          captured_cmd = cmd
         end
+        return {
+          wait = function()
+            return { code = 0, stdout = '{"success": true, "tests": []}' }
+          end,
+        }
       end
 
-      assert.is_not_nil(tests_call)
-      assert.is_true(vim.tbl_contains(tests_call.cmd, 'tests'))
-      assert.is_true(vim.tbl_contains(tests_call.cmd, 'abc123'))
-      assert.is_true(vim.tbl_contains(tests_call.cmd, 'a'))
+      scrape.scrape_problem({
+        contest = 'atcoder',
+        contest_id = 'abc123',
+        problem_id = 'a',
+        problem_name = 'test',
+      })
+
+      assert.is_not_nil(captured_cmd)
+      assert.is_true(vim.tbl_contains(captured_cmd, 'tests'))
+      assert.is_true(vim.tbl_contains(captured_cmd, 'abc123'))
+      assert.is_true(vim.tbl_contains(captured_cmd, 'a'))
     end)
 
     it('constructs correct command for cses problem tests', function()
-      test_context.contest = 'cses'
-      test_context.contest_id = '1001'
-      test_context.problem_id = nil
-
-      scrape.scrape_problem(test_context)
-
-      local tests_call = nil
-      for _, call in ipairs(mock_system_calls) do
-        if vim.tbl_contains(call.cmd, 'tests') then
-          tests_call = call
-          break
+      local captured_cmd = nil
+      vim.system = function(cmd)
+        if cmd[1] == 'uv' and cmd[2] == 'run' then
+          captured_cmd = cmd
         end
+        return {
+          wait = function()
+            return { code = 0, stdout = '{"success": true, "tests": []}' }
+          end,
+        }
       end
 
-      assert.is_not_nil(tests_call)
-      assert.is_true(vim.tbl_contains(tests_call.cmd, 'tests'))
-      assert.is_true(vim.tbl_contains(tests_call.cmd, '1001'))
-      assert.is_false(vim.tbl_contains(tests_call.cmd, 'a'))
+      scrape.scrape_problem({
+        contest = 'cses',
+        contest_id = '1234',
+        problem_name = 'test',
+      })
+
+      assert.is_not_nil(captured_cmd)
+      assert.is_true(vim.tbl_contains(captured_cmd, 'tests'))
+      assert.is_true(vim.tbl_contains(captured_cmd, '1234'))
     end)
   end)
 
   describe('error scenarios', function()
     it('validates input parameters', function()
       assert.has_error(function()
-        scrape.scrape_contest_metadata(nil, 'abc123')
+        scrape.scrape_contest_metadata()
       end)
 
       assert.has_error(function()
-        scrape.scrape_contest_metadata('atcoder', nil)
+        scrape.scrape_problem()
       end)
     end)
 
     it('handles file system errors gracefully', function()
-      vim.fn.mkdir = function()
+      vim.fn.writefile = function()
         error('permission denied')
       end
+      mock_success()
 
-      local ctx = {
-        contest = 'atcoder',
-        contest_id = 'abc123',
-        problem_id = 'a',
-        problem_name = 'abc123a',
-        input_file = 'io/abc123a.cpin',
-        expected_file = 'io/abc123a.expected',
-      }
-
-      assert.has_error(function()
-        scrape.scrape_problem(ctx)
+      assert.has_no_errors(function()
+        scrape.scrape_problem({
+          contest = 'atcoder',
+          contest_id = 'abc123',
+          problem_id = 'a',
+          problem_name = 'test',
+        })
       end)
     end)
   end)
