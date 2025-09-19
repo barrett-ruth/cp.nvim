@@ -72,10 +72,16 @@ describe('cp test panel', function()
     package.loaded['cp.test'] = mock_test_module
 
     mock_problem_module = {
-      create_context = function()
+      create_context = function(contest, contest_id, problem_id, config, language)
         return {
+          contest = contest or 'atcoder',
+          contest_id = contest_id or 'abc123',
+          problem_id = problem_id or 'a',
           source_file = 'test.cpp',
           binary_file = 'build/test.run',
+          input_file = 'io/test.cpin',
+          output_file = 'io/test.cpout',
+          expected_file = 'io/test.expected',
           problem_name = 'test',
         }
       end,
