@@ -35,6 +35,7 @@
 ---@field diff_mode "vim"|"git" Diff backend to use
 ---@field next_test_key string Key to navigate to next test case
 ---@field prev_test_key string Key to navigate to previous test case
+---@field toggle_diff_key string Key to toggle diff mode
 
 ---@class DiffGitConfig
 ---@field command string Git executable name
@@ -82,6 +83,7 @@ M.defaults = {
     diff_mode = 'vim',
     next_test_key = '<c-n>',
     prev_test_key = '<c-p>',
+    toggle_diff_key = 't',
   },
   diff = {
     git = {
@@ -152,6 +154,13 @@ function M.setup(user_config)
             return type(value) == 'string' and value ~= ''
           end,
           'prev_test_key must be a non-empty string',
+        },
+        toggle_diff_key = {
+          user_config.run_panel.toggle_diff_key,
+          function(value)
+            return type(value) == 'string' and value ~= ''
+          end,
+          'toggle_diff_key must be a non-empty string',
         },
       })
     end

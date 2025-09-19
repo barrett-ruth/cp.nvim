@@ -67,7 +67,7 @@ CONFIGURATION                                       *cp-config*
 
 cp.nvim works out of the box. No setup required.
 
-Optional configuration with lazy.nvim: >
+Here's an example configuration with lazy.nvim: >
     {
         'barrett-ruth/cp.nvim',
         cmd = 'CP',
@@ -75,7 +75,7 @@ Optional configuration with lazy.nvim: >
           debug = false,
           scrapers = {
             atcoder = true,
-            codeforces = false,  -- disable codeforces scraping
+            codeforces = false,
             cses = true,
           },
           contests = {
@@ -113,9 +113,10 @@ Optional configuration with lazy.nvim: >
             end,
           },
           run_panel = {
-            diff_mode = "vim",         -- "vim" or "git"
-            next_test_key = "<c-n>",   -- navigate to next test case
-            prev_test_key = "<c-p>",   -- navigate to previous test case
+            diff_mode = "vim",
+            next_test_key = "<c-n>",
+            prev_test_key = "<c-p>",
+            toggle_diff_key = "t",
           },
           diff = {
             git = {
@@ -175,6 +176,7 @@ Optional configuration with lazy.nvim: >
                         Git provides character-level precision, vim uses built-in diff.
       • {next_test_key} (`string`, default: `"<c-n>"`) Key to navigate to next test case.
       • {prev_test_key} (`string`, default: `"<c-p>"`) Key to navigate to previous test case.
+      • {toggle_diff_key} (`string`, default: `"t"`) Key to toggle diff mode between vim and git.
 
 *cp.DiffConfig*
 
@@ -271,15 +273,19 @@ Example: Setting up and solving AtCoder contest ABC324
 
 3. Start with problem A: >
     :CP a
+
+   Or do both at once with:
+    :CP atcoder abc324 a
+
 <   This creates a.cc and scrapes test cases
 
 4. Code your solution, then test: >
-    :CP test
+    :CP run
 <   Navigate with j/k, run specific tests with <enter>
-    Exit test panel with q or :CP test when done
+    Exit test panel with q or :CP run when done
 
 5. If needed, debug with sanitizers: >
-    :CP test --debug
+    :CP run --debug
 <
 6. Move to next problem: >
     :CP next
@@ -287,10 +293,6 @@ Example: Setting up and solving AtCoder contest ABC324
 
 6. Continue solving problems with :CP next/:CP prev navigation
 7. Submit solutions on AtCoder website
-
-Example: Quick setup for single Codeforces problem >
-    :CP codeforces 1933 a       " One command setup
-    :CP test                    " Test immediately
 <
 
 RUN PANEL                                          *cp-run*
@@ -310,19 +312,21 @@ Activation ~
 
 Interface ~
 
-The run panel uses a redesigned two-pane layout for efficient comparison:
+The run panel uses a professional table layout with precise column alignment:
 (note that the diff is indeed highlighted, not the weird amalgamation of
 characters below) >
 
-    ┌─ Tests ─────────────────────┐ ┌─ Expected vs Actual ───────────────────────┐
-    │ AC  1. 12ms                 │ │                             45ms │ Exit: 0 │
-    │ WA  > 2. 45ms               │ ├────────────────────────────────────────────┤
-    │     5 3                     │ │                                            │
-    │                             │ │ 4[-2-]{+3+}                                │
-    │ AC  3. 9ms                  │ │ 100                                        │
-    │ RTE 4. 0ms                  │ │ hello w[-o-]r{+o+}ld                       │
-    │                             │ │                                            │
-    └─────────────────────────────┘ └────────────────────────────────────────────┘
+    ┌──────┬────────┬────────┬───────────┐ ┌─ Expected vs Actual ──────────────────┐
+    │  #   │ Status │  Time  │ Exit Code │ │ 45.70ms │ Exit: 0                    │
+    ├──────┼────────┼────────┼───────────┤ ├────────────────────────────────────────┤
+    │  1   │   AC   │12.00ms │     0     │ │                                        │
+    │ >2   │   WA   │45.70ms │     1     │ │ 4[-2-]{+3+}                           │
+    ├──────┴────────┴────────┴───────────┤ │ 100                                    │
+    │5 3                                 │ │ hello w[-o-]r{+o+}ld                   │
+    ├──────┬────────┬────────┬───────────┤ │                                        │
+    │  3   │   AC   │ 9.00ms │     0     │ └────────────────────────────────────────┘
+    │  4   │   RTE  │ 0.00ms │139 (SIGUSR2)│
+    └──────┴────────┴────────┴───────────┘
 <
 
 Status Indicators ~
@@ -338,7 +342,8 @@ Keymaps ~
                                                 *cp-test-keys*
 <c-n>                           Navigate to next test case (configurable via run_panel.next_test_key)
 <c-p>                           Navigate to previous test case (configurable via run_panel.prev_test_key)
-q                               Exit test panel (restore layout)
+t                               Toggle diff mode between vim and git (configurable via run_panel.toggle_diff_key)
+q                               Exit test panel and restore layout
 
 Diff Modes ~
 
@@ -365,8 +370,8 @@ cp.nvim creates the following file structure upon problem setup:
     build/
       {problem_id}.run              " Compiled binary
     io/
-      {problem_id}.cpin             " Test input
-      {problem_id}.cpout            " Program output
+      {problem_id}.n.cpin           " nth test input
+      {problem_id}.n.cpout          " nth program output
       {problem_id}.expected         " Expected output
 
 The plugin automatically manages this structure and navigation between problems
@@ -377,8 +382,9 @@ SNIPPETS                                        *cp-snippets*
 cp.nvim integrates with LuaSnip for automatic template expansion. Built-in
 snippets include basic C++ and Python templates for each contest type.
 
-Snippet trigger names must EXACTLY match platform names ("codeforces" for
-CodeForces, "cses" for CSES, etc.).
+Snippet trigger names must match the following format exactly:
+
+    cp.nvim/{platform}
 
 Custom snippets can be added via the `snippets` configuration field.
 
