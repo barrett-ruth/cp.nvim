@@ -225,6 +225,9 @@ local function toggle_test_panel(is_debug)
     actual_buf = actual_buf,
   }
 
+  local highlight = require('cp.highlight')
+  local diff_namespace = highlight.create_namespace()
+
   local function render_test_tabs()
     local test_render = require('cp.test_render')
     test_render.setup_highlights()
@@ -250,6 +253,15 @@ local function toggle_test_panel(is_debug)
     local expected_lines = vim.split(expected_text, '\n', { plain = true, trimempty = true })
 
     update_buffer_content(test_buffers.expected_buf, expected_lines)
+
+    local diff_backend = require('cp.diff')
+    local backend = diff_backend.get_best_backend(config.test_panel.diff_mode)
+
+    if backend.name == 'vim' and current_test.status == 'fail' then
+      vim.api.nvim_set_option_value('diff', true, { win = test_windows.expected_win })
+    else
+      vim.api.nvim_set_option_value('diff', false, { win = test_windows.expected_win })
+    end
   end
 
   local function update_actual_pane()
@@ -270,24 +282,38 @@ local function toggle_test_panel(is_debug)
       actual_lines = { '(not run yet)' }
     end
 
-    update_buffer_content(test_buffers.actual_buf, actual_lines)
-
     local test_render = require('cp.test_render')
     local status_bar_text = test_render.render_status_bar(current_test)
     if status_bar_text ~= '' then
       vim.api.nvim_set_option_value('winbar', status_bar_text, { win = test_windows.actual_win })
     end
 
-    vim.api.nvim_set_option_value('diff', enable_diff, { win = test_windows.expected_win })
-    vim.api.nvim_set_option_value('diff', enable_diff, { win = test_windows.actual_win })
-
     if enable_diff then
-      vim.api.nvim_win_call(test_windows.expected_win, function()
-        vim.cmd.diffthis()
-      end)
-      vim.api.nvim_win_call(test_windows.actual_win, function()
-        vim.cmd.diffthis()
-      end)
+      local diff_backend = require('cp.diff')
+      local backend = diff_backend.get_best_backend(config.test_panel.diff_mode)
+
+      if backend.name == 'git' then
+        local diff_result = backend.render(current_test.expected, current_test.actual)
+        if diff_result.raw_diff and diff_result.raw_diff ~= '' then
+          highlight.parse_and_apply_diff(test_buffers.actual_buf, diff_result.raw_diff, diff_namespace)
+        else
+          update_buffer_content(test_buffers.actual_buf, actual_lines)
+        end
+      else
+        update_buffer_content(test_buffers.actual_buf, actual_lines)
+        vim.api.nvim_set_option_value('diff', true, { win = test_windows.expected_win })
+        vim.api.nvim_set_option_value('diff', true, { win = test_windows.actual_win })
+        vim.api.nvim_win_call(test_windows.expected_win, function()
+          vim.cmd.diffthis()
+        end)
+        vim.api.nvim_win_call(test_windows.actual_win, function()
+          vim.cmd.diffthis()
+        end)
+      end
+    else
+      update_buffer_content(test_buffers.actual_buf, actual_lines)
+      vim.api.nvim_set_option_value('diff', false, { win = test_windows.expected_win })
+      vim.api.nvim_set_option_value('diff', false, { win = test_windows.actual_win })
     end
   end
 

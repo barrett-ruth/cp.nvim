@@ -50,8 +50,8 @@ Setup Commands ~
 Action Commands ~
 
 :CP test [--debug]              Toggle test panel for individual test case
-                                debugging. Shows per-test results with three-pane
-                                layout for easy Expected/Actual comparison.
+                                debugging. Shows per-test results with redesigned
+                                layout for efficient comparison.
                                 Use --debug flag to compile with debug flags
                                 Requires contest setup first.
 
@@ -115,6 +115,21 @@ Optional configuration with lazy.nvim: >
               vim.diagnostic.enable(false)
             end,
           },
+          test_panel = {
+            diff_mode = "vim",        -- "vim" or "git"
+            toggle_key = "t",         -- key to toggle test panel
+            status_format = "compact", -- "compact" or "verbose"
+          },
+          diff = {
+            git = {
+              command = "git",
+              args = {"diff", "--no-index", "--word-diff=plain",
+                     "--word-diff-regex=.", "--no-prefix"},
+            },
+            vim = {
+              enable_diffthis = true,
+            },
+          },
           snippets = { ... },  -- LuaSnip snippets
           filename = function(contest, contest_id, problem_id, config, language) ... end,
         }
@@ -131,6 +146,8 @@ Optional configuration with lazy.nvim: >
                         during operation.
       • {scrapers}      (`table<string,boolean>`) Per-platform scraper control.
                          Default enables all platforms.
+      • {test_panel}    (`TestPanelConfig`) Test panel behavior configuration.
+      • {diff}          (`DiffConfig`) Diff backend configuration.
       • {filename}?     (`function`) Custom filename generation function.
                         `function(contest, contest_id, problem_id, config, language)`
                         Should return full filename with extension.
@@ -156,6 +173,20 @@ Optional configuration with lazy.nvim: >
       • {version}?      (`number`) Language version (e.g. 20, 23 for C++).
       • {extension}     (`string`) File extension (e.g. "cc", "py").
       • {executable}?   (`string`) Executable name for interpreted languages.
+
+*cp.TestPanelConfig*
+
+    Fields: ~
+      • {diff_mode}     (`string`, default: `"vim"`) Diff backend: "vim" or "git".
+                        Git provides character-level precision, vim uses built-in diff.
+      • {toggle_key}    (`string`, default: `"t"`) Key to toggle test panel.
+      • {status_format} (`string`, default: `"compact"`) Status display format.
+
+*cp.DiffConfig*
+
+    Fields: ~
+      • {git}           (`DiffGitConfig`) Git diff backend configuration.
+      • {vim}           (`DiffVimConfig`) Vim diff backend configuration.
 
 *cp.Hooks*
 
@@ -256,8 +287,9 @@ Example: Quick setup for single Codeforces problem >
 
 TEST PANEL                                          *cp-test*
 
-The test panel provides individual test case debugging with a three-pane
-layout showing test list, expected output, and actual output side-by-side.
+The test panel provides individual test case debugging with a streamlined
+layout optimized for modern screens. Shows test status with competitive
+programming terminology and efficient space usage.
 
 Activation ~
                                                       *:CP-test*
@@ -270,29 +302,46 @@ Activation ~
 
 Interface ~
 
-The test panel uses a three-pane layout for easy comparison: >
+The test panel uses a redesigned two-pane layout for efficient comparison:
+(note that the diff is indeed highlighted, not the weird amalgamation of
+characters below) >
 
-    ┌─────────────────────────────────────────────────────────────┐
-    │  1. [ok:true ] [code:0] [time:12ms]                         │
-    │> 2. [ok:false] [code:0] [time:45ms]                         │
-    │                                                             │
-    │ Input:                                                      │
-    │ 5 3                                                         │
-    │                                                             │
-    └─────────────────────────────────────────────────────────────┘
-    ┌─ Expected ──────────────────┐ ┌───── Actual ────────────────┐
-    │ 8                           │ │ 7                           │
-    │                             │ │                             │
-    │                             │ │                             │
-    │                             │ │                             │
-    └─────────────────────────────┘ └─────────────────────────────┘
+    ┌─ Tests ─────────────────────┐ ┌─ Expected vs Actual ───────────────────────┐
+    │ AC  1. 12ms                 │ │                             45ms │ Exit: 0 │
+    │ WA  > 2. 45ms               │ ├────────────────────────────────────────────┤
+    │     5 3                     │ │                                            │
+    │                             │ │ 4[-2-]{+3+}                                │
+    │ AC  3. 9ms                  │ │ 100                                        │
+    │ RTE 4. 0ms                  │ │ hello w[-o-]r{+o+}ld                       │
+    │                             │ │                                            │
+    └─────────────────────────────┘ └────────────────────────────────────────────┘
 <
+
+Status Indicators ~
+
+Test cases use competitive programming terminology:
+
+    AC      Accepted (passed)
+    WA      Wrong Answer (output mismatch)
+    TLE     Time Limit Exceeded (timeout)
+    RTE     Runtime Error (non-zero exit)
 
 Keymaps ~
                                                 *cp-test-keys*
 <c-n>                           Navigate to next test case
 <c-p>                           Navigate to previous test case
 q                               Exit test panel (restore layout)
+t                               Toggle test panel (configurable via test_panel.toggle_key)
+
+Diff Modes ~
+
+Two diff backends are available:
+
+    vim     Built-in vim diff (default, always available)
+    git     Character-level git word-diff (requires git, more precise)
+
+The git backend shows character-level changes with [-removed-] and {+added+}
+markers for precise difference analysis.
 
 Execution Details ~
 

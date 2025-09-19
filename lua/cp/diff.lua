@@ -48,42 +48,16 @@ local git_backend = {
     vim.fn.delete(tmp_actual)
 
     if result.code == 0 then
-      -- No differences, return actual content as-is
       return {
         content = vim.split(actual, '\n', { plain = true, trimempty = true }),
         highlights = {}
       }
     else
-      -- Parse git diff output
-      local lines = vim.split(result.stdout or '', '\n', { plain = true })
-      local content_lines = {}
-      local highlights = {}
-
-      -- Skip git diff header lines (start with @@, +++, ---, etc.)
-      local content_started = false
-      for _, line in ipairs(lines) do
-        if content_started or (not line:match('^@@') and not line:match('^%+%+%+') and not line:match('^%-%-%-') and not line:match('^index')) then
-          content_started = true
-          if line:match('^[^%-+]') or line:match('^%+') then
-            -- Skip lines starting with - (removed lines) for the actual pane
-            -- Only show lines that are unchanged or added
-            if not line:match('^%-') then
-              local clean_line = line:gsub('^%+', '') -- Remove + prefix
-              table.insert(content_lines, clean_line)
-
-              -- Parse highlights will be handled in highlight.lua
-              table.insert(highlights, {
-                line = #content_lines,
-                content = clean_line
-              })
-            end
-          end
-        end
-      end
-
+      local highlight_module = require('cp.highlight')
       return {
-        content = content_lines,
-        highlights = highlights
+        content = {},
+        highlights = {},
+        raw_diff = result.stdout or ''
       }
     end
   end
@@ -122,18 +96,12 @@ end
 function M.get_best_backend(preferred_backend)
   if preferred_backend and backends[preferred_backend] then
     if preferred_backend == 'git' and not M.is_git_available() then
-      -- Fall back to vim if git is not available
       return backends.vim
     end
     return backends[preferred_backend]
   end
 
-  -- Default to git if available, otherwise vim
-  if M.is_git_available() then
-    return backends.git
-  else
-    return backends.vim
-  end
+  return backends.vim
 end
 
 ---Render diff using specified backend
