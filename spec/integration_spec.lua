@@ -29,7 +29,7 @@ describe('cp integration', function()
       if cmd[1] == 'ping' then
         result = { code = 0, stdout = '', stderr = '' }
       elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
-        result = { code = 0, stdout = '', stderr = '' }
+        result = { code = 0, stdout = 'Dependencies synced', stderr = '' }
       elseif cmd[1] == 'uv' and cmd[2] == 'run' then
         if vim.tbl_contains(cmd, 'metadata') then
           result.stdout =
@@ -88,20 +88,33 @@ describe('cp integration', function()
       nvim_input = function() end,
     })
 
-    vim.cmd = function(cmd_str)
-      if cmd_str == 'silent only' then
-        return
-      end
-      if cmd_str:match('^e ') then
-        return
-      end
-      if cmd_str == 'startinsert' then
-        return
-      end
-      if cmd_str == 'stopinsert' then
-        return
-      end
-    end
+    local cmd_table = {
+      split = function() end,
+      vsplit = function() end,
+      diffthis = function() end,
+      e = function() end,
+      startinsert = function() end,
+      stopinsert = function() end,
+    }
+
+    vim.cmd = setmetatable(cmd_table, {
+      __call = function(_, cmd_str)
+        if cmd_str == 'silent only' then
+          return
+        end
+        if cmd_str:match('^e ') then
+          return
+        end
+        if cmd_str == 'startinsert' then
+          return
+        end
+        if cmd_str == 'stopinsert' then
+          return
+        end
+      end,
+      __index = cmd_table,
+      __newindex = cmd_table,
+    })
 
     vim.schedule = function(fn)
       fn()

@@ -29,6 +29,10 @@ describe('cp test panel', function()
         return nil
       end,
       set_test_cases = function() end,
+      get_contest_data = function()
+        return nil
+      end,
+      set_contest_data = function() end,
     }
     package.loaded['cp.cache'] = mock_cache
 
