@@ -103,7 +103,7 @@ describe('cp.diff', function()
       local mock_delete = stub(vim.fn, 'delete')
 
       mock_tempname.returns('/tmp/expected', '/tmp/actual')
-      mock_system.returns({ code = 1, stdout = 'diff output' })
+      mock_system.returns({ wait = function() return { code = 1, stdout = 'diff output' } end })
 
       local backend = diff.get_backend('git')
       backend.render('expected text', 'actual text')
@@ -124,7 +124,7 @@ describe('cp.diff', function()
       local mock_delete = stub(vim.fn, 'delete')
 
       mock_tempname.returns('/tmp/expected', '/tmp/actual')
-      mock_system.returns({ code = 1, stdout = 'git diff output' })
+      mock_system.returns({ wait = function() return { code = 1, stdout = 'git diff output' } end })
 
       local backend = diff.get_backend('git')
       local result = backend.render('expected', 'actual')
@@ -144,7 +144,7 @@ describe('cp.diff', function()
       local mock_delete = stub(vim.fn, 'delete')
 
       mock_tempname.returns('/tmp/expected', '/tmp/actual')
-      mock_system.returns({ code = 0 })
+      mock_system.returns({ wait = function() return { code = 0 } end })
 
       local backend = diff.get_backend('git')
       local result = backend.render('same', 'same')
@@ -161,17 +161,17 @@ describe('cp.diff', function()
 
   describe('render_diff', function()
     it('uses best available backend', function()
-      local mock_get_best = spy.on(diff, 'get_best_backend')
       local mock_backend = {
         render = function()
           return {}
         end,
       }
+      local mock_get_best = stub(diff, 'get_best_backend')
       mock_get_best.returns(mock_backend)
 
       diff.render_diff('expected', 'actual', 'vim')
 
-      assert.spy(mock_get_best).was_called_with('vim')
+      assert.stub(mock_get_best).was_called_with('vim')
       mock_get_best:revert()
     end)
   end)
