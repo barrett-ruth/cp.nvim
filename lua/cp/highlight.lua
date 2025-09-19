@@ -14,7 +14,6 @@ local M = {}
 ---@param text string Raw git diff output line
 ---@return string cleaned_text, DiffHighlight[]
 local function parse_diff_line(text)
-  local highlights = {}
   local cleaned_text = text
   local offset = 0
 
@@ -22,12 +21,7 @@ local function parse_diff_line(text)
   for removed_text in text:gmatch('%[%-(.-)%-%]') do
     local start_pos = text:find('%[%-' .. vim.pesc(removed_text) .. '%-%]', 1, false)
     if start_pos then
-      -- Remove the marker and adjust positions
-      local marker_len = #'[-%-%]' + #removed_text
       cleaned_text = cleaned_text:gsub('%[%-' .. vim.pesc(removed_text) .. '%-%]', '', 1)
-
-      -- Since we're removing text, we don't add highlights for removed content in the actual pane
-      -- This is handled by showing removed content in the expected pane
     end
   end
 
@@ -52,9 +46,8 @@ local function parse_diff_line(text)
       })
 
       -- Remove the marker
-      local marker_len = #{ '{+' } + #{ '+}' } + #added_text
       final_text = final_text:gsub('{%+' .. vim.pesc(added_text) .. '%+}', added_text, 1)
-      offset = offset + #{ '{+' } + #{ '+}' }
+      offset = offset + 4 -- Length of {+ and +}
     end
   end
 
@@ -99,9 +92,7 @@ function M.parse_git_diff(diff_output)
           highlight.line = line_num - 1 -- 0-based for extmarks
           table.insert(all_highlights, highlight)
         end
-      elseif line:match('^%-') then
-        -- Removed line - we handle this in the expected pane, skip for actual
-      elseif not line:match('^\\') then -- Skip "\ No newline" messages
+      elseif not line:match('^%-') and not line:match('^\\') then -- Skip removed lines and "\ No newline" messages
         -- Unchanged line
         local parsed_line, line_highlights = parse_diff_line(line)
         table.insert(content_lines, parsed_line)

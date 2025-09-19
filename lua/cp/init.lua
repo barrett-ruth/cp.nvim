@@ -192,7 +192,6 @@ local function toggle_test_panel(is_debug)
   local actual_buf = vim.api.nvim_create_buf(false, true)
 
   -- Set buffer options
-  local buffer_opts = { 'bufhidden', 'wipe' }
   for _, buf in ipairs({ tab_buf, expected_buf, actual_buf }) do
     vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = buf })
     vim.api.nvim_set_option_value('readonly', true, { buf = buf })

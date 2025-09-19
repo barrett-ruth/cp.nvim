@@ -4,7 +4,7 @@
 
 ---@class DiffBackend
 ---@field name string
----@field render fun(expected: string, actual: string, mode: string?): DiffResult
+---@field render fun(expected: string, actual: string): DiffResult
 
 local M = {}
 
@@ -12,9 +12,7 @@ local M = {}
 ---@type DiffBackend
 local vim_backend = {
   name = 'vim',
-  render = function(expected, actual, mode)
-    -- For vim backend, we return the content as-is since diffthis handles highlighting
-    local expected_lines = vim.split(expected, '\n', { plain = true, trimempty = true })
+  render = function(_, actual)
     local actual_lines = vim.split(actual, '\n', { plain = true, trimempty = true })
 
     return {
@@ -28,7 +26,7 @@ local vim_backend = {
 ---@type DiffBackend
 local git_backend = {
   name = 'git',
-  render = function(expected, actual, mode)
+  render = function(expected, actual)
     -- Create temporary files for git diff
     local tmp_expected = vim.fn.tempname()
     local tmp_actual = vim.fn.tempname()
@@ -59,7 +57,6 @@ local git_backend = {
         highlights = {},
       }
     else
-      local highlight_module = require('cp.highlight')
       return {
         content = {},
         highlights = {},
@@ -114,11 +111,10 @@ end
 ---@param expected string
 ---@param actual string
 ---@param backend_name? string
----@param mode? string
 ---@return DiffResult
-function M.render_diff(expected, actual, backend_name, mode)
+function M.render_diff(expected, actual, backend_name)
   local backend = M.get_best_backend(backend_name)
-  return backend.render(expected, actual, mode)
+  return backend.render(expected, actual)
 end
 
 return M
