@@ -14,13 +14,13 @@ index 1234567..abcdefg 100644
 -goodbye
 ]]
       local result = highlight.parse_git_diff(diff_output)
-      assert.same({'hello', 'world'}, result.content)
+      assert.same({ 'hello', 'world' }, result.content)
     end)
 
     it('processes added lines', function()
       local diff_output = '+hello w{+o+}rld'
       local result = highlight.parse_git_diff(diff_output)
-      assert.same({'hello world'}, result.content)
+      assert.same({ 'hello world' }, result.content)
       assert.equals(1, #result.highlights)
       assert.equals('CpDiffAdded', result.highlights[1].highlight_group)
     end)
@@ -28,13 +28,13 @@ index 1234567..abcdefg 100644
     it('ignores removed lines', function()
       local diff_output = 'hello\n-removed line\n+kept line'
       local result = highlight.parse_git_diff(diff_output)
-      assert.same({'hello', 'kept line'}, result.content)
+      assert.same({ 'hello', 'kept line' }, result.content)
     end)
 
     it('handles unchanged lines', function()
       local diff_output = 'unchanged line\n+added line'
       local result = highlight.parse_git_diff(diff_output)
-      assert.same({'unchanged line', 'added line'}, result.content)
+      assert.same({ 'unchanged line', 'added line' }, result.content)
     end)
 
     it('sets correct line numbers', function()
@@ -72,20 +72,17 @@ index 1234567..abcdefg 100644
           line = 0,
           col_start = 5,
           col_end = 10,
-          highlight_group = 'CpDiffAdded'
-        }
+          highlight_group = 'CpDiffAdded',
+        },
       }
 
       highlight.apply_highlights(bufnr, highlights, namespace)
 
-      assert.spy(mock_extmark).was_called_with(
-        bufnr, namespace, 0, 5,
-        {
-          end_col = 10,
-          hl_group = 'CpDiffAdded',
-          priority = 100
-        }
-      )
+      assert.spy(mock_extmark).was_called_with(bufnr, namespace, 0, 5, {
+        end_col = 10,
+        hl_group = 'CpDiffAdded',
+        priority = 100,
+      })
       mock_extmark:revert()
     end)
 
@@ -96,8 +93,8 @@ index 1234567..abcdefg 100644
           line = 0,
           col_start = 0,
           col_end = 5,
-          highlight_group = 'CpDiffAdded'
-        }
+          highlight_group = 'CpDiffAdded',
+        },
       }
 
       highlight.apply_highlights(1, highlights, 100)
@@ -140,8 +137,8 @@ index 1234567..abcdefg 100644
 
       local result = highlight.parse_and_apply_diff(bufnr, diff_output, namespace)
 
-      assert.same({'hello world'}, result)
-      assert.spy(mock_set_lines).was_called_with(bufnr, 0, -1, false, {'hello world'})
+      assert.same({ 'hello world' }, result)
+      assert.spy(mock_set_lines).was_called_with(bufnr, 0, -1, false, { 'hello world' })
       assert.spy(mock_apply).was_called()
 
       mock_set_lines:revert()
@@ -153,7 +150,7 @@ index 1234567..abcdefg 100644
 
       highlight.parse_and_apply_diff(1, '+test line', 100)
 
-      assert.spy(mock_set_lines).was_called_with(1, 0, -1, false, {'test line'})
+      assert.spy(mock_set_lines).was_called_with(1, 0, -1, false, { 'test line' })
       mock_set_lines:revert()
     end)
 
@@ -168,7 +165,7 @@ index 1234567..abcdefg 100644
 
     it('returns content lines', function()
       local result = highlight.parse_and_apply_diff(1, '+first\n+second', 100)
-      assert.same({'first', 'second'}, result)
+      assert.same({ 'first', 'second' }, result)
     end)
   end)
 end)

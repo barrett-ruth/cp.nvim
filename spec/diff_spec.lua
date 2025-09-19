@@ -4,7 +4,7 @@ describe('cp.diff', function()
   describe('get_available_backends', function()
     it('returns vim and git backends', function()
       local backends = diff.get_available_backends()
-      assert.same({'vim', 'git'}, backends)
+      assert.same({ 'vim', 'git' }, backends)
     end)
   end)
 
@@ -81,7 +81,7 @@ describe('cp.diff', function()
       local backend = diff.get_backend('vim')
       local result = backend.render('expected', 'actual')
 
-      assert.same({'actual'}, result.content)
+      assert.same({ 'actual' }, result.content)
       assert.is_nil(result.highlights)
     end)
   end)
@@ -140,7 +140,7 @@ describe('cp.diff', function()
       local backend = diff.get_backend('git')
       local result = backend.render('same', 'same')
 
-      assert.same({'same'}, result.content)
+      assert.same({ 'same' }, result.content)
       assert.same({}, result.highlights)
 
       mock_system:revert()
@@ -153,7 +153,11 @@ describe('cp.diff', function()
   describe('render_diff', function()
     it('uses best available backend', function()
       local mock_get_best = spy.on(diff, 'get_best_backend')
-      local mock_backend = { render = function() return {} end }
+      local mock_backend = {
+        render = function()
+          return {}
+        end,
+      }
       mock_get_best.returns(mock_backend)
 
       diff.render_diff('expected', 'actual', 'vim')
