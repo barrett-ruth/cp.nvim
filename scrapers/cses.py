@@ -16,7 +16,9 @@ def parse_problem_url(problem_input: str) -> str | None:
 
 
 def process_problem_element(
-    element, current_category: str, all_categories: dict
+    element,
+    current_category: str | None,
+    all_categories: dict[str, list[dict[str, str]]],
 ) -> str | None:
     if element.name == "h1":
         category_name = element.get_text().strip()
@@ -52,7 +54,7 @@ def scrape_all_problems() -> dict[str, list[dict[str, str]]]:
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
-        all_categories = {}
+        all_categories: dict[str, list[dict[str, str]]] = {}
 
         problem_links = soup.find_all(
             "a", href=lambda x: x and "/problemset/task/" in x
@@ -127,59 +129,79 @@ def scrape(url: str) -> list[tuple[str, str]]:
 
 def main() -> None:
     if len(sys.argv) < 2:
-        result: dict[str, str | bool] = {
-            "success": False,
-            "error": "Usage: cses.py metadata OR cses.py tests <problem_id_or_url>",
-        }
-        print(json.dumps(result))
+        print(
+            json.dumps(
+                {
+                    "success": False,
+                    "error": "Usage: cses.py metadata OR cses.py tests <problem_id_or_url>",
+                }
+            )
+        )
         sys.exit(1)
 
     mode: str = sys.argv[1]
 
     if mode == "metadata":
         if len(sys.argv) != 2:
-            result = {
-                "success": False,
-                "error": "Usage: cses.py metadata",
-            }
-            print(json.dumps(result))
+            print(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": "Usage: cses.py metadata",
+                    }
+                )
+            )
             sys.exit(1)
 
         all_categories: dict[str, list[dict[str, str]]] = scrape_all_problems()
 
         if not all_categories:
-            result = {
-                "success": False,
-                "error": "Failed to scrape CSES problem categories",
-            }
-            print(json.dumps(result))
+            print(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": "Failed to scrape CSES problem categories",
+                    }
+                )
+            )
             sys.exit(1)
 
-        result = {
-            "success": True,
-            "categories": all_categories,
-        }
-        print(json.dumps(result))
+        print(
+            json.dumps(
+                {
+                    "success": True,
+                    "categories": all_categories,
+                }
+            )
+        )
 
     elif mode == "tests":
         if len(sys.argv) != 3:
-            result = {
-                "success": False,
-                "error": "Usage: cses.py tests <problem_id_or_url>",
-            }
-            print(json.dumps(result))
+            print(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": "Usage: cses.py tests <problem_id_or_url>",
+                    }
+                )
+            )
             sys.exit(1)
 
         problem_input: str = sys.argv[2]
         url: str | None = parse_problem_url(problem_input)
 
         if not url:
-            result = {
-                "success": False,
-                "error": f"Invalid problem input: {problem_input}. Use either problem ID (e.g., 1068) or full URL",
-                "problem_id": problem_input if problem_input.isdigit() else None,
-            }
-            print(json.dumps(result))
+            print(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": f"Invalid problem input: {problem_input}. Use either problem ID (e.g., 1068) or full URL",
+                        "problem_id": problem_input
+                        if problem_input.isdigit()
+                        else None,
+                    }
+                )
+            )
             sys.exit(1)
 
         tests: list[tuple[str, str]] = scrape(url)
@@ -189,33 +211,42 @@ def main() -> None:
         )
 
         if not tests:
-            result = {
-                "success": False,
-                "error": f"No tests found for {problem_input}",
-                "problem_id": problem_id,
-                "url": url,
-            }
-            print(json.dumps(result))
+            print(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": f"No tests found for {problem_input}",
+                        "problem_id": problem_id,
+                        "url": url,
+                    }
+                )
+            )
             sys.exit(1)
 
-        test_list: list[dict[str, str]] = []
-        for input_data, output_data in tests:
-            test_list.append({"input": input_data, "expected": output_data})
+        test_list: list[dict[str, str]] = [
+            {"input": i, "expected": o} for i, o in tests
+        ]
 
-        result = {
-            "success": True,
-            "problem_id": problem_id,
-            "url": url,
-            "tests": test_list,
-        }
-        print(json.dumps(result))
+        print(
+            json.dumps(
+                {
+                    "success": True,
+                    "problem_id": problem_id,
+                    "url": url,
+                    "tests": test_list,
+                }
+            )
+        )
 
     else:
-        result = {
-            "success": False,
-            "error": f"Unknown mode: {mode}. Use 'metadata' or 'tests'",
-        }
-        print(json.dumps(result))
+        print(
+            json.dumps(
+                {
+                    "success": False,
+                    "error": f"Unknown mode: {mode}. Use 'metadata' or 'tests'",
+                }
+            )
+        )
         sys.exit(1)
 
 
