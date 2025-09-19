@@ -21,7 +21,11 @@ describe('cp.health', function()
     })
 
     vim.system = function()
-      return { wait = function() return { code = 0, stdout = 'test version\n' } end }
+      return {
+        wait = function()
+          return { code = 0, stdout = 'test version\n' }
+        end,
+      }
     end
 
     health = require('cp.health')
