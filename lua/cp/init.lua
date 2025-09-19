@@ -459,8 +459,8 @@ local function toggle_run_panel(is_debug)
 
   setup_keybindings_for_buffer(test_buffers.tab_buf)
 
-  if config.hooks and config.hooks.before_test then
-    config.hooks.before_test(ctx)
+  if config.hooks and config.hooks.before_run then
+    config.hooks.before_run(ctx)
   end
 
   if is_debug and config.hooks and config.hooks.before_debug then

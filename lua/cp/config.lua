@@ -27,7 +27,7 @@
 ---@field timeout_ms? number
 
 ---@class Hooks
----@field before_test? fun(ctx: ProblemContext)
+---@field before_run? fun(ctx: ProblemContext)
 ---@field before_debug? fun(ctx: ProblemContext)
 ---@field setup_code? fun(ctx: ProblemContext)
 
@@ -72,7 +72,7 @@ M.defaults = {
   contests = {},
   snippets = {},
   hooks = {
-    before_test = nil,
+    before_run = nil,
     before_debug = nil,
     setup_code = nil,
   },
@@ -111,65 +111,6 @@ function M.setup(user_config)
       run_panel = { user_config.run_panel, { 'table', 'nil' }, true },
       diff = { user_config.diff, { 'table', 'nil' }, true },
     })
-
-    if user_config.hooks then
-      vim.validate({
-        before_test = {
-          user_config.hooks.before_test,
-          { 'function', 'nil' },
-          true,
-        },
-        before_debug = {
-          user_config.hooks.before_debug,
-          { 'function', 'nil' },
-          true,
-        },
-        setup_code = {
-          user_config.hooks.setup_code,
-          { 'function', 'nil' },
-          true,
-        },
-      })
-    end
-
-    if user_config.run_panel then
-      vim.validate({
-        diff_mode = {
-          user_config.run_panel.diff_mode,
-          function(value)
-            return vim.tbl_contains({ 'vim', 'git' }, value)
-          end,
-          "diff_mode must be 'vim' or 'git'",
-        },
-        next_test_key = {
-          user_config.run_panel.next_test_key,
-          function(value)
-            return type(value) == 'string' and value ~= ''
-          end,
-          'next_test_key must be a non-empty string',
-        },
-        prev_test_key = {
-          user_config.run_panel.prev_test_key,
-          function(value)
-            return type(value) == 'string' and value ~= ''
-          end,
-          'prev_test_key must be a non-empty string',
-        },
-        toggle_diff_key = {
-          user_config.run_panel.toggle_diff_key,
-          function(value)
-            return type(value) == 'string' and value ~= ''
-          end,
-          'toggle_diff_key must be a non-empty string',
-        },
-      })
-    end
-
-    if user_config.diff then
-      vim.validate({
-        git = { user_config.diff.git, { 'table', 'nil' }, true },
-      })
-    end
 
     if user_config.contests then
       for contest_name, contest_config in pairs(user_config.contests) do
@@ -213,6 +154,60 @@ function M.setup(user_config)
   end
 
   local config = vim.tbl_deep_extend('force', M.defaults, user_config or {})
+
+  -- Validate merged config values
+  vim.validate({
+    before_run = {
+      config.hooks.before_run,
+      { 'function', 'nil' },
+      true,
+    },
+    before_debug = {
+      config.hooks.before_debug,
+      { 'function', 'nil' },
+      true,
+    },
+    setup_code = {
+      config.hooks.setup_code,
+      { 'function', 'nil' },
+      true,
+    },
+  })
+
+  vim.validate({
+    diff_mode = {
+      config.run_panel.diff_mode,
+      function(value)
+        return vim.tbl_contains({ 'vim', 'git' }, value)
+      end,
+      "diff_mode must be 'vim' or 'git'",
+    },
+    next_test_key = {
+      config.run_panel.next_test_key,
+      function(value)
+        return type(value) == 'string' and value ~= ''
+      end,
+      'next_test_key must be a non-empty string',
+    },
+    prev_test_key = {
+      config.run_panel.prev_test_key,
+      function(value)
+        return type(value) == 'string' and value ~= ''
+      end,
+      'prev_test_key must be a non-empty string',
+    },
+    toggle_diff_key = {
+      config.run_panel.toggle_diff_key,
+      function(value)
+        return type(value) == 'string' and value ~= ''
+      end,
+      'toggle_diff_key must be a non-empty string',
+    },
+  })
+
+  vim.validate({
+    git = { config.diff.git, { 'table', 'nil' }, true },
+  })
 
   for _, contest_config in pairs(config.contests) do
     for lang_name, lang_config in pairs(contest_config) do

@@ -66,7 +66,7 @@ describe('cp.config', function()
 
     it('validates hook functions', function()
       local invalid_config = {
-        hooks = { before_test = 'not_a_function' },
+        hooks = { before_run = 'not_a_function' },
       }
 
       assert.has_error(function()

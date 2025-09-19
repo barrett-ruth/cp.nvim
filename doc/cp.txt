@@ -104,7 +104,7 @@ Here's an example configuration with lazy.nvim: >
             },
           },
           hooks = {
-            before_test = function(ctx) vim.cmd.w() end,
+            before_run = function(ctx) vim.cmd.w() end,
             before_debug = function(ctx) ... end,
             setup_code = function(ctx)
               vim.wo.foldmethod = "marker"
@@ -186,7 +186,7 @@ Here's an example configuration with lazy.nvim: >
 *cp.Hooks*
 
     Fields: ~
-      • {before_test}?  (`function`) Called before test panel opens.
+      • {before_run}?  (`function`) Called before test panel opens.
                         `function(ctx: ProblemContext)`
       • {before_debug}? (`function`) Called before debug compilation.
                         `function(ctx: ProblemContext)`
