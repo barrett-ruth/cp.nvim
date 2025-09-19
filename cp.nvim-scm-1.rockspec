@@ -10,9 +10,3 @@ test_dependencies = {
   'nlua',
   'busted >= 2.1.1',
 }
-
-test = {
-  type = 'command',
-  command = 'nvim',
-  flags = { '-l', 'tests/init.lua' }
-}
