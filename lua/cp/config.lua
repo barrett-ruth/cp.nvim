@@ -48,115 +48,120 @@
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 
 local M = {}
-local constants = require("cp.constants")
+local constants = require('cp.constants')
 
 ---@type cp.Config
 M.defaults = {
-	contests = {},
-	snippets = {},
-	hooks = {
-		before_run = nil,
-		before_debug = nil,
-		setup_code = nil,
-	},
-	debug = false,
-	scrapers = constants.PLATFORMS,
-	filename = nil,
+  contests = {},
+  snippets = {},
+  hooks = {
+    before_run = nil,
+    before_debug = nil,
+    setup_code = nil,
+  },
+  debug = false,
+  scrapers = constants.PLATFORMS,
+  filename = nil,
 }
 
 ---@param user_config cp.UserConfig|nil
 ---@return cp.Config
 function M.setup(user_config)
-	vim.validate({
-		user_config = { user_config, { "table", "nil" }, true },
-	})
+  vim.validate({
+    user_config = { user_config, { 'table', 'nil' }, true },
+  })
 
-	if user_config then
-		vim.validate({
-			contests = { user_config.contests, { "table", "nil" }, true },
-			snippets = { user_config.snippets, { "table", "nil" }, true },
-			hooks = { user_config.hooks, { "table", "nil" }, true },
-			debug = { user_config.debug, { "boolean", "nil" }, true },
-			scrapers = { user_config.scrapers, { "table", "nil" }, true },
-			filename = { user_config.filename, { "function", "nil" }, true },
-		})
+  if user_config then
+    vim.validate({
+      contests = { user_config.contests, { 'table', 'nil' }, true },
+      snippets = { user_config.snippets, { 'table', 'nil' }, true },
+      hooks = { user_config.hooks, { 'table', 'nil' }, true },
+      debug = { user_config.debug, { 'boolean', 'nil' }, true },
+      scrapers = { user_config.scrapers, { 'table', 'nil' }, true },
+      filename = { user_config.filename, { 'function', 'nil' }, true },
+    })
 
-		if user_config.hooks then
-			vim.validate({
-				before_run = {
-					user_config.hooks.before_run,
-					{ "function", "nil" },
-					true,
-				},
-				before_debug = {
-					user_config.hooks.before_debug,
-					{ "function", "nil" },
-					true,
-				},
-				setup_code = {
-					user_config.hooks.setup_code,
-					{ "function", "nil" },
-					true,
-				},
-			})
-		end
+    if user_config.hooks then
+      vim.validate({
+        before_run = {
+          user_config.hooks.before_run,
+          { 'function', 'nil' },
+          true,
+        },
+        before_debug = {
+          user_config.hooks.before_debug,
+          { 'function', 'nil' },
+          true,
+        },
+        setup_code = {
+          user_config.hooks.setup_code,
+          { 'function', 'nil' },
+          true,
+        },
+      })
+    end
 
-		if user_config.contests then
-			for contest_name, contest_config in pairs(user_config.contests) do
-				for lang_name, lang_config in pairs(contest_config) do
-					if type(lang_config) == "table" and lang_config.extension then
-						if
-							not vim.tbl_contains(vim.tbl_keys(constants.filetype_to_language), lang_config.extension)
-						then
-							error(
-								("Invalid extension '%s' for language '%s' in contest '%s'. Valid extensions: %s"):format(
-									lang_config.extension,
-									lang_name,
-									contest_name,
-									table.concat(vim.tbl_keys(constants.filetype_to_language), ", ")
-								)
-							)
-						end
-					end
-				end
-			end
-		end
+    if user_config.contests then
+      for contest_name, contest_config in pairs(user_config.contests) do
+        for lang_name, lang_config in pairs(contest_config) do
+          if type(lang_config) == 'table' and lang_config.extension then
+            if
+              not vim.tbl_contains(
+                vim.tbl_keys(constants.filetype_to_language),
+                lang_config.extension
+              )
+            then
+              error(
+                ("Invalid extension '%s' for language '%s' in contest '%s'. Valid extensions: %s"):format(
+                  lang_config.extension,
+                  lang_name,
+                  contest_name,
+                  table.concat(vim.tbl_keys(constants.filetype_to_language), ', ')
+                )
+              )
+            end
+          end
+        end
+      end
+    end
 
-		if user_config.scrapers then
-			for contest_name, enabled in pairs(user_config.scrapers) do
-				if not vim.tbl_contains(constants.PLATFORMS, contest_name) then
-					error(
-						("Invalid contest '%s' in scrapers config. Valid contests: %s"):format(
-							contest_name,
-							table.concat(constants.PLATFORMS, ", ")
-						)
-					)
-				end
-				if type(enabled) ~= "boolean" then
-					error(("Scraper setting for '%s' must be boolean, got %s"):format(contest_name, type(enabled)))
-				end
-			end
-		end
-	end
+    if user_config.scrapers then
+      for contest_name, enabled in pairs(user_config.scrapers) do
+        if not vim.tbl_contains(constants.PLATFORMS, contest_name) then
+          error(
+            ("Invalid contest '%s' in scrapers config. Valid contests: %s"):format(
+              contest_name,
+              table.concat(constants.PLATFORMS, ', ')
+            )
+          )
+        end
+        if type(enabled) ~= 'boolean' then
+          error(
+            ("Scraper setting for '%s' must be boolean, got %s"):format(contest_name, type(enabled))
+          )
+        end
+      end
+    end
+  end
 
-	local config = vim.tbl_deep_extend("force", M.defaults, user_config or {})
-	return config
+  local config = vim.tbl_deep_extend('force', M.defaults, user_config or {})
+  return config
 end
 
 ---@param contest_id string
 ---@param problem_id? string
 ---@return string
 local function default_filename(contest_id, problem_id)
-	vim.validate({
-		contest_id = { contest_id, "string" },
-		problem_id = { problem_id, { "string", "nil" }, true },
-	})
+  vim.validate({
+    contest_id = { contest_id, 'string' },
+    problem_id = { problem_id, { 'string', 'nil' }, true },
+  })
 
-	if problem_id then
-		return (contest_id .. problem_id):lower()
-	else
-		return contest_id:lower()
-	end
+  if problem_id then
+    return (contest_id .. problem_id):lower()
+  else
+    return contest_id:lower()
+  end
 end
 
 M.default_filename = default_filename

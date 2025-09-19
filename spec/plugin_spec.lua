@@ -2,6 +2,6 @@ local cp = require('cp')
 
 describe('neovim plugin', function()
   it('work as expect', function()
-    cp.setup
+    cp.setup()
   end)
 end)
