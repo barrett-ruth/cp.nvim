@@ -4,8 +4,69 @@ describe('cp.scrape', function()
   local mock_system_calls
   local temp_files
 
+  local function mock_system_success()
+    vim.system = function(cmd)
+      table.insert(mock_system_calls, { cmd = cmd })
+      if cmd[1] == 'ping' then
+        return {
+          wait = function()
+            return { code = 0 }
+          end,
+        }
+      elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
+        return {
+          wait = function()
+            return { code = 0 }
+          end,
+        }
+      elseif cmd[1] == 'uv' and cmd[2] == 'run' then
+        if vim.tbl_contains(cmd, 'metadata') then
+          return {
+            wait = function()
+              return { code = 0, stdout = '{"success": true, "problems": []}' }
+            end,
+          }
+        elseif vim.tbl_contains(cmd, 'tests') then
+          return {
+            wait = function()
+              return { code = 0, stdout = '{"success": true, "tests": []}' }
+            end,
+          }
+        end
+      end
+      return {
+        wait = function()
+          return { code = 0 }
+        end,
+      }
+    end
+  end
+
+  local function mock_system_fail(fail_cmd, error_msg)
+    vim.system = function(cmd)
+      table.insert(mock_system_calls, { cmd = cmd })
+      if cmd[1] == fail_cmd or (fail_cmd == 'uv sync' and cmd[1] == 'uv' and cmd[2] == 'sync') then
+        return {
+          wait = function()
+            return { code = 1, stderr = error_msg }
+          end,
+        }
+      end
+      return {
+        wait = function()
+          return { code = 0 }
+        end,
+      }
+    end
+  end
+
   before_each(function()
     temp_files = {}
+
+    package.loaded['cp.log'] = {
+      log = function() end,
+      set_config = function() end,
+    }
 
     mock_cache = {
       load = function() end,
@@ -83,6 +144,7 @@ describe('cp.scrape', function()
 
   after_each(function()
     package.loaded['cp.cache'] = nil
+    package.loaded['cp.log'] = nil
     vim.system = vim.system_original or vim.system
     temp_files = {}
   end)
@@ -137,27 +199,7 @@ describe('cp.scrape', function()
     end)
 
     it('handles python environment setup failure', function()
-      vim.system = function(cmd)
-        if cmd[1] == 'ping' then
-          return {
-            wait = function()
-              return { code = 0 }
-            end,
-          }
-        elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
-          return {
-            wait = function()
-              return { code = 1, stderr = 'setup failed' }
-            end,
-          }
-        end
-        return {
-          wait = function()
-            return { code = 0 }
-          end,
-        }
-      end
-
+      mock_system_fail('uv sync', 'setup failed')
       vim.fn.isdirectory = function()
         return 0
       end
