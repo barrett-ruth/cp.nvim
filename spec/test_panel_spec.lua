@@ -259,7 +259,7 @@ describe('cp test panel', function()
       cp.handle_command({ fargs = { 'test' } })
 
       local found_tab_buffer = false
-      for buf_id, lines in pairs(tab_content) do
+      for _buf_id, lines in pairs(tab_content) do
         if lines and #lines > 0 then
           local content = table.concat(lines, '\n')
           if content:match('> 1%..*%[ok:true%]') then
@@ -283,7 +283,7 @@ describe('cp test panel', function()
       cp.handle_command({ fargs = { 'test' } })
 
       local found_input = false
-      for buf_id, lines in pairs(tab_content) do
+      for _buf_id, lines in pairs(tab_content) do
         if lines and #lines > 0 then
           local content = table.concat(lines, '\n')
           if content:match('Input:') and content:match('1 2') then
@@ -492,7 +492,7 @@ describe('cp test panel', function()
       cp.handle_command({ fargs = { 'test' } })
 
       local found_time = false
-      for buf_id, lines in pairs(tab_content) do
+      for _buf_id, lines in pairs(tab_content) do
         if lines and #lines > 0 then
           local content = table.concat(lines, '\n')
           if content:match('%[time:%d+ms%]') then
