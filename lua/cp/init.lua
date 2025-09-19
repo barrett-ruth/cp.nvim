@@ -239,18 +239,12 @@ local function toggle_test_panel(is_debug)
     vim.api.nvim_set_option_value('readonly', was_readonly, { buf = bufnr })
 
     vim.api.nvim_buf_clear_namespace(bufnr, test_list_namespace, 0, -1)
-    for _, highlight in ipairs(highlights) do
-      vim.api.nvim_buf_set_extmark(
-        bufnr,
-        test_list_namespace,
-        highlight.line,
-        highlight.col_start,
-        {
-          end_col = highlight.col_end,
-          hl_group = highlight.highlight_group,
-          priority = 100,
-        }
-      )
+    for _, hl in ipairs(highlights) do
+      vim.api.nvim_buf_set_extmark(bufnr, test_list_namespace, hl.line, hl.col_start, {
+        end_col = hl.col_end,
+        hl_group = hl.highlight_group,
+        priority = 100,
+      })
     end
   end
 

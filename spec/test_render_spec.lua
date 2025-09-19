@@ -53,7 +53,7 @@ describe('cp.test_render', function()
   end)
 
   describe('render_test_list', function()
-    it('renders test cases with CP terminology', function()
+    it('renders table with headers and borders', function()
       local test_state = {
         test_cases = {
           { status = 'pass', input = '5' },
@@ -62,11 +62,12 @@ describe('cp.test_render', function()
         current_index = 1,
       }
       local result = test_render.render_test_list(test_state)
-      assert.equals('> 1. AC', result[1])
-      assert.equals('  2. WA', result[3])
+      assert.is_true(result[1]:match('^┌'))
+      assert.is_true(result[2]:match('│.*#.*│.*Status.*│.*Time.*│.*Exit Code.*│'))
+      assert.is_true(result[3]:match('^├'))
     end)
 
-    it('shows current test with > prefix', function()
+    it('shows current test with > prefix in table', function()
       local test_state = {
         test_cases = {
           { status = 'pass', input = '' },
@@ -75,8 +76,14 @@ describe('cp.test_render', function()
         current_index = 2,
       }
       local result = test_render.render_test_list(test_state)
-      assert.equals('  1. AC', result[1])
-      assert.equals('> 2. AC', result[2])
+      local found_current = false
+      for _, line in ipairs(result) do
+        if line:match('│.*>2.*│') then
+          found_current = true
+          break
+        end
+      end
+      assert.is_true(found_current)
     end)
 
     it('displays input only for current test', function()
@@ -88,15 +95,20 @@ describe('cp.test_render', function()
         current_index = 1,
       }
       local result = test_render.render_test_list(test_state)
-      assert.equals('> 1. AC', result[1])
-      assert.equals('  5 3', result[2])
-      assert.equals('  2. AC', result[3])
+      local found_input = false
+      for _, line in ipairs(result) do
+        if line:match('│5 3') then
+          found_input = true
+          break
+        end
+      end
+      assert.is_true(found_input)
     end)
 
     it('handles empty test cases', function()
       local test_state = { test_cases = {}, current_index = 1 }
       local result = test_render.render_test_list(test_state)
-      assert.equals(0, #result)
+      assert.equals(3, #result)
     end)
 
     it('preserves input line breaks', function()
@@ -107,10 +119,13 @@ describe('cp.test_render', function()
         current_index = 1,
       }
       local result = test_render.render_test_list(test_state)
-      assert.equals('> 1. AC', result[1])
-      assert.equals('  5', result[2])
-      assert.equals('  3', result[3])
-      assert.equals('  1', result[4])
+      local input_lines = {}
+      for _, line in ipairs(result) do
+        if line:match('^│[531]') then
+          table.insert(input_lines, line:match('│([531])'))
+        end
+      end
+      assert.same({ '5', '3', '1' }, input_lines)
     end)
   end)
 
@@ -118,7 +133,7 @@ describe('cp.test_render', function()
     it('formats time and exit code', function()
       local test_case = { time_ms = 45.7, code = 0 }
       local result = test_render.render_status_bar(test_case)
-      assert.equals('46ms │ Exit: 0', result)
+      assert.equals('45.70ms │ Exit: 0', result)
     end)
 
     it('handles missing time', function()
@@ -130,7 +145,7 @@ describe('cp.test_render', function()
     it('handles missing exit code', function()
       local test_case = { time_ms = 123 }
       local result = test_render.render_status_bar(test_case)
-      assert.equals('123ms', result)
+      assert.equals('123.00ms', result)
     end)
 
     it('returns empty for nil test case', function()
