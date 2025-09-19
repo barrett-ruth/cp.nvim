@@ -31,6 +31,22 @@
 ---@field before_debug? fun(ctx: ProblemContext)
 ---@field setup_code? fun(ctx: ProblemContext)
 
+---@class TestPanelConfig
+---@field diff_mode "vim"|"git" Diff backend to use
+---@field toggle_key string Key to toggle test panel
+---@field status_format "compact"|"verbose" Status display format
+
+---@class DiffGitConfig
+---@field command string Git executable name
+---@field args string[] Additional git diff arguments
+
+---@class DiffVimConfig
+---@field enable_diffthis boolean Enable vim's diffthis
+
+---@class DiffConfig
+---@field git DiffGitConfig
+---@field vim DiffVimConfig
+
 ---@class cp.Config
 ---@field contests table<string, ContestConfig>
 ---@field snippets table[]
@@ -38,6 +54,8 @@
 ---@field debug boolean
 ---@field scrapers table<string, boolean>
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
+---@field test_panel TestPanelConfig
+---@field diff DiffConfig
 
 ---@class cp.UserConfig
 ---@field contests? table<string, PartialContestConfig>
@@ -46,6 +64,8 @@
 ---@field debug? boolean
 ---@field scrapers? table<string, boolean>
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
+---@field test_panel? TestPanelConfig
+---@field diff? DiffConfig
 
 local M = {}
 local constants = require('cp.constants')
@@ -62,6 +82,20 @@ M.defaults = {
   debug = false,
   scrapers = constants.PLATFORMS,
   filename = nil,
+  test_panel = {
+    diff_mode = "vim",
+    toggle_key = "t",
+    status_format = "compact",
+  },
+  diff = {
+    git = {
+      command = "git",
+      args = {"diff", "--no-index", "--word-diff=plain", "--word-diff-regex=.", "--no-prefix"},
+    },
+    vim = {
+      enable_diffthis = true,
+    },
+  },
 }
 
 ---@param user_config cp.UserConfig|nil
@@ -79,6 +113,8 @@ function M.setup(user_config)
       debug = { user_config.debug, { 'boolean', 'nil' }, true },
       scrapers = { user_config.scrapers, { 'table', 'nil' }, true },
       filename = { user_config.filename, { 'function', 'nil' }, true },
+      test_panel = { user_config.test_panel, { 'table', 'nil' }, true },
+      diff = { user_config.diff, { 'table', 'nil' }, true },
     })
 
     if user_config.hooks then
@@ -98,6 +134,33 @@ function M.setup(user_config)
           { 'function', 'nil' },
           true,
         },
+      })
+    end
+
+    if user_config.test_panel then
+      vim.validate({
+        diff_mode = {
+          user_config.test_panel.diff_mode,
+          function(value)
+            return vim.tbl_contains({"vim", "git"}, value)
+          end,
+          "diff_mode must be 'vim' or 'git'",
+        },
+        toggle_key = { user_config.test_panel.toggle_key, 'string', true },
+        status_format = {
+          user_config.test_panel.status_format,
+          function(value)
+            return vim.tbl_contains({"compact", "verbose"}, value)
+          end,
+          "status_format must be 'compact' or 'verbose'",
+        },
+      })
+    end
+
+    if user_config.diff then
+      vim.validate({
+        git = { user_config.diff.git, { 'table', 'nil' }, true },
+        vim = { user_config.diff.vim, { 'table', 'nil' }, true },
       })
     end
 

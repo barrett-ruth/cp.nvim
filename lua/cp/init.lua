@@ -191,9 +191,13 @@ local function toggle_test_panel(is_debug)
   local expected_buf = vim.api.nvim_create_buf(false, true)
   local actual_buf = vim.api.nvim_create_buf(false, true)
 
-  vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = tab_buf })
-  vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = expected_buf })
-  vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = actual_buf })
+  -- Set buffer options
+  local buffer_opts = { 'bufhidden', 'wipe' }
+  for _, buf in ipairs({tab_buf, expected_buf, actual_buf}) do
+    vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = buf })
+    vim.api.nvim_set_option_value('readonly', true, { buf = buf })
+    vim.api.nvim_set_option_value('modifiable', false, { buf = buf })
+  end
 
   local main_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(main_win, tab_buf)
@@ -222,61 +226,16 @@ local function toggle_test_panel(is_debug)
   }
 
   local function render_test_tabs()
+    local test_render = require('cp.test_render')
+    test_render.setup_highlights()
     local test_state = test_module.get_test_panel_state()
-    local tab_lines = {}
+    return test_render.render_test_list(test_state, config.test_panel)
+  end
 
-    local max_status_width = 0
-    local max_code_width = 0
-    local max_time_width = 0
-
-    for _, test_case in ipairs(test_state.test_cases) do
-      local status_text = test_case.status == 'pending' and '' or string.upper(test_case.status)
-      max_status_width = math.max(max_status_width, #status_text)
-
-      if test_case.code then
-        max_code_width = math.max(max_code_width, #tostring(test_case.code))
-      end
-
-      if test_case.time_ms then
-        local time_text = string.format('%.0fms', test_case.time_ms)
-        max_time_width = math.max(max_time_width, #time_text)
-      end
-    end
-
-    for i, test_case in ipairs(test_state.test_cases) do
-      local prefix = i == test_state.current_index and '> ' or '  '
-      local tab = string.format('%s%d.', prefix, i)
-
-      if test_case.ok ~= nil then
-        tab = tab .. string.format(' [ok:%-5s]', tostring(test_case.ok))
-      end
-
-      if test_case.code then
-        tab = tab .. string.format(' [code:%-' .. max_code_width .. 's]', tostring(test_case.code))
-      end
-
-      if test_case.time_ms then
-        local time_text = string.format('%.0fms', test_case.time_ms)
-        tab = tab .. string.format(' [time:%-' .. max_time_width .. 's]', time_text)
-      end
-
-      if test_case.signal then
-        tab = tab .. string.format(' [%s]', test_case.signal)
-      end
-
-      table.insert(tab_lines, tab)
-    end
-
-    local current_test = test_state.test_cases[test_state.current_index]
-    if current_test then
-      table.insert(tab_lines, '')
-      table.insert(tab_lines, 'Input:')
-      for _, line in ipairs(vim.split(current_test.input, '\n', { plain = true, trimempty = true })) do
-        table.insert(tab_lines, line)
-      end
-    end
-
-    return tab_lines
+  local function update_buffer_content(bufnr, lines)
+    vim.api.nvim_set_option_value('modifiable', true, { buf = bufnr })
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+    vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
   end
 
   local function update_expected_pane()
@@ -290,11 +249,7 @@ local function toggle_test_panel(is_debug)
     local expected_text = current_test.expected
     local expected_lines = vim.split(expected_text, '\n', { plain = true, trimempty = true })
 
-    vim.api.nvim_buf_set_lines(test_buffers.expected_buf, 0, -1, false, expected_lines)
-
-    if vim.fn.has('nvim-0.8.0') == 1 then
-      vim.api.nvim_set_option_value('winbar', 'Expected', { win = test_windows.expected_win })
-    end
+    update_buffer_content(test_buffers.expected_buf, expected_lines)
   end
 
   local function update_actual_pane()
@@ -315,10 +270,12 @@ local function toggle_test_panel(is_debug)
       actual_lines = { '(not run yet)' }
     end
 
-    vim.api.nvim_buf_set_lines(test_buffers.actual_buf, 0, -1, false, actual_lines)
+    update_buffer_content(test_buffers.actual_buf, actual_lines)
 
-    if vim.fn.has('nvim-0.8.0') == 1 then
-      vim.api.nvim_set_option_value('winbar', 'Actual', { win = test_windows.actual_win })
+    local test_render = require('cp.test_render')
+    local status_bar_text = test_render.render_status_bar(current_test)
+    if status_bar_text ~= '' then
+      vim.api.nvim_set_option_value('winbar', status_bar_text, { win = test_windows.actual_win })
     end
 
     vim.api.nvim_set_option_value('diff', enable_diff, { win = test_windows.expected_win })
@@ -340,7 +297,7 @@ local function toggle_test_panel(is_debug)
     end
 
     local tab_lines = render_test_tabs()
-    vim.api.nvim_buf_set_lines(test_buffers.tab_buf, 0, -1, false, tab_lines)
+    update_buffer_content(test_buffers.tab_buf, tab_lines)
 
     update_expected_pane()
     update_actual_pane()
@@ -371,6 +328,9 @@ local function toggle_test_panel(is_debug)
 
   for _, buf in pairs(test_buffers) do
     vim.keymap.set('n', 'q', function()
+      toggle_test_panel()
+    end, { buffer = buf, silent = true })
+    vim.keymap.set('n', config.test_panel.toggle_key, function()
       toggle_test_panel()
     end, { buffer = buf, silent = true })
   end
