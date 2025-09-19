@@ -25,7 +25,7 @@ describe('cp.execute', function()
       return {
         wait = function()
           return result
-        end
+        end,
       }
     end
 
@@ -42,14 +42,14 @@ describe('cp.execute', function()
           return path:match('%.([^.]+)$') or ''
         end
         return original_fn.fnamemodify(path, modifier)
-      end
+      end,
     })
 
     local original_uv = vim.uv
     vim.uv = vim.tbl_extend('force', vim.uv or {}, {
       hrtime = function()
         return 1000000000
-      end
+      end,
     })
   end)
 
@@ -61,11 +61,11 @@ describe('cp.execute', function()
   describe('template substitution', function()
     it('substitutes placeholders correctly', function()
       local language_config = {
-        compile = { 'g++', '{source_file}', '-o', '{binary_file}' }
+        compile = { 'g++', '{source_file}', '-o', '{binary_file}' },
       }
       local substitutions = {
         source_file = 'test.cpp',
-        binary_file = 'test.run'
+        binary_file = 'test.run',
       }
 
       local result = execute.compile_generic(language_config, substitutions)
@@ -82,11 +82,11 @@ describe('cp.execute', function()
 
     it('handles multiple substitutions in single argument', function()
       local language_config = {
-        compile = { 'g++', '{source_file}', '-o{binary_file}' }
+        compile = { 'g++', '{source_file}', '-o{binary_file}' },
       }
       local substitutions = {
         source_file = 'main.cpp',
-        binary_file = 'main.out'
+        binary_file = 'main.out',
       }
 
       execute.compile_generic(language_config, substitutions)
@@ -110,11 +110,11 @@ describe('cp.execute', function()
 
     it('compiles cpp files correctly', function()
       local language_config = {
-        compile = { 'g++', '{source_file}', '-o', '{binary_file}', '-std=c++17' }
+        compile = { 'g++', '{source_file}', '-o', '{binary_file}', '-std=c++17' },
       }
       local substitutions = {
         source_file = 'solution.cpp',
-        binary_file = 'build/solution.run'
+        binary_file = 'build/solution.run',
       }
 
       local result = execute.compile_generic(language_config, substitutions)
@@ -132,12 +132,12 @@ describe('cp.execute', function()
         return {
           wait = function()
             return { code = 1, stderr = 'error: undefined variable' }
-          end
+          end,
         }
       end
 
       local language_config = {
-        compile = { 'g++', '{source_file}', '-o', '{binary_file}' }
+        compile = { 'g++', '{source_file}', '-o', '{binary_file}' },
       }
       local substitutions = { source_file = 'bad.cpp', binary_file = 'bad.run' }
 
@@ -162,7 +162,7 @@ describe('cp.execute', function()
       end
 
       local language_config = {
-        compile = { 'g++', 'test.cpp', '-o', 'test.run' }
+        compile = { 'g++', 'test.cpp', '-o', 'test.run' },
       }
 
       execute.compile_generic(language_config, {})
@@ -177,13 +177,13 @@ describe('cp.execute', function()
         return {
           wait = function()
             return { code = 0, stdout = '3\n', stderr = '' }
-          end
+          end,
         }
       end
 
       -- Test the internal execute_command function indirectly
       local language_config = {
-        run = { '{binary_file}' }
+        run = { '{binary_file}' },
       }
 
       -- This would be called by a higher-level function that uses execute_command
@@ -196,12 +196,12 @@ describe('cp.execute', function()
         return {
           wait = function()
             return { code = 124, stdout = '', stderr = '' }
-          end
+          end,
         }
       end
 
       local language_config = {
-        compile = { 'timeout', '1', 'sleep', '2' }
+        compile = { 'timeout', '1', 'sleep', '2' },
       }
 
       local result = execute.compile_generic(language_config, {})
@@ -213,12 +213,12 @@ describe('cp.execute', function()
         return {
           wait = function()
             return { code = 1, stdout = '', stderr = 'runtime error\n' }
-          end
+          end,
         }
       end
 
       local language_config = {
-        compile = { 'false' }
+        compile = { 'false' },
       }
 
       local result = execute.compile_generic(language_config, {})
@@ -254,7 +254,7 @@ describe('cp.execute', function()
       -- This tests the ensure_directories function indirectly
       -- since it's called by other functions
       local language_config = {
-        compile = { 'mkdir', '-p', 'build', 'io' }
+        compile = { 'mkdir', '-p', 'build', 'io' },
       }
 
       execute.compile_generic(language_config, {})
@@ -270,7 +270,7 @@ describe('cp.execute', function()
     it('detects cpp from extension', function()
       -- This tests get_language_from_file indirectly
       local contest_config = {
-        default_language = 'python'
+        default_language = 'python',
       }
 
       -- Mock the file extension detection
@@ -305,7 +305,7 @@ describe('cp.execute', function()
   describe('edge cases', function()
     it('handles empty command templates', function()
       local language_config = {
-        compile = {}
+        compile = {},
       }
 
       local result = execute.compile_generic(language_config, {})
@@ -314,7 +314,7 @@ describe('cp.execute', function()
 
     it('handles commands with no substitutions needed', function()
       local language_config = {
-        compile = { 'echo', 'hello' }
+        compile = { 'echo', 'hello' },
       }
 
       local result = execute.compile_generic(language_config, {})
@@ -327,11 +327,11 @@ describe('cp.execute', function()
 
     it('handles multiple consecutive substitutions', function()
       local language_config = {
-        compile = { '{compiler}{compiler}', '{file}{file}' }
+        compile = { '{compiler}{compiler}', '{file}{file}' },
       }
       local substitutions = {
         compiler = 'g++',
-        file = 'test.cpp'
+        file = 'test.cpp',
       }
 
       execute.compile_generic(language_config, substitutions)
