@@ -2,7 +2,6 @@
 
 import json
 import sys
-from typing import Any
 
 import requests
 from bs4 import BeautifulSoup, Tag

@@ -1,5 +1,4 @@
 from unittest.mock import Mock
-import pytest
 from scrapers.atcoder import scrape, scrape_contest_problems
 
 

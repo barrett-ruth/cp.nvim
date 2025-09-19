@@ -1,6 +1,4 @@
-import json
 from unittest.mock import Mock
-import pytest
 from scrapers.codeforces import scrape, scrape_contest_problems
 
 

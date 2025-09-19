@@ -1,5 +1,4 @@
 from unittest.mock import Mock
-import pytest
 from scrapers.cses import scrape, scrape_all_problems
 
 
