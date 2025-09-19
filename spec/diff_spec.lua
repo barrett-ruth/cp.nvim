@@ -4,7 +4,8 @@ describe('cp.diff', function()
   describe('get_available_backends', function()
     it('returns vim and git backends', function()
       local backends = diff.get_available_backends()
-      assert.same({ 'vim', 'git' }, backends)
+      table.sort(backends)
+      assert.same({ 'git', 'vim' }, backends)
     end)
   end)
 
@@ -30,7 +31,11 @@ describe('cp.diff', function()
   describe('is_git_available', function()
     it('returns true when git command succeeds', function()
       local mock_system = stub(vim, 'system')
-      mock_system.returns({ code = 0 })
+      mock_system.returns({
+        wait = function()
+          return { code = 0 }
+        end,
+      })
 
       local result = diff.is_git_available()
       assert.is_true(result)
@@ -40,7 +45,11 @@ describe('cp.diff', function()
 
     it('returns false when git command fails', function()
       local mock_system = stub(vim, 'system')
-      mock_system.returns({ code = 1 })
+      mock_system.returns({
+        wait = function()
+          return { code = 1 }
+        end,
+      })
 
       local result = diff.is_git_available()
       assert.is_false(result)

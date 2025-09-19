@@ -7,7 +7,7 @@ local M = {}
 ---Convert test status to CP terminology with colors
 ---@param test_case TestCase
 ---@return StatusInfo
-local function get_status_info(test_case)
+function M.get_status_info(test_case)
   if test_case.status == 'pass' then
     return { text = 'AC', highlight_group = 'CpTestAC' }
   elseif test_case.status == 'fail' then
@@ -36,7 +36,7 @@ function M.render_test_list(test_state)
   for i, test_case in ipairs(test_state.test_cases) do
     local is_current = i == test_state.current_index
     local prefix = is_current and '> ' or '  '
-    local status_info = get_status_info(test_case)
+    local status_info = M.get_status_info(test_case)
 
     local status_text = status_info.text ~= '' and status_info.text or ''
     local line = string.format('%s%d. %s', prefix, i, status_text)
