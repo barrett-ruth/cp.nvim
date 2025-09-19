@@ -143,6 +143,19 @@ function M.setup(user_config)
   end
 
   local config = vim.tbl_deep_extend('force', M.defaults, user_config or {})
+
+  for contest_name, contest_config in pairs(config.contests) do
+    for lang_name, lang_config in pairs(contest_config) do
+      if type(lang_config) == 'table' and not lang_config.extension then
+        if lang_name == 'cpp' then
+          lang_config.extension = 'cpp'
+        elseif lang_name == 'python' then
+          lang_config.extension = 'py'
+        end
+      end
+    end
+  end
+
   return config
 end
 

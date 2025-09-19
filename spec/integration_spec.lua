@@ -80,7 +80,6 @@ describe('cp integration', function()
           default_language = 'cpp',
           timeout_ms = 2000,
           cpp = {
-            extension = 'cpp',
             compile = { 'g++', '{source}', '-o', '{binary}' },
             run = { '{binary}' },
           },
