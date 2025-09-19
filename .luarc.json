@@ -1,5 +1,5 @@
 {
-  "runtime.version": "LuaJIT",
+  "runtime.version": "Lua 5.1",
   "runtime.path": [
     "lua/?.lua",
     "lua/?/init.lua"
