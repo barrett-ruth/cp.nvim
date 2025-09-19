@@ -166,7 +166,7 @@ describe('cp integration', function()
       }
 
       temp_files['test.run'] = {}
-      vim.system = function(cmd)
+      vim.system = function()
         return {
           wait = function()
             return { code = 0, stdout = '3\n', stderr = '' }
@@ -462,7 +462,7 @@ describe('cp integration', function()
 
     it('maintains responsiveness during operations', function()
       local call_count = 0
-      vim.system = function(cmd)
+      vim.system = function()
         call_count = call_count + 1
         vim.wait(10)
         return {

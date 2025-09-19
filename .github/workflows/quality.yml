@@ -1,4 +1,4 @@
-name: ci
+name: Code Quality
 
 on:
   pull_request:
@@ -33,8 +33,9 @@ jobs:
               - 'tests/scrapers/**'
               - 'pyproject.toml'
               - 'uv.lock'
+
   lua-format:
-    name: Lua Formatting
+    name: Lua Format Check
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.lua == 'true' }}
@@ -47,7 +48,7 @@ jobs:
           args: --check .
 
   lua-lint:
-    name: Lua Linting
+    name: Lua Lint Check
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.lua == 'true' }}
@@ -60,7 +61,7 @@ jobs:
           args: --display-style quiet .
 
   lua-typecheck:
-    name: Lua Type Checking
+    name: Lua Type Check
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.lua == 'true' }}
@@ -74,7 +75,7 @@ jobs:
           configpath: .luarc.json
 
   python-format:
-    name: Python Formatting
+    name: Python Format Check
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.python == 'true' }}
@@ -88,7 +89,7 @@ jobs:
         run: ruff format --check scrapers/ tests/scrapers/
 
   python-lint:
-    name: Python Linting
+    name: Python Lint Check
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.python == 'true' }}
@@ -102,7 +103,7 @@ jobs:
         run: ruff check scrapers/ tests/scrapers/
 
   python-typecheck:
-    name: Python Type Checking
+    name: Python Type Check
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.python == 'true' }}
@@ -114,17 +115,3 @@ jobs:
         run: uv sync --dev
       - name: Type check Python files with mypy
         run: uv run mypy scrapers/ tests/scrapers/
-
-  python-test:
-    name: Python Testing
-    runs-on: ubuntu-latest
-    needs: changes
-    if: ${{ needs.changes.outputs.python == 'true' }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-      - name: Install dependencies with pytest
-        run: uv sync --dev
-      - name: Run Python tests
-        run: uv run pytest tests/scrapers/ -v

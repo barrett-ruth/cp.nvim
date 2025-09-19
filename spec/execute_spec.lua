@@ -196,7 +196,7 @@ describe('cp.execute', function()
     end)
 
     it('handles execution timeouts', function()
-      vim.system = function(cmd, opts)
+      vim.system = function(_, opts)
         if opts then
           assert.is_not_nil(opts.timeout)
         end
@@ -290,7 +290,7 @@ describe('cp.execute', function()
     end)
 
     it('falls back to default language', function()
-      vim.fn.fnamemodify = function(path, modifier)
+      vim.fn.fnamemodify = function(_, modifier)
         if modifier == ':e' then
           return 'unknown'
         end
