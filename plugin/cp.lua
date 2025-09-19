@@ -3,10 +3,6 @@ if vim.g.loaded_cp then
 end
 vim.g.loaded_cp = 1
 
-local constants = require('cp.constants')
-local platforms = constants.PLATFORMS
-local actions = constants.ACTIONS
-
 vim.api.nvim_create_user_command('CP', function(opts)
   local cp = require('cp')
   cp.handle_command(opts)
@@ -14,6 +10,10 @@ end, {
   nargs = '*',
   desc = 'Competitive programming helper',
   complete = function(ArgLead, CmdLine, _)
+    local constants = require('cp.constants')
+    local platforms = constants.PLATFORMS
+    local actions = constants.ACTIONS
+
     local args = vim.split(vim.trim(CmdLine), '%s+')
     local num_args = #args
     if CmdLine:sub(-1) == ' ' then
