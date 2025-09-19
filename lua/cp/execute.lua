@@ -278,7 +278,7 @@ function M.run_problem(ctx, contest_config, is_debug)
     input_data = table.concat(vim.fn.readfile(ctx.input_file), '\n') .. '\n'
   end
 
-  local run_cmd = build_command(language_config.run, language_config.executable, substitutions)
+  local run_cmd = build_command(language_config.test, language_config.executable, substitutions)
   local exec_result = execute_command(run_cmd, input_data, contest_config.timeout_ms)
   local formatted_output = format_output(exec_result, ctx.expected_file, is_debug)
 

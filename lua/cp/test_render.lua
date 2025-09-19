@@ -1,6 +1,3 @@
----@class TestRenderConfig
----@field status_format "compact"|"verbose"
-
 ---@class StatusInfo
 ---@field text string
 ---@field highlight_group string
@@ -32,10 +29,8 @@ end
 
 ---Render test cases list with improved layout
 ---@param test_state TestPanelState
----@param config? TestRenderConfig
 ---@return string[]
-function M.render_test_list(test_state, config)
-  config = config or { status_format = 'compact' }
+function M.render_test_list(test_state)
   local lines = {}
 
   for i, test_case in ipairs(test_state.test_cases) do

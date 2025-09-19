@@ -172,7 +172,7 @@ local function run_single_test_case(ctx, contest_config, test_case)
     end
   end
 
-  local run_cmd = build_command(language_config.run, language_config.executable, substitutions)
+  local run_cmd = build_command(language_config.test, language_config.executable, substitutions)
 
   local stdin_content = test_case.input .. '\n'
 

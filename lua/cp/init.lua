@@ -232,7 +232,7 @@ local function toggle_test_panel(is_debug)
     local test_render = require('cp.test_render')
     test_render.setup_highlights()
     local test_state = test_module.get_test_panel_state()
-    return test_render.render_test_list(test_state, config.test_panel)
+    return test_render.render_test_list(test_state)
   end
 
   local function update_buffer_content(bufnr, lines)
@@ -305,7 +305,6 @@ local function toggle_test_panel(is_debug)
         end
       else
         update_buffer_content(test_buffers.actual_buf, actual_lines)
-        vim.api.nvim_set_option_value('diff', true, { win = test_windows.expected_win })
         vim.api.nvim_set_option_value('diff', true, { win = test_windows.actual_win })
         vim.api.nvim_win_call(test_windows.expected_win, function()
           vim.cmd.diffthis()
@@ -349,10 +348,10 @@ local function toggle_test_panel(is_debug)
     refresh_test_panel()
   end
 
-  vim.keymap.set('n', '<c-n>', function()
+  vim.keymap.set('n', config.test_panel.next_test_key, function()
     navigate_test_case(1)
   end, { buffer = test_buffers.tab_buf, silent = true })
-  vim.keymap.set('n', '<c-p>', function()
+  vim.keymap.set('n', config.test_panel.prev_test_key, function()
     navigate_test_case(-1)
   end, { buffer = test_buffers.tab_buf, silent = true })
 
@@ -363,6 +362,10 @@ local function toggle_test_panel(is_debug)
     vim.keymap.set('n', config.test_panel.toggle_key, function()
       toggle_test_panel()
     end, { buffer = buf, silent = true })
+  end
+
+  if config.hooks and config.hooks.before_test then
+    config.hooks.before_test(ctx)
   end
 
   if is_debug and config.hooks and config.hooks.before_debug then

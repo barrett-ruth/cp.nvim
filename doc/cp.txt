@@ -85,7 +85,7 @@ Optional configuration with lazy.nvim: >
                   'g++', '-std=c++{version}', '-O2', '-Wall', '-Wextra',
                   '-DLOCAL', '{source}', '-o', '{binary}',
                 },
-                run = { '{binary}' },
+                test = { '{binary}' },
                 debug = {
                   'g++', '-std=c++{version}', '-g3',
                   '-fsanitize=address,undefined', '-DLOCAL',
@@ -95,7 +95,7 @@ Optional configuration with lazy.nvim: >
                 extension = "cc",
               },
               python = {
-                run = { 'python3', '{source}' },
+                test = { 'python3', '{source}' },
                 debug = { 'python3', '{source}' },
                 extension = "py",
               },
@@ -104,11 +104,8 @@ Optional configuration with lazy.nvim: >
             },
           },
           hooks = {
-            before_run = function(ctx) vim.cmd.w() end,
-            before_debug = function(ctx)
-              -- ctx.problem_id, ctx.platform, ctx.source_file, etc.
-              vim.cmd.w()
-            end,
+            before_test = function(ctx) vim.cmd.w() end,
+            before_debug = function(ctx) ... end,
             setup_code = function(ctx)
               vim.wo.foldmethod = "marker"
               vim.wo.foldmarker = "{{{,}}}"
@@ -116,18 +113,16 @@ Optional configuration with lazy.nvim: >
             end,
           },
           test_panel = {
-            diff_mode = "vim",        -- "vim" or "git"
-            toggle_key = "t",         -- key to toggle test panel
-            status_format = "compact", -- "compact" or "verbose"
+            diff_mode = "vim",         -- "vim" or "git"
+            toggle_key = "t",          -- toggle test panel
+            next_test_key = "<c-n>",   -- navigate to next test case
+            prev_test_key = "<c-p>",   -- navigate to previous test case
           },
           diff = {
             git = {
               command = "git",
               args = {"diff", "--no-index", "--word-diff=plain",
                      "--word-diff-regex=.", "--no-prefix"},
-            },
-            vim = {
-              enable_diffthis = true,
             },
           },
           snippets = { ... },  -- LuaSnip snippets
@@ -168,7 +163,7 @@ Optional configuration with lazy.nvim: >
     Fields: ~
       • {compile}?      (`string[]`) Compile command template with
                         `{version}`, `{source}`, `{binary}` placeholders.
-      • {run}           (`string[]`) Run command template.
+      • {test}          (`string[]`) Test execution command template.
       • {debug}?        (`string[]`) Debug compile command template.
       • {version}?      (`number`) Language version (e.g. 20, 23 for C++).
       • {extension}     (`string`) File extension (e.g. "cc", "py").
@@ -180,22 +175,37 @@ Optional configuration with lazy.nvim: >
       • {diff_mode}     (`string`, default: `"vim"`) Diff backend: "vim" or "git".
                         Git provides character-level precision, vim uses built-in diff.
       • {toggle_key}    (`string`, default: `"t"`) Key to toggle test panel.
-      • {status_format} (`string`, default: `"compact"`) Status display format.
+      • {next_test_key} (`string`, default: `"<c-n>"`) Key to navigate to next test case.
+      • {prev_test_key} (`string`, default: `"<c-p>"`) Key to navigate to previous test case.
 
 *cp.DiffConfig*
 
     Fields: ~
       • {git}           (`DiffGitConfig`) Git diff backend configuration.
-      • {vim}           (`DiffVimConfig`) Vim diff backend configuration.
 
 *cp.Hooks*
 
     Fields: ~
+      • {before_test}?  (`function`) Called before test panel opens.
+                        `function(ctx: ProblemContext)`
       • {before_debug}? (`function`) Called before debug compilation.
                         `function(ctx: ProblemContext)`
       • {setup_code}?   (`function`) Called after source file is opened.
-                        Used to configure buffer settings.
+                        Good for configuring buffer settings.
                         `function(ctx: ProblemContext)`
+
+*ProblemContext*
+
+    Fields: ~
+      • {contest}       (`string`) Platform name (e.g. "atcoder", "codeforces")
+      • {contest_id}    (`string`) Contest ID (e.g. "abc123", "1933")
+      • {problem_id}?   (`string`) Problem ID (e.g. "a", "b") - nil for CSES
+      • {source_file}   (`string`) Source filename (e.g. "abc123a.cpp")
+      • {binary_file}   (`string`) Binary output path (e.g. "build/abc123a.run")
+      • {input_file}    (`string`) Test input path (e.g. "io/abc123a.cpin")
+      • {output_file}   (`string`) Program output path (e.g. "io/abc123a.cpout")
+      • {expected_file} (`string`) Expected output path (e.g. "io/abc123a.expected")
+      • {problem_name}  (`string`) Display name (e.g. "abc123a")
 
 WORKFLOW                                            *cp-workflow*
 
@@ -328,8 +338,8 @@ Test cases use competitive programming terminology:
 
 Keymaps ~
                                                 *cp-test-keys*
-<c-n>                           Navigate to next test case
-<c-p>                           Navigate to previous test case
+<c-n>                           Navigate to next test case (configurable via test_panel.next_test_key)
+<c-p>                           Navigate to previous test case (configurable via test_panel.prev_test_key)
 q                               Exit test panel (restore layout)
 t                               Toggle test panel (configurable via test_panel.toggle_key)
 

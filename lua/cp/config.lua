@@ -1,6 +1,6 @@
 ---@class LanguageConfig
 ---@field compile? string[] Compile command template
----@field run string[] Run command template
+---@field test string[] Test execution command template
 ---@field debug? string[] Debug command template
 ---@field executable? string Executable name
 ---@field version? number Language version
@@ -8,7 +8,7 @@
 
 ---@class PartialLanguageConfig
 ---@field compile? string[] Compile command template
----@field run? string[] Run command template
+---@field test? string[] Test execution command template
 ---@field debug? string[] Debug command template
 ---@field executable? string Executable name
 ---@field version? number Language version
@@ -27,25 +27,22 @@
 ---@field timeout_ms? number
 
 ---@class Hooks
----@field before_run? fun(ctx: ProblemContext)
+---@field before_test? fun(ctx: ProblemContext)
 ---@field before_debug? fun(ctx: ProblemContext)
 ---@field setup_code? fun(ctx: ProblemContext)
 
 ---@class TestPanelConfig
 ---@field diff_mode "vim"|"git" Diff backend to use
 ---@field toggle_key string Key to toggle test panel
----@field status_format "compact"|"verbose" Status display format
+---@field next_test_key string Key to navigate to next test case
+---@field prev_test_key string Key to navigate to previous test case
 
 ---@class DiffGitConfig
 ---@field command string Git executable name
 ---@field args string[] Additional git diff arguments
 
----@class DiffVimConfig
----@field enable_diffthis boolean Enable vim's diffthis
-
 ---@class DiffConfig
 ---@field git DiffGitConfig
----@field vim DiffVimConfig
 
 ---@class cp.Config
 ---@field contests table<string, ContestConfig>
@@ -75,7 +72,7 @@ M.defaults = {
   contests = {},
   snippets = {},
   hooks = {
-    before_run = nil,
+    before_test = nil,
     before_debug = nil,
     setup_code = nil,
   },
@@ -85,15 +82,13 @@ M.defaults = {
   test_panel = {
     diff_mode = 'vim',
     toggle_key = 't',
-    status_format = 'compact',
+    next_test_key = '<c-n>',
+    prev_test_key = '<c-p>',
   },
   diff = {
     git = {
       command = 'git',
       args = { 'diff', '--no-index', '--word-diff=plain', '--word-diff-regex=.', '--no-prefix' },
-    },
-    vim = {
-      enable_diffthis = true,
     },
   },
 }
@@ -119,8 +114,8 @@ function M.setup(user_config)
 
     if user_config.hooks then
       vim.validate({
-        before_run = {
-          user_config.hooks.before_run,
+        before_test = {
+          user_config.hooks.before_test,
           { 'function', 'nil' },
           true,
         },
@@ -146,13 +141,26 @@ function M.setup(user_config)
           end,
           "diff_mode must be 'vim' or 'git'",
         },
-        toggle_key = { user_config.test_panel.toggle_key, 'string', true },
-        status_format = {
-          user_config.test_panel.status_format,
+        toggle_key = {
+          user_config.test_panel.toggle_key,
           function(value)
-            return vim.tbl_contains({ 'compact', 'verbose' }, value)
+            return type(value) == 'string' and value ~= ''
           end,
-          "status_format must be 'compact' or 'verbose'",
+          'toggle_key must be a non-empty string',
+        },
+        next_test_key = {
+          user_config.test_panel.next_test_key,
+          function(value)
+            return type(value) == 'string' and value ~= ''
+          end,
+          'next_test_key must be a non-empty string',
+        },
+        prev_test_key = {
+          user_config.test_panel.prev_test_key,
+          function(value)
+            return type(value) == 'string' and value ~= ''
+          end,
+          'prev_test_key must be a non-empty string',
         },
       })
     end
@@ -160,7 +168,6 @@ function M.setup(user_config)
     if user_config.diff then
       vim.validate({
         git = { user_config.diff.git, { 'table', 'nil' }, true },
-        vim = { user_config.diff.vim, { 'table', 'nil' }, true },
       })
     end
 
