@@ -211,5 +211,47 @@ describe('cp.snippets', function()
 
       assert.equals(1, codeforces_count)
     end)
+
+    it('handles case-insensitive snippet triggers', function()
+      local mixed_case_snippet = {
+        trigger = 'cp.nvim/CodeForces.cpp',
+        body = 'mixed case template',
+      }
+      local upper_case_snippet = {
+        trigger = 'cp.nvim/ATCODER.cpp',
+        body = 'upper case template',
+      }
+      local config = {
+        snippets = { mixed_case_snippet, upper_case_snippet },
+      }
+
+      snippets.setup(config)
+
+      local cpp_snippets = mock_luasnip.added.cpp or {}
+
+      local has_mixed_case = false
+      local has_upper_case = false
+      local default_codeforces_count = 0
+      local default_atcoder_count = 0
+
+      for _, snippet in ipairs(cpp_snippets) do
+        if snippet.trigger == 'cp.nvim/CodeForces.cpp' then
+          has_mixed_case = true
+          assert.equals('mixed case template', snippet.body)
+        elseif snippet.trigger == 'cp.nvim/ATCODER.cpp' then
+          has_upper_case = true
+          assert.equals('upper case template', snippet.body)
+        elseif snippet.trigger == 'cp.nvim/codeforces.cpp' then
+          default_codeforces_count = default_codeforces_count + 1
+        elseif snippet.trigger == 'cp.nvim/atcoder.cpp' then
+          default_atcoder_count = default_atcoder_count + 1
+        end
+      end
+
+      assert.is_true(has_mixed_case)
+      assert.is_true(has_upper_case)
+      assert.equals(0, default_codeforces_count, 'Default codeforces snippet should be overridden')
+      assert.equals(0, default_atcoder_count, 'Default atcoder snippet should be overridden')
+    end)
   end)
 end)

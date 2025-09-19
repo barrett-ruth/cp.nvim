@@ -25,8 +25,11 @@ local state = {
   saved_session = nil,
   test_cases = nil,
   test_states = {},
-  test_panel_active = false,
+  run_panel_active = false,
 }
+
+local current_diff_layout = nil
+local current_mode = nil
 
 local constants = require('cp.constants')
 local platforms = constants.PLATFORMS
@@ -149,14 +152,32 @@ local function get_current_problem()
   return filename
 end
 
-local function toggle_test_panel(is_debug)
-  if state.test_panel_active then
+local function create_buffer_with_options(filetype)
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = buf })
+  vim.api.nvim_set_option_value('readonly', true, { buf = buf })
+  vim.api.nvim_set_option_value('modifiable', false, { buf = buf })
+  if filetype then
+    vim.api.nvim_set_option_value('filetype', filetype, { buf = buf })
+  end
+  return buf
+end
+
+local setup_keybindings_for_buffer
+
+local function toggle_run_panel(is_debug)
+  if state.run_panel_active then
+    if current_diff_layout then
+      current_diff_layout.cleanup()
+      current_diff_layout = nil
+      current_mode = nil
+    end
     if state.saved_session then
       vim.cmd(('source %s'):format(state.saved_session))
       vim.fn.delete(state.saved_session)
       state.saved_session = nil
     end
-    state.test_panel_active = false
+    state.run_panel_active = false
     logger.log('test panel closed')
     return
   end
@@ -187,167 +208,224 @@ local function toggle_test_panel(is_debug)
 
   vim.cmd('silent only')
 
-  local tab_buf = vim.api.nvim_create_buf(false, true)
-  local expected_buf = vim.api.nvim_create_buf(false, true)
-  local actual_buf = vim.api.nvim_create_buf(false, true)
-
-  vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = tab_buf })
-  vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = expected_buf })
-  vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = actual_buf })
-
+  local tab_buf = create_buffer_with_options()
   local main_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(main_win, tab_buf)
   vim.api.nvim_set_option_value('filetype', 'cptest', { buf = tab_buf })
 
-  vim.cmd.split()
-  vim.api.nvim_win_set_buf(0, actual_buf)
-  vim.api.nvim_set_option_value('filetype', 'cptest', { buf = actual_buf })
-
-  vim.cmd.vsplit()
-  vim.api.nvim_win_set_buf(0, expected_buf)
-  vim.api.nvim_set_option_value('filetype', 'cptest', { buf = expected_buf })
-
-  local expected_win = vim.fn.bufwinid(expected_buf)
-  local actual_win = vim.fn.bufwinid(actual_buf)
-
   local test_windows = {
     tab_win = main_win,
-    actual_win = actual_win,
-    expected_win = expected_win,
   }
   local test_buffers = {
     tab_buf = tab_buf,
-    expected_buf = expected_buf,
-    actual_buf = actual_buf,
   }
 
-  local function render_test_tabs()
-    local test_state = test_module.get_test_panel_state()
-    local tab_lines = {}
+  local highlight = require('cp.highlight')
+  local diff_namespace = highlight.create_namespace()
 
-    local max_status_width = 0
-    local max_code_width = 0
-    local max_time_width = 0
+  local test_list_namespace = vim.api.nvim_create_namespace('cp_test_list')
 
-    for _, test_case in ipairs(test_state.test_cases) do
-      local status_text = test_case.status == 'pending' and '' or string.upper(test_case.status)
-      max_status_width = math.max(max_status_width, #status_text)
+  local function update_buffer_content(bufnr, lines, highlights)
+    local was_readonly = vim.api.nvim_get_option_value('readonly', { buf = bufnr })
 
-      if test_case.code then
-        max_code_width = math.max(max_code_width, #tostring(test_case.code))
-      end
+    vim.api.nvim_set_option_value('readonly', false, { buf = bufnr })
+    vim.api.nvim_set_option_value('modifiable', true, { buf = bufnr })
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+    vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
+    vim.api.nvim_set_option_value('readonly', was_readonly, { buf = bufnr })
 
-      if test_case.time_ms then
-        local time_text = string.format('%.0fms', test_case.time_ms)
-        max_time_width = math.max(max_time_width, #time_text)
-      end
-    end
-
-    for i, test_case in ipairs(test_state.test_cases) do
-      local prefix = i == test_state.current_index and '> ' or '  '
-      local tab = string.format('%s%d.', prefix, i)
-
-      if test_case.ok ~= nil then
-        tab = tab .. string.format(' [ok:%-5s]', tostring(test_case.ok))
-      end
-
-      if test_case.code then
-        tab = tab .. string.format(' [code:%-' .. max_code_width .. 's]', tostring(test_case.code))
-      end
-
-      if test_case.time_ms then
-        local time_text = string.format('%.0fms', test_case.time_ms)
-        tab = tab .. string.format(' [time:%-' .. max_time_width .. 's]', time_text)
-      end
-
-      if test_case.signal then
-        tab = tab .. string.format(' [%s]', test_case.signal)
-      end
-
-      table.insert(tab_lines, tab)
-    end
-
-    local current_test = test_state.test_cases[test_state.current_index]
-    if current_test then
-      table.insert(tab_lines, '')
-      table.insert(tab_lines, 'Input:')
-      for _, line in ipairs(vim.split(current_test.input, '\n', { plain = true, trimempty = true })) do
-        table.insert(tab_lines, line)
-      end
-    end
-
-    return tab_lines
-  end
-
-  local function update_expected_pane()
-    local test_state = test_module.get_test_panel_state()
-    local current_test = test_state.test_cases[test_state.current_index]
-
-    if not current_test then
-      return
-    end
-
-    local expected_text = current_test.expected
-    local expected_lines = vim.split(expected_text, '\n', { plain = true, trimempty = true })
-
-    vim.api.nvim_buf_set_lines(test_buffers.expected_buf, 0, -1, false, expected_lines)
-
-    if vim.fn.has('nvim-0.8.0') == 1 then
-      vim.api.nvim_set_option_value('winbar', 'Expected', { win = test_windows.expected_win })
+    vim.api.nvim_buf_clear_namespace(bufnr, test_list_namespace, 0, -1)
+    for _, hl in ipairs(highlights) do
+      vim.api.nvim_buf_set_extmark(bufnr, test_list_namespace, hl.line, hl.col_start, {
+        end_col = hl.col_end,
+        hl_group = hl.highlight_group,
+        priority = 100,
+      })
     end
   end
 
-  local function update_actual_pane()
-    local test_state = test_module.get_test_panel_state()
-    local current_test = test_state.test_cases[test_state.current_index]
+  local function create_vim_diff_layout(parent_win, expected_content, actual_content)
+    local expected_buf = create_buffer_with_options()
+    local actual_buf = create_buffer_with_options()
 
-    if not current_test then
-      return
-    end
+    vim.api.nvim_set_current_win(parent_win)
+    vim.cmd.split()
+    local actual_win = vim.api.nvim_get_current_win()
+    vim.api.nvim_win_set_buf(actual_win, actual_buf)
 
-    local actual_lines = {}
-    local enable_diff = false
+    vim.cmd.vsplit()
+    local expected_win = vim.api.nvim_get_current_win()
+    vim.api.nvim_win_set_buf(expected_win, expected_buf)
 
-    if current_test.actual then
-      actual_lines = vim.split(current_test.actual, '\n', { plain = true, trimempty = true })
-      enable_diff = current_test.status == 'fail'
+    vim.api.nvim_set_option_value('filetype', 'cptest', { buf = expected_buf })
+    vim.api.nvim_set_option_value('filetype', 'cptest', { buf = actual_buf })
+
+    local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
+    local actual_lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
+
+    update_buffer_content(expected_buf, expected_lines, {})
+    update_buffer_content(actual_buf, actual_lines, {})
+
+    vim.api.nvim_set_option_value('diff', true, { win = expected_win })
+    vim.api.nvim_set_option_value('diff', true, { win = actual_win })
+    vim.api.nvim_win_call(expected_win, function()
+      vim.cmd.diffthis()
+    end)
+    vim.api.nvim_win_call(actual_win, function()
+      vim.cmd.diffthis()
+    end)
+
+    return {
+      buffers = { expected_buf, actual_buf },
+      windows = { expected_win, actual_win },
+      cleanup = function()
+        pcall(vim.api.nvim_win_close, expected_win, true)
+        pcall(vim.api.nvim_win_close, actual_win, true)
+        pcall(vim.api.nvim_buf_delete, expected_buf, { force = true })
+        pcall(vim.api.nvim_buf_delete, actual_buf, { force = true })
+      end,
+    }
+  end
+
+  local function create_git_diff_layout(parent_win, expected_content, actual_content)
+    local diff_buf = create_buffer_with_options()
+
+    vim.api.nvim_set_current_win(parent_win)
+    vim.cmd.split()
+    local diff_win = vim.api.nvim_get_current_win()
+    vim.api.nvim_win_set_buf(diff_win, diff_buf)
+
+    vim.api.nvim_set_option_value('filetype', 'cptest', { buf = diff_buf })
+
+    local diff_backend = require('cp.diff')
+    local backend = diff_backend.get_best_backend('git')
+    local diff_result = backend.render(expected_content, actual_content)
+
+    if diff_result.raw_diff and diff_result.raw_diff ~= '' then
+      highlight.parse_and_apply_diff(diff_buf, diff_result.raw_diff, diff_namespace)
     else
-      actual_lines = { '(not run yet)' }
+      local lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
+      update_buffer_content(diff_buf, lines, {})
     end
 
-    vim.api.nvim_buf_set_lines(test_buffers.actual_buf, 0, -1, false, actual_lines)
+    return {
+      buffers = { diff_buf },
+      windows = { diff_win },
+      cleanup = function()
+        pcall(vim.api.nvim_win_close, diff_win, true)
+        pcall(vim.api.nvim_buf_delete, diff_buf, { force = true })
+      end,
+    }
+  end
 
-    if vim.fn.has('nvim-0.8.0') == 1 then
-      vim.api.nvim_set_option_value('winbar', 'Actual', { win = test_windows.actual_win })
-    end
-
-    vim.api.nvim_set_option_value('diff', enable_diff, { win = test_windows.expected_win })
-    vim.api.nvim_set_option_value('diff', enable_diff, { win = test_windows.actual_win })
-
-    if enable_diff then
-      vim.api.nvim_win_call(test_windows.expected_win, function()
-        vim.cmd.diffthis()
-      end)
-      vim.api.nvim_win_call(test_windows.actual_win, function()
-        vim.cmd.diffthis()
-      end)
+  local function create_diff_layout(mode, parent_win, expected_content, actual_content)
+    if mode == 'git' then
+      return create_git_diff_layout(parent_win, expected_content, actual_content)
+    else
+      return create_vim_diff_layout(parent_win, expected_content, actual_content)
     end
   end
 
-  local function refresh_test_panel()
+  local function update_diff_panes()
+    local test_state = test_module.get_run_panel_state()
+    local current_test = test_state.test_cases[test_state.current_index]
+
+    if not current_test then
+      return
+    end
+
+    local expected_content = current_test.expected or ''
+    local actual_content = current_test.actual or '(not run yet)'
+    local should_show_diff = current_test.status == 'fail' and current_test.actual
+
+    if not should_show_diff then
+      expected_content = expected_content
+      actual_content = actual_content
+    end
+
+    local desired_mode = should_show_diff and config.run_panel.diff_mode or 'vim'
+
+    if current_diff_layout and current_mode ~= desired_mode then
+      local saved_pos = vim.api.nvim_win_get_cursor(0)
+      current_diff_layout.cleanup()
+      current_diff_layout = nil
+      current_mode = nil
+
+      current_diff_layout =
+        create_diff_layout(desired_mode, main_win, expected_content, actual_content)
+      current_mode = desired_mode
+
+      for _, buf in ipairs(current_diff_layout.buffers) do
+        setup_keybindings_for_buffer(buf)
+      end
+
+      pcall(vim.api.nvim_win_set_cursor, 0, saved_pos)
+      return
+    end
+
+    if not current_diff_layout then
+      current_diff_layout =
+        create_diff_layout(desired_mode, main_win, expected_content, actual_content)
+      current_mode = desired_mode
+
+      for _, buf in ipairs(current_diff_layout.buffers) do
+        setup_keybindings_for_buffer(buf)
+      end
+    else
+      if desired_mode == 'git' then
+        local diff_backend = require('cp.diff')
+        local backend = diff_backend.get_best_backend('git')
+        local diff_result = backend.render(expected_content, actual_content)
+
+        if diff_result.raw_diff and diff_result.raw_diff ~= '' then
+          highlight.parse_and_apply_diff(
+            current_diff_layout.buffers[1],
+            diff_result.raw_diff,
+            diff_namespace
+          )
+        else
+          local lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
+          update_buffer_content(current_diff_layout.buffers[1], lines, {})
+        end
+      else
+        local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
+        local actual_lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
+        update_buffer_content(current_diff_layout.buffers[1], expected_lines, {})
+        update_buffer_content(current_diff_layout.buffers[2], actual_lines, {})
+
+        if should_show_diff then
+          vim.api.nvim_set_option_value('diff', true, { win = current_diff_layout.windows[1] })
+          vim.api.nvim_set_option_value('diff', true, { win = current_diff_layout.windows[2] })
+          vim.api.nvim_win_call(current_diff_layout.windows[1], function()
+            vim.cmd.diffthis()
+          end)
+          vim.api.nvim_win_call(current_diff_layout.windows[2], function()
+            vim.cmd.diffthis()
+          end)
+        else
+          vim.api.nvim_set_option_value('diff', false, { win = current_diff_layout.windows[1] })
+          vim.api.nvim_set_option_value('diff', false, { win = current_diff_layout.windows[2] })
+        end
+      end
+    end
+  end
+
+  local function refresh_run_panel()
     if not test_buffers.tab_buf or not vim.api.nvim_buf_is_valid(test_buffers.tab_buf) then
       return
     end
 
-    local tab_lines = render_test_tabs()
-    vim.api.nvim_buf_set_lines(test_buffers.tab_buf, 0, -1, false, tab_lines)
+    local test_render = require('cp.test_render')
+    test_render.setup_highlights()
+    local test_state = test_module.get_run_panel_state()
+    local tab_lines, tab_highlights = test_render.render_test_list(test_state)
+    update_buffer_content(test_buffers.tab_buf, tab_lines, tab_highlights)
 
-    update_expected_pane()
-    update_actual_pane()
+    update_diff_panes()
   end
 
   local function navigate_test_case(delta)
-    local test_state = test_module.get_test_panel_state()
+    local test_state = test_module.get_run_panel_state()
     if #test_state.test_cases == 0 then
       return
     end
@@ -359,20 +437,30 @@ local function toggle_test_panel(is_debug)
       test_state.current_index = 1
     end
 
-    refresh_test_panel()
+    refresh_run_panel()
   end
 
-  vim.keymap.set('n', '<c-n>', function()
+  setup_keybindings_for_buffer = function(buf)
+    vim.keymap.set('n', 'q', function()
+      toggle_run_panel()
+    end, { buffer = buf, silent = true })
+    vim.keymap.set('n', config.run_panel.toggle_diff_key, function()
+      config.run_panel.diff_mode = config.run_panel.diff_mode == 'vim' and 'git' or 'vim'
+      refresh_run_panel()
+    end, { buffer = buf, silent = true })
+  end
+
+  vim.keymap.set('n', config.run_panel.next_test_key, function()
     navigate_test_case(1)
   end, { buffer = test_buffers.tab_buf, silent = true })
-  vim.keymap.set('n', '<c-p>', function()
+  vim.keymap.set('n', config.run_panel.prev_test_key, function()
     navigate_test_case(-1)
   end, { buffer = test_buffers.tab_buf, silent = true })
 
-  for _, buf in pairs(test_buffers) do
-    vim.keymap.set('n', 'q', function()
-      toggle_test_panel()
-    end, { buffer = buf, silent = true })
+  setup_keybindings_for_buffer(test_buffers.tab_buf)
+
+  if config.hooks and config.hooks.before_run then
+    config.hooks.before_run(ctx)
   end
 
   if is_debug and config.hooks and config.hooks.before_debug then
@@ -385,14 +473,14 @@ local function toggle_test_panel(is_debug)
     test_module.run_all_test_cases(ctx, contest_config)
   end
 
-  refresh_test_panel()
+  refresh_run_panel()
 
   vim.api.nvim_set_current_win(test_windows.tab_win)
 
-  state.test_panel_active = true
+  state.run_panel_active = true
   state.test_buffers = test_buffers
   state.test_windows = test_windows
-  local test_state = test_module.get_test_panel_state()
+  local test_state = test_module.get_run_panel_state()
   logger.log(string.format('test panel opened (%d test cases)', #test_state.test_cases))
 end
 
@@ -559,8 +647,8 @@ function M.handle_command(opts)
   end
 
   if cmd.type == 'action' then
-    if cmd.action == 'test' then
-      toggle_test_panel(cmd.debug)
+    if cmd.action == 'run' then
+      toggle_run_panel(cmd.debug)
     elseif cmd.action == 'next' then
       navigate_problem(1, cmd.language)
     elseif cmd.action == 'prev' then

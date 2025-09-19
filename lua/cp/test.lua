@@ -12,7 +12,7 @@
 ---@field signal string?
 ---@field timed_out boolean?
 
----@class TestPanelState
+---@class RunPanelState
 ---@field test_cases TestCase[]
 ---@field current_index number
 ---@field buffer number?
@@ -24,8 +24,8 @@ local M = {}
 local constants = require('cp.constants')
 local logger = require('cp.log')
 
----@type TestPanelState
-local test_panel_state = {
+---@type RunPanelState
+local run_panel_state = {
   test_cases = {},
   current_index = 1,
   buffer = nil,
@@ -172,7 +172,7 @@ local function run_single_test_case(ctx, contest_config, test_case)
     end
   end
 
-  local run_cmd = build_command(language_config.run, language_config.executable, substitutions)
+  local run_cmd = build_command(language_config.test, language_config.executable, substitutions)
 
   local stdin_content = test_case.input .. '\n'
 
@@ -227,8 +227,8 @@ function M.load_test_cases(ctx, state)
     test_cases = parse_test_cases_from_files(ctx.input_file, ctx.expected_file)
   end
 
-  test_panel_state.test_cases = test_cases
-  test_panel_state.current_index = 1
+  run_panel_state.test_cases = test_cases
+  run_panel_state.current_index = 1
 
   logger.log(('loaded %d test case(s)'):format(#test_cases))
   return #test_cases > 0
@@ -239,7 +239,7 @@ end
 ---@param index number
 ---@return boolean
 function M.run_test_case(ctx, contest_config, index)
-  local test_case = test_panel_state.test_cases[index]
+  local test_case = run_panel_state.test_cases[index]
   if not test_case then
     return false
   end
@@ -266,16 +266,16 @@ end
 ---@return TestCase[]
 function M.run_all_test_cases(ctx, contest_config)
   local results = {}
-  for i, _ in ipairs(test_panel_state.test_cases) do
+  for i, _ in ipairs(run_panel_state.test_cases) do
     M.run_test_case(ctx, contest_config, i)
-    table.insert(results, test_panel_state.test_cases[i])
+    table.insert(results, run_panel_state.test_cases[i])
   end
   return results
 end
 
----@return TestPanelState
-function M.get_test_panel_state()
-  return test_panel_state
+---@return RunPanelState
+function M.get_run_panel_state()
+  return run_panel_state
 end
 
 return M

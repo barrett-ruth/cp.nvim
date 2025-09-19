@@ -49,9 +49,9 @@ Setup Commands ~
 
 Action Commands ~
 
-:CP test [--debug]              Toggle test panel for individual test case
-                                debugging. Shows per-test results with three-pane
-                                layout for easy Expected/Actual comparison.
+:CP run [--debug]               Toggle run panel for individual test case
+                                debugging. Shows per-test results with redesigned
+                                layout for efficient comparison.
                                 Use --debug flag to compile with debug flags
                                 Requires contest setup first.
 
@@ -67,7 +67,7 @@ CONFIGURATION                                       *cp-config*
 
 cp.nvim works out of the box. No setup required.
 
-Optional configuration with lazy.nvim: >
+Here's an example configuration with lazy.nvim: >
     {
         'barrett-ruth/cp.nvim',
         cmd = 'CP',
@@ -75,7 +75,7 @@ Optional configuration with lazy.nvim: >
           debug = false,
           scrapers = {
             atcoder = true,
-            codeforces = false,  -- disable codeforces scraping
+            codeforces = false,
             cses = true,
           },
           contests = {
@@ -85,7 +85,7 @@ Optional configuration with lazy.nvim: >
                   'g++', '-std=c++{version}', '-O2', '-Wall', '-Wextra',
                   '-DLOCAL', '{source}', '-o', '{binary}',
                 },
-                run = { '{binary}' },
+                test = { '{binary}' },
                 debug = {
                   'g++', '-std=c++{version}', '-g3',
                   '-fsanitize=address,undefined', '-DLOCAL',
@@ -95,7 +95,7 @@ Optional configuration with lazy.nvim: >
                 extension = "cc",
               },
               python = {
-                run = { 'python3', '{source}' },
+                test = { 'python3', '{source}' },
                 debug = { 'python3', '{source}' },
                 extension = "py",
               },
@@ -105,15 +105,25 @@ Optional configuration with lazy.nvim: >
           },
           hooks = {
             before_run = function(ctx) vim.cmd.w() end,
-            before_debug = function(ctx)
-              -- ctx.problem_id, ctx.platform, ctx.source_file, etc.
-              vim.cmd.w()
-            end,
+            before_debug = function(ctx) ... end,
             setup_code = function(ctx)
               vim.wo.foldmethod = "marker"
               vim.wo.foldmarker = "{{{,}}}"
               vim.diagnostic.enable(false)
             end,
+          },
+          run_panel = {
+            diff_mode = "vim",
+            next_test_key = "<c-n>",
+            prev_test_key = "<c-p>",
+            toggle_diff_key = "t",
+          },
+          diff = {
+            git = {
+              command = "git",
+              args = {"diff", "--no-index", "--word-diff=plain",
+                     "--word-diff-regex=.", "--no-prefix"},
+            },
           },
           snippets = { ... },  -- LuaSnip snippets
           filename = function(contest, contest_id, problem_id, config, language) ... end,
@@ -131,6 +141,8 @@ Optional configuration with lazy.nvim: >
                         during operation.
       • {scrapers}      (`table<string,boolean>`) Per-platform scraper control.
                          Default enables all platforms.
+      • {run_panel}     (`RunPanelConfig`) Test panel behavior configuration.
+      • {diff}          (`DiffConfig`) Diff backend configuration.
       • {filename}?     (`function`) Custom filename generation function.
                         `function(contest, contest_id, problem_id, config, language)`
                         Should return full filename with extension.
@@ -151,20 +163,49 @@ Optional configuration with lazy.nvim: >
     Fields: ~
       • {compile}?      (`string[]`) Compile command template with
                         `{version}`, `{source}`, `{binary}` placeholders.
-      • {run}           (`string[]`) Run command template.
+      • {test}          (`string[]`) Test execution command template.
       • {debug}?        (`string[]`) Debug compile command template.
       • {version}?      (`number`) Language version (e.g. 20, 23 for C++).
       • {extension}     (`string`) File extension (e.g. "cc", "py").
       • {executable}?   (`string`) Executable name for interpreted languages.
 
+*cp.RunPanelConfig*
+
+    Fields: ~
+      • {diff_mode}     (`string`, default: `"vim"`) Diff backend: "vim" or "git".
+                        Git provides character-level precision, vim uses built-in diff.
+      • {next_test_key} (`string`, default: `"<c-n>"`) Key to navigate to next test case.
+      • {prev_test_key} (`string`, default: `"<c-p>"`) Key to navigate to previous test case.
+      • {toggle_diff_key} (`string`, default: `"t"`) Key to toggle diff mode between vim and git.
+
+*cp.DiffConfig*
+
+    Fields: ~
+      • {git}           (`DiffGitConfig`) Git diff backend configuration.
+
 *cp.Hooks*
 
     Fields: ~
+      • {before_run}?  (`function`) Called before test panel opens.
+                        `function(ctx: ProblemContext)`
       • {before_debug}? (`function`) Called before debug compilation.
                         `function(ctx: ProblemContext)`
       • {setup_code}?   (`function`) Called after source file is opened.
-                        Used to configure buffer settings.
+                        Good for configuring buffer settings.
                         `function(ctx: ProblemContext)`
+
+*ProblemContext*
+
+    Fields: ~
+      • {contest}       (`string`) Platform name (e.g. "atcoder", "codeforces")
+      • {contest_id}    (`string`) Contest ID (e.g. "abc123", "1933")
+      • {problem_id}?   (`string`) Problem ID (e.g. "a", "b") - nil for CSES
+      • {source_file}   (`string`) Source filename (e.g. "abc123a.cpp")
+      • {binary_file}   (`string`) Binary output path (e.g. "build/abc123a.run")
+      • {input_file}    (`string`) Test input path (e.g. "io/abc123a.cpin")
+      • {output_file}   (`string`) Program output path (e.g. "io/abc123a.cpout")
+      • {expected_file} (`string`) Expected output path (e.g. "io/abc123a.expected")
+      • {problem_name}  (`string`) Display name (e.g. "abc123a")
 
 WORKFLOW                                            *cp-workflow*
 
@@ -232,15 +273,19 @@ Example: Setting up and solving AtCoder contest ABC324
 
 3. Start with problem A: >
     :CP a
+
+   Or do both at once with:
+    :CP atcoder abc324 a
+
 <   This creates a.cc and scrapes test cases
 
 4. Code your solution, then test: >
-    :CP test
+    :CP run
 <   Navigate with j/k, run specific tests with <enter>
-    Exit test panel with q or :CP test when done
+    Exit test panel with q or :CP run when done
 
 5. If needed, debug with sanitizers: >
-    :CP test --debug
+    :CP run --debug
 <
 6. Move to next problem: >
     :CP next
@@ -248,20 +293,17 @@ Example: Setting up and solving AtCoder contest ABC324
 
 6. Continue solving problems with :CP next/:CP prev navigation
 7. Submit solutions on AtCoder website
-
-Example: Quick setup for single Codeforces problem >
-    :CP codeforces 1933 a       " One command setup
-    :CP test                    " Test immediately
 <
 
-TEST PANEL                                          *cp-test*
+RUN PANEL                                          *cp-run*
 
-The test panel provides individual test case debugging with a three-pane
-layout showing test list, expected output, and actual output side-by-side.
+The run panel provides individual test case debugging with a streamlined
+layout optimized for modern screens. Shows test status with competitive
+programming terminology and efficient space usage.
 
 Activation ~
-                                                      *:CP-test*
-:CP test [--debug]              Toggle test panel on/off. When activated,
+                                                      *:CP-run*
+:CP run [--debug]               Toggle run panel on/off. When activated,
                                 replaces current layout with test interface.
                                 Automatically compiles and runs all tests.
                                 Use --debug flag to compile with debug symbols
@@ -270,29 +312,48 @@ Activation ~
 
 Interface ~
 
-The test panel uses a three-pane layout for easy comparison: >
+The run panel uses a professional table layout with precise column alignment:
+(note that the diff is indeed highlighted, not the weird amalgamation of
+characters below) >
 
-    ┌─────────────────────────────────────────────────────────────┐
-    │  1. [ok:true ] [code:0] [time:12ms]                         │
-    │> 2. [ok:false] [code:0] [time:45ms]                         │
-    │                                                             │
-    │ Input:                                                      │
-    │ 5 3                                                         │
-    │                                                             │
-    └─────────────────────────────────────────────────────────────┘
-    ┌─ Expected ──────────────────┐ ┌───── Actual ────────────────┐
-    │ 8                           │ │ 7                           │
-    │                             │ │                             │
-    │                             │ │                             │
-    │                             │ │                             │
-    └─────────────────────────────┘ └─────────────────────────────┘
+    ┌──────┬────────┬────────┬───────────┐ ┌─ Expected vs Actual ──────────────────┐
+    │  #   │ Status │  Time  │ Exit Code │ │ 45.70ms │ Exit: 0                    │
+    ├──────┼────────┼────────┼───────────┤ ├────────────────────────────────────────┤
+    │  1   │   AC   │12.00ms │     0     │ │                                        │
+    │ >2   │   WA   │45.70ms │     1     │ │ 4[-2-]{+3+}                           │
+    ├──────┴────────┴────────┴───────────┤ │ 100                                    │
+    │5 3                                 │ │ hello w[-o-]r{+o+}ld                   │
+    ├──────┬────────┬────────┬───────────┤ │                                        │
+    │  3   │   AC   │ 9.00ms │     0     │ └────────────────────────────────────────┘
+    │  4   │   RTE  │ 0.00ms │139 (SIGUSR2)│
+    └──────┴────────┴────────┴───────────┘
 <
+
+Status Indicators ~
+
+Test cases use competitive programming terminology:
+
+    AC      Accepted (passed)
+    WA      Wrong Answer (output mismatch)
+    TLE     Time Limit Exceeded (timeout)
+    RTE     Runtime Error (non-zero exit)
 
 Keymaps ~
                                                 *cp-test-keys*
-<c-n>                           Navigate to next test case
-<c-p>                           Navigate to previous test case
-q                               Exit test panel (restore layout)
+<c-n>                           Navigate to next test case (configurable via run_panel.next_test_key)
+<c-p>                           Navigate to previous test case (configurable via run_panel.prev_test_key)
+t                               Toggle diff mode between vim and git (configurable via run_panel.toggle_diff_key)
+q                               Exit test panel and restore layout
+
+Diff Modes ~
+
+Two diff backends are available:
+
+    vim     Built-in vim diff (default, always available)
+    git     Character-level git word-diff (requires git, more precise)
+
+The git backend shows character-level changes with [-removed-] and {+added+}
+markers for precise difference analysis.
 
 Execution Details ~
 
@@ -309,8 +370,8 @@ cp.nvim creates the following file structure upon problem setup:
     build/
       {problem_id}.run              " Compiled binary
     io/
-      {problem_id}.cpin             " Test input
-      {problem_id}.cpout            " Program output
+      {problem_id}.n.cpin           " nth test input
+      {problem_id}.n.cpout          " nth program output
       {problem_id}.expected         " Expected output
 
 The plugin automatically manages this structure and navigation between problems
@@ -321,8 +382,9 @@ SNIPPETS                                        *cp-snippets*
 cp.nvim integrates with LuaSnip for automatic template expansion. Built-in
 snippets include basic C++ and Python templates for each contest type.
 
-Snippet trigger names must EXACTLY match platform names ("codeforces" for
-CodeForces, "cses" for CSES, etc.).
+Snippet trigger names must match the following format exactly:
+
+    cp.nvim/{platform}
 
 Custom snippets can be added via the `snippets` configuration field.
 

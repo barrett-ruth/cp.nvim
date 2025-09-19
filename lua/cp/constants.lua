@@ -1,7 +1,7 @@
 local M = {}
 
 M.PLATFORMS = { 'atcoder', 'codeforces', 'cses' }
-M.ACTIONS = { 'test', 'next', 'prev' }
+M.ACTIONS = { 'run', 'next', 'prev' }
 
 M.CPP = 'cpp'
 M.PYTHON = 'python'

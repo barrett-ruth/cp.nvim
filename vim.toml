@@ -22,3 +22,9 @@ any = true
 
 [after_each]
 any = true
+
+[spy]
+any = true
+
+[stub]
+any = true

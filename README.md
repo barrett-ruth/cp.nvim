@@ -63,12 +63,3 @@ follows:
 
 - [competitest.nvim](https://github.com/xeluxee/competitest.nvim)
 - [assistant.nvim](https://github.com/A7Lavinraj/assistant.nvim)
-
-## TODO
-
-- general `:CP test` window improvements
-- fzf/telescope integration (whichever available)
-- finer-tuned problem limits (i.e. per-problem codeforces time, memory)
-- notify discord members
-- handle infinite output/trimming file to 500 lines (customizable)
-- update barrettruth.com to post

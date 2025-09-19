@@ -1,6 +1,6 @@
 ---@class LanguageConfig
 ---@field compile? string[] Compile command template
----@field run string[] Run command template
+---@field test string[] Test execution command template
 ---@field debug? string[] Debug command template
 ---@field executable? string Executable name
 ---@field version? number Language version
@@ -8,7 +8,7 @@
 
 ---@class PartialLanguageConfig
 ---@field compile? string[] Compile command template
----@field run? string[] Run command template
+---@field test? string[] Test execution command template
 ---@field debug? string[] Debug command template
 ---@field executable? string Executable name
 ---@field version? number Language version
@@ -31,6 +31,19 @@
 ---@field before_debug? fun(ctx: ProblemContext)
 ---@field setup_code? fun(ctx: ProblemContext)
 
+---@class RunPanelConfig
+---@field diff_mode "vim"|"git" Diff backend to use
+---@field next_test_key string Key to navigate to next test case
+---@field prev_test_key string Key to navigate to previous test case
+---@field toggle_diff_key string Key to toggle diff mode
+
+---@class DiffGitConfig
+---@field command string Git executable name
+---@field args string[] Additional git diff arguments
+
+---@class DiffConfig
+---@field git DiffGitConfig
+
 ---@class cp.Config
 ---@field contests table<string, ContestConfig>
 ---@field snippets table[]
@@ -38,6 +51,8 @@
 ---@field debug boolean
 ---@field scrapers table<string, boolean>
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
+---@field run_panel RunPanelConfig
+---@field diff DiffConfig
 
 ---@class cp.UserConfig
 ---@field contests? table<string, PartialContestConfig>
@@ -46,6 +61,8 @@
 ---@field debug? boolean
 ---@field scrapers? table<string, boolean>
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
+---@field run_panel? RunPanelConfig
+---@field diff? DiffConfig
 
 local M = {}
 local constants = require('cp.constants')
@@ -62,6 +79,18 @@ M.defaults = {
   debug = false,
   scrapers = constants.PLATFORMS,
   filename = nil,
+  run_panel = {
+    diff_mode = 'vim',
+    next_test_key = '<c-n>',
+    prev_test_key = '<c-p>',
+    toggle_diff_key = 't',
+  },
+  diff = {
+    git = {
+      command = 'git',
+      args = { 'diff', '--no-index', '--word-diff=plain', '--word-diff-regex=.', '--no-prefix' },
+    },
+  },
 }
 
 ---@param user_config cp.UserConfig|nil
@@ -79,27 +108,9 @@ function M.setup(user_config)
       debug = { user_config.debug, { 'boolean', 'nil' }, true },
       scrapers = { user_config.scrapers, { 'table', 'nil' }, true },
       filename = { user_config.filename, { 'function', 'nil' }, true },
+      run_panel = { user_config.run_panel, { 'table', 'nil' }, true },
+      diff = { user_config.diff, { 'table', 'nil' }, true },
     })
-
-    if user_config.hooks then
-      vim.validate({
-        before_run = {
-          user_config.hooks.before_run,
-          { 'function', 'nil' },
-          true,
-        },
-        before_debug = {
-          user_config.hooks.before_debug,
-          { 'function', 'nil' },
-          true,
-        },
-        setup_code = {
-          user_config.hooks.setup_code,
-          { 'function', 'nil' },
-          true,
-        },
-      })
-    end
 
     if user_config.contests then
       for contest_name, contest_config in pairs(user_config.contests) do
@@ -143,6 +154,60 @@ function M.setup(user_config)
   end
 
   local config = vim.tbl_deep_extend('force', M.defaults, user_config or {})
+
+  -- Validate merged config values
+  vim.validate({
+    before_run = {
+      config.hooks.before_run,
+      { 'function', 'nil' },
+      true,
+    },
+    before_debug = {
+      config.hooks.before_debug,
+      { 'function', 'nil' },
+      true,
+    },
+    setup_code = {
+      config.hooks.setup_code,
+      { 'function', 'nil' },
+      true,
+    },
+  })
+
+  vim.validate({
+    diff_mode = {
+      config.run_panel.diff_mode,
+      function(value)
+        return vim.tbl_contains({ 'vim', 'git' }, value)
+      end,
+      "diff_mode must be 'vim' or 'git'",
+    },
+    next_test_key = {
+      config.run_panel.next_test_key,
+      function(value)
+        return type(value) == 'string' and value ~= ''
+      end,
+      'next_test_key must be a non-empty string',
+    },
+    prev_test_key = {
+      config.run_panel.prev_test_key,
+      function(value)
+        return type(value) == 'string' and value ~= ''
+      end,
+      'prev_test_key must be a non-empty string',
+    },
+    toggle_diff_key = {
+      config.run_panel.toggle_diff_key,
+      function(value)
+        return type(value) == 'string' and value ~= ''
+      end,
+      'toggle_diff_key must be a non-empty string',
+    },
+  })
+
+  vim.validate({
+    git = { config.diff.git, { 'table', 'nil' }, true },
+  })
 
   for _, contest_config in pairs(config.contests) do
     for lang_name, lang_config in pairs(contest_config) do

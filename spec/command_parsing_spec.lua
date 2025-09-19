@@ -51,7 +51,7 @@ describe('cp command parsing', function()
 
   describe('action commands', function()
     it('handles test action without error', function()
-      local opts = { fargs = { 'test' } }
+      local opts = { fargs = { 'run' } }
 
       assert.has_no_errors(function()
         cp.handle_command(opts)
@@ -126,7 +126,7 @@ describe('cp command parsing', function()
 
   describe('language flag parsing', function()
     it('logs error for --lang flag missing value', function()
-      local opts = { fargs = { 'test', '--lang' } }
+      local opts = { fargs = { 'run', '--lang' } }
 
       cp.handle_command(opts)
 
@@ -169,7 +169,7 @@ describe('cp command parsing', function()
 
   describe('debug flag parsing', function()
     it('handles debug flag without error', function()
-      local opts = { fargs = { 'test', '--debug' } }
+      local opts = { fargs = { 'run', '--debug' } }
 
       assert.has_no_errors(function()
         cp.handle_command(opts)
@@ -177,7 +177,7 @@ describe('cp command parsing', function()
     end)
 
     it('handles combined language and debug flags', function()
-      local opts = { fargs = { 'test', '--lang=cpp', '--debug' } }
+      local opts = { fargs = { 'run', '--lang=cpp', '--debug' } }
 
       assert.has_no_errors(function()
         cp.handle_command(opts)
@@ -234,7 +234,7 @@ describe('cp command parsing', function()
     end)
 
     it('handles flag order variations', function()
-      local opts = { fargs = { '--debug', 'test', '--lang=python' } }
+      local opts = { fargs = { '--debug', 'run', '--lang=python' } }
 
       assert.has_no_errors(function()
         cp.handle_command(opts)
@@ -242,7 +242,7 @@ describe('cp command parsing', function()
     end)
 
     it('handles multiple language flags', function()
-      local opts = { fargs = { 'test', '--lang=cpp', '--lang=python' } }
+      local opts = { fargs = { 'run', '--lang=cpp', '--lang=python' } }
 
       assert.has_no_errors(function()
         cp.handle_command(opts)
