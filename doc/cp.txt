@@ -289,7 +289,7 @@ The test panel uses a three-pane layout for easy comparison: >
 <
 
 Keymaps ~
-								*cp-test-keys*
+                                                *cp-test-keys*
 j / <Down>                      Navigate to next test case
 k / <Up>                        Navigate to previous test case
 q                               Exit test panel (restore layout)
@@ -301,7 +301,7 @@ execution pipeline, but with isolated input/output for
 precise failure analysis. All tests are automatically run when the
 panel opens.
 
-FILE STRUCTURE						*cp-files*
+FILE STRUCTURE                                  *cp-files*
 
 cp.nvim creates the following file structure upon problem setup:
 
@@ -316,7 +316,7 @@ cp.nvim creates the following file structure upon problem setup:
 The plugin automatically manages this structure and navigation between problems
 maintains proper file associations.
 
-SNIPPETS						*cp-snippets*
+SNIPPETS                                        *cp-snippets*
 
 cp.nvim integrates with LuaSnip for automatic template expansion. Built-in
 snippets include basic C++ and Python templates for each contest type.
@@ -326,7 +326,7 @@ CodeForces, "cses" for CSES, etc.).
 
 Custom snippets can be added via the `snippets` configuration field.
 
-HEALTH CHECK						*cp-health*
+HEALTH CHECK                                    *cp-health*
 
 Run |:checkhealth| cp to verify your setup.
 
