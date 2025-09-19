@@ -143,12 +143,13 @@ describe('cp integration', function()
       local test_module = require('cp.test')
       local state = test_module.get_test_panel_state()
 
-      state.test_cases =
-        { {
+      state.test_cases = {
+        {
           input = '1 2',
           expected = '3',
           status = 'pending',
-        } }
+        },
+      }
 
       local context = {
         source_file = 'test.cpp',
