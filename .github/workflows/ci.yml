@@ -63,7 +63,7 @@ jobs:
       - name: Install ruff
         run: uv tool install ruff
       - name: Lint Python files with ruff
-        run: ruff check scrapers/
+        run: ruff check scrapers/ tests/scrapers/
 
   python-typecheck:
     name: Python Type Checking
