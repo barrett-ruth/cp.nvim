@@ -4,6 +4,25 @@
 
 local M = {}
 
+local exit_code_names = {
+  [128] = 'SIGHUP',
+  [129] = 'SIGINT',
+  [130] = 'SIGQUIT',
+  [131] = 'SIGILL',
+  [132] = 'SIGTRAP',
+  [133] = 'SIGABRT',
+  [134] = 'SIGBUS',
+  [135] = 'SIGFPE',
+  [136] = 'SIGKILL',
+  [137] = 'SIGUSR1',
+  [138] = 'SIGSEGV',
+  [139] = 'SIGUSR2',
+  [140] = 'SIGPIPE',
+  [141] = 'SIGALRM',
+  [142] = 'SIGTERM',
+  [143] = 'SIGCHLD',
+}
+
 ---Convert test status to CP terminology with colors
 ---@param test_case TestCase
 ---@return StatusInfo
@@ -34,9 +53,9 @@ function M.render_test_list(test_state)
   local lines = {}
   local highlights = {}
 
-  local header = ' #  │ Status │ Time │ Exit │ Input'
+  local header = ' #  │ Status │ Time │ Exit Code'
   local separator =
-    '────┼────────┼──────┼──────┼─────────────────'
+    '────┼────────┼──────┼───────────'
   table.insert(lines, header)
   table.insert(lines, separator)
 
@@ -48,16 +67,22 @@ function M.render_test_list(test_state)
     local num_col = string.format('%s%-2d', prefix, i)
     local status_col = string.format(' %-6s', status_info.text)
     local time_col = test_case.time_ms and string.format('%4.0fms', test_case.time_ms) or '  —  '
-    local exit_col = test_case.code and string.format(' %-3d', test_case.code) or ' — '
-    local input_col = test_case.input and test_case.input:gsub('\n', ' ') or ''
+    local exit_col = ' — '
+    if test_case.code then
+      local signal_name = exit_code_names[test_case.code]
+      if signal_name then
+        exit_col = string.format(' %d (%s)', test_case.code, signal_name)
+      else
+        exit_col = string.format(' %d', test_case.code)
+      end
+    end
 
     local line = string.format(
-      '%s │%s │ %s │%s │ %s',
+      '%s │%s │ %s │%s',
       num_col,
       status_col,
       time_col,
-      exit_col,
-      input_col
+      exit_col
     )
     table.insert(lines, line)
 
@@ -71,6 +96,15 @@ function M.render_test_list(test_state)
         highlight_group = status_info.highlight_group,
       })
     end
+
+    if is_current and test_case.input and test_case.input ~= '' then
+      for _, input_line in ipairs(vim.split(test_case.input, '\n', { plain = true, trimempty = false })) do
+        table.insert(lines, input_line)
+      end
+    end
+
+    local separator = '─────────────────────────────────────────────────────────────'
+    table.insert(lines, separator)
   end
 
   return lines, highlights
