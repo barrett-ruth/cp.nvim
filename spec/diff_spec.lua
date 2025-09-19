@@ -103,7 +103,11 @@ describe('cp.diff', function()
       local mock_delete = stub(vim.fn, 'delete')
 
       mock_tempname.returns('/tmp/expected', '/tmp/actual')
-      mock_system.returns({ wait = function() return { code = 1, stdout = 'diff output' } end })
+      mock_system.returns({
+        wait = function()
+          return { code = 1, stdout = 'diff output' }
+        end,
+      })
 
       local backend = diff.get_backend('git')
       backend.render('expected text', 'actual text')
@@ -124,7 +128,11 @@ describe('cp.diff', function()
       local mock_delete = stub(vim.fn, 'delete')
 
       mock_tempname.returns('/tmp/expected', '/tmp/actual')
-      mock_system.returns({ wait = function() return { code = 1, stdout = 'git diff output' } end })
+      mock_system.returns({
+        wait = function()
+          return { code = 1, stdout = 'git diff output' }
+        end,
+      })
 
       local backend = diff.get_backend('git')
       local result = backend.render('expected', 'actual')
@@ -144,7 +152,11 @@ describe('cp.diff', function()
       local mock_delete = stub(vim.fn, 'delete')
 
       mock_tempname.returns('/tmp/expected', '/tmp/actual')
-      mock_system.returns({ wait = function() return { code = 0 } end })
+      mock_system.returns({
+        wait = function()
+          return { code = 0 }
+        end,
+      })
 
       local backend = diff.get_backend('git')
       local result = backend.render('same', 'same')

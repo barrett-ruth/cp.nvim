@@ -58,6 +58,10 @@ end
 ---@param diff_output string
 ---@return ParsedDiff
 function M.parse_git_diff(diff_output)
+  if diff_output == '' then
+    return { content = {}, highlights = {} }
+  end
+
   local lines = vim.split(diff_output, '\n', { plain = true })
   local content_lines = {}
   local all_highlights = {}

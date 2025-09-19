@@ -3,16 +3,14 @@ describe('cp.highlight', function()
 
   describe('parse_git_diff', function()
     it('skips git diff headers', function()
-      local diff_output = [[
-diff --git a/test b/test
+      local diff_output = [[diff --git a/test b/test
 index 1234567..abcdefg 100644
 --- a/test
 +++ b/test
 @@ -1,3 +1,3 @@
  hello
 +world
--goodbye
-]]
+-goodbye]]
       local result = highlight.parse_git_diff(diff_output)
       assert.same({ 'hello', 'world' }, result.content)
     end)
@@ -64,7 +62,8 @@ index 1234567..abcdefg 100644
     end)
 
     it('applies extmarks with correct positions', function()
-      local mock_extmark = spy.on(vim.api, 'nvim_buf_set_extmark')
+      local mock_extmark = stub(vim.api, 'nvim_buf_set_extmark')
+      local mock_clear = stub(vim.api, 'nvim_buf_clear_namespace')
       local bufnr = 1
       local namespace = 100
       local highlights = {
@@ -78,16 +77,18 @@ index 1234567..abcdefg 100644
 
       highlight.apply_highlights(bufnr, highlights, namespace)
 
-      assert.spy(mock_extmark).was_called_with(bufnr, namespace, 0, 5, {
+      assert.stub(mock_extmark).was_called_with(bufnr, namespace, 0, 5, {
         end_col = 10,
         hl_group = 'CpDiffAdded',
         priority = 100,
       })
       mock_extmark:revert()
+      mock_clear:revert()
     end)
 
     it('uses correct highlight groups', function()
-      local mock_extmark = spy.on(vim.api, 'nvim_buf_set_extmark')
+      local mock_extmark = stub(vim.api, 'nvim_buf_set_extmark')
+      local mock_clear = stub(vim.api, 'nvim_buf_clear_namespace')
       local highlights = {
         {
           line = 0,
@@ -102,15 +103,18 @@ index 1234567..abcdefg 100644
       local call_args = mock_extmark.calls[1].vals
       assert.equals('CpDiffAdded', call_args[4].hl_group)
       mock_extmark:revert()
+      mock_clear:revert()
     end)
 
     it('handles empty highlights', function()
-      local mock_extmark = spy.on(vim.api, 'nvim_buf_set_extmark')
+      local mock_extmark = stub(vim.api, 'nvim_buf_set_extmark')
+      local mock_clear = stub(vim.api, 'nvim_buf_clear_namespace')
 
       highlight.apply_highlights(1, {}, 100)
 
-      assert.spy(mock_extmark).was_not_called()
+      assert.stub(mock_extmark).was_not_called()
       mock_extmark:revert()
+      mock_clear:revert()
     end)
   end)
 
@@ -129,8 +133,8 @@ index 1234567..abcdefg 100644
 
   describe('parse_and_apply_diff', function()
     it('parses diff and applies to buffer', function()
-      local mock_set_lines = spy.on(vim.api, 'nvim_buf_set_lines')
-      local mock_apply = spy.on(highlight, 'apply_highlights')
+      local mock_set_lines = stub(vim.api, 'nvim_buf_set_lines')
+      local mock_apply = stub(highlight, 'apply_highlights')
       local bufnr = 1
       local namespace = 100
       local diff_output = '+hello {+world+}'
@@ -138,28 +142,32 @@ index 1234567..abcdefg 100644
       local result = highlight.parse_and_apply_diff(bufnr, diff_output, namespace)
 
       assert.same({ 'hello world' }, result)
-      assert.spy(mock_set_lines).was_called_with(bufnr, 0, -1, false, { 'hello world' })
-      assert.spy(mock_apply).was_called()
+      assert.stub(mock_set_lines).was_called_with(bufnr, 0, -1, false, { 'hello world' })
+      assert.stub(mock_apply).was_called()
 
       mock_set_lines:revert()
       mock_apply:revert()
     end)
 
     it('sets buffer content', function()
-      local mock_set_lines = spy.on(vim.api, 'nvim_buf_set_lines')
+      local mock_set_lines = stub(vim.api, 'nvim_buf_set_lines')
+      local mock_apply = stub(highlight, 'apply_highlights')
 
       highlight.parse_and_apply_diff(1, '+test line', 100)
 
-      assert.spy(mock_set_lines).was_called_with(1, 0, -1, false, { 'test line' })
+      assert.stub(mock_set_lines).was_called_with(1, 0, -1, false, { 'test line' })
       mock_set_lines:revert()
+      mock_apply:revert()
     end)
 
     it('applies highlights', function()
-      local mock_apply = spy.on(highlight, 'apply_highlights')
+      local mock_set_lines = stub(vim.api, 'nvim_buf_set_lines')
+      local mock_apply = stub(highlight, 'apply_highlights')
 
       highlight.parse_and_apply_diff(1, '+hello {+world+}', 100)
 
-      assert.spy(mock_apply).was_called()
+      assert.stub(mock_apply).was_called()
+      mock_set_lines:revert()
       mock_apply:revert()
     end)
 
