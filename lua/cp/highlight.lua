@@ -14,44 +14,42 @@ local M = {}
 ---@param text string Raw git diff output line
 ---@return string cleaned_text, DiffHighlight[]
 local function parse_diff_line(text)
-  local cleaned_text = text
-  local offset = 0
+  local result_text = ''
+  local highlights = {}
+  local pos = 1
 
-  -- Pattern for removed text: [-removed text-]
-  for removed_text in text:gmatch('%[%-(.-)%-%]') do
-    local start_pos = text:find('%[%-' .. vim.pesc(removed_text) .. '%-%]', 1, false)
-    if start_pos then
-      cleaned_text = cleaned_text:gsub('%[%-' .. vim.pesc(removed_text) .. '%-%]', '', 1)
-    end
-  end
-
-  -- Reset for added text parsing on the cleaned text
-  local final_text = cleaned_text
-  local final_highlights = {}
-  offset = 0
-
-  -- Pattern for added text: {+added text+}
-  for added_text in cleaned_text:gmatch('{%+(.-)%+}') do
-    local start_pos = final_text:find('{%+' .. vim.pesc(added_text) .. '%+}', 1, false)
-    if start_pos then
-      -- Calculate position after previous highlights
-      local highlight_start = start_pos - offset - 1 -- 0-based for extmarks
-      local highlight_end = highlight_start + #added_text
-
-      table.insert(final_highlights, {
-        line = 0, -- Will be set by caller
+  while pos <= #text do
+    local removed_start, removed_end, removed_content = text:find('%[%-(.-)%-%]', pos)
+    if removed_start and removed_start == pos then
+      local highlight_start = #result_text
+      result_text = result_text .. removed_content
+      table.insert(highlights, {
+        line = 0,
         col_start = highlight_start,
-        col_end = highlight_end,
-        highlight_group = 'CpDiffAdded',
+        col_end = #result_text,
+        highlight_group = 'CpDiffRemoved',
       })
-
-      -- Remove the marker
-      final_text = final_text:gsub('{%+' .. vim.pesc(added_text) .. '%+}', added_text, 1)
-      offset = offset + 4 -- Length of {+ and +}
+      pos = removed_end + 1
+    else
+      local added_start, added_end, added_content = text:find('{%+(.-)%+}', pos)
+      if added_start and added_start == pos then
+        local highlight_start = #result_text
+        result_text = result_text .. added_content
+        table.insert(highlights, {
+          line = 0,
+          col_start = highlight_start,
+          col_end = #result_text,
+          highlight_group = 'CpDiffAdded',
+        })
+        pos = added_end + 1
+      else
+        result_text = result_text .. text:sub(pos, pos)
+        pos = pos + 1
+      end
     end
   end
 
-  return final_text, final_highlights
+  return result_text, highlights
 end
 
 ---Parse complete git diff output
@@ -97,16 +95,20 @@ function M.parse_git_diff(diff_output)
           table.insert(all_highlights, highlight)
         end
       elseif not line:match('^%-') and not line:match('^\\') then -- Skip removed lines and "\ No newline" messages
-        -- Unchanged line - remove leading space if present
+        -- Word-diff content line or unchanged line
         local clean_line = line:match('^%s') and line:sub(2) or line
         local parsed_line, line_highlights = parse_diff_line(clean_line)
-        table.insert(content_lines, parsed_line)
 
-        -- Set line numbers for any highlights (shouldn't be any for unchanged lines)
-        local line_num = #content_lines
-        for _, highlight in ipairs(line_highlights) do
-          highlight.line = line_num - 1 -- 0-based for extmarks
-          table.insert(all_highlights, highlight)
+        -- Only add non-empty lines
+        if parsed_line ~= '' then
+          table.insert(content_lines, parsed_line)
+
+          -- Set line numbers for highlights
+          local line_num = #content_lines
+          for _, highlight in ipairs(line_highlights) do
+            highlight.line = line_num - 1 -- 0-based for extmarks
+            table.insert(all_highlights, highlight)
+          end
         end
       end
     end

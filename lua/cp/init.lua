@@ -152,6 +152,19 @@ local function get_current_problem()
   return filename
 end
 
+local function create_buffer_with_options(filetype)
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = buf })
+  vim.api.nvim_set_option_value('readonly', true, { buf = buf })
+  vim.api.nvim_set_option_value('modifiable', false, { buf = buf })
+  if filetype then
+    vim.api.nvim_set_option_value('filetype', filetype, { buf = buf })
+  end
+  return buf
+end
+
+local setup_keybindings_for_buffer
+
 local function toggle_run_panel(is_debug)
   if state.run_panel_active then
     if current_diff_layout then
@@ -228,15 +241,6 @@ local function toggle_run_panel(is_debug)
         priority = 100,
       })
     end
-  end
-
-  local function create_buffer_with_options()
-    local buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = buf })
-    vim.api.nvim_set_option_value('readonly', true, { buf = buf })
-    vim.api.nvim_set_option_value('modifiable', false, { buf = buf })
-    vim.api.nvim_set_option_value('filetype', 'cptest', { buf = buf })
-    return buf
   end
 
   local function create_vim_diff_layout(parent_win, expected_content, actual_content)
@@ -418,7 +422,7 @@ local function toggle_run_panel(is_debug)
     refresh_run_panel()
   end
 
-  local function setup_keybindings_for_buffer(buf)
+  setup_keybindings_for_buffer = function(buf)
     vim.keymap.set('n', 'q', function()
       toggle_run_panel()
     end, { buffer = buf, silent = true })
