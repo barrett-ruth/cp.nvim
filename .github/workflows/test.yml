@@ -1,21 +1,64 @@
-name: Run tests
+name: Tests
+
 on:
-  pull_request: ~
+  pull_request:
+    branches: [main]
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  build:
-    name: Run tests
+  changes:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        neovim_version: ['nightly', 'stable']
-
+    outputs:
+      lua: ${{ steps.changes.outputs.lua }}
+      python: ${{ steps.changes.outputs.python }}
     steps:
       - uses: actions/checkout@v4
-      - name: Run tests
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            lua:
+              - 'lua/**'
+              - 'spec/**'
+              - 'plugin/**'
+              - 'after/**'
+              - 'ftdetect/**'
+              - '*.lua'
+              - '.luarc.json'
+              - 'stylua.toml'
+              - 'selene.toml'
+            python:
+              - 'scrapers/**'
+              - 'tests/scrapers/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+
+  lua-test:
+    name: Lua Tests (${{ matrix.neovim_version }})
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.lua == 'true' }}
+    strategy:
+      matrix:
+        neovim_version: ['stable', 'nightly']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Lua tests
         uses: nvim-neorocks/nvim-busted-action@v1
         with:
           nvim_version: ${{ matrix.neovim_version }}
+
+  python-test:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.python == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+      - name: Install dependencies with pytest
+        run: uv sync --dev
+      - name: Run Python tests
+        run: uv run pytest tests/scrapers/ -v

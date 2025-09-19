@@ -126,18 +126,16 @@ function M.setup(user_config)
     end
 
     if user_config.scrapers then
-      for contest_name, enabled in pairs(user_config.scrapers) do
-        if not vim.tbl_contains(constants.PLATFORMS, contest_name) then
+      for _, platform_name in ipairs(user_config.scrapers) do
+        if type(platform_name) ~= 'string' then
+          error(('Invalid scraper value type. Expected string, got %s'):format(type(platform_name)))
+        end
+        if not vim.tbl_contains(constants.PLATFORMS, platform_name) then
           error(
-            ("Invalid contest '%s' in scrapers config. Valid contests: %s"):format(
-              contest_name,
+            ("Invalid platform '%s' in scrapers config. Valid platforms: %s"):format(
+              platform_name,
               table.concat(constants.PLATFORMS, ', ')
             )
-          )
-        end
-        if type(enabled) ~= 'boolean' then
-          error(
-            ("Scraper setting for '%s' must be boolean, got %s"):format(contest_name, type(enabled))
           )
         end
       end
@@ -145,6 +143,19 @@ function M.setup(user_config)
   end
 
   local config = vim.tbl_deep_extend('force', M.defaults, user_config or {})
+
+  for _, contest_config in pairs(config.contests) do
+    for lang_name, lang_config in pairs(contest_config) do
+      if type(lang_config) == 'table' and not lang_config.extension then
+        if lang_name == 'cpp' then
+          lang_config.extension = 'cpp'
+        elseif lang_name == 'python' then
+          lang_config.extension = 'py'
+        end
+      end
+    end
+  end
+
   return config
 end
 

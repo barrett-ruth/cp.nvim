@@ -3,7 +3,7 @@
 Author:  Barrett Ruth <br.barrettruth@gmail.com>
 License: Same terms as Vim itself (see |license|)
 
-INTRODUCTION						*cp* *cp.nvim*
+INTRODUCTION                                            *cp* *cp.nvim*
 
 cp.nvim is a competitive programming plugin that automates problem setup,
 compilation, and testing workflow for online judges.
@@ -11,7 +11,7 @@ compilation, and testing workflow for online judges.
 Supported platforms: AtCoder, Codeforces, CSES
 Supported languages: C++, Python
 
-REQUIREMENTS						*cp-requirements*
+REQUIREMENTS                                        *cp-requirements*
 
 - Neovim 0.10.0+
 - uv package manager (https://docs.astral.sh/uv/)
@@ -20,9 +20,9 @@ REQUIREMENTS						*cp-requirements*
 Optional:
 - LuaSnip for template expansion (https://github.com/L3MON4D3/LuaSnip)
 
-COMMANDS						*cp-commands*
+COMMANDS                                            *cp-commands*
 
-								*:CP*
+                                                            *:CP*
 cp.nvim uses a single :CP command with intelligent argument parsing:
 
 Setup Commands ~
@@ -63,7 +63,7 @@ Navigation Commands ~
 :CP prev                        Navigate to previous problem in current contest.
                                 Stops at first problem (no wrapping).
 
-CONFIGURATION						*cp-config*
+CONFIGURATION                                       *cp-config*
 
 cp.nvim works out of the box. No setup required.
 
@@ -166,16 +166,16 @@ Optional configuration with lazy.nvim: >
                         Used to configure buffer settings.
                         `function(ctx: ProblemContext)`
 
-WORKFLOW						*cp-workflow*
+WORKFLOW                                            *cp-workflow*
 
 For the sake of consistency and simplicity, cp.nvim extracts contest/problem identifiers from
 URLs. This means that, for example, CodeForces/AtCoder contests are configured by
 their round id rather than round number. See below.
 
-PLATFORM-SPECIFIC USAGE					*cp-platforms*
+PLATFORM-SPECIFIC USAGE                        *cp-platforms*
 
 AtCoder ~
-									*cp-atcoder*
+                                                   *cp-atcoder*
 URL format: https://atcoder.jp/contests/abc123/tasks/abc123_a
 
 In terms of cp.nvim, this corresponds to:
@@ -190,7 +190,7 @@ Usage examples: >
     :CP next                    " Navigate to next problem in contest
 <
 Codeforces ~
-									*cp-codeforces*
+                                                *cp-codeforces*
 URL format: https://codeforces.com/contest/1234/problem/A
 
 In terms of cp.nvim, this corresponds to:
@@ -205,7 +205,7 @@ Usage examples: >
     :CP prev                    " Navigate to previous problem in contest
 <
 CSES ~
-									*cp-cses*
+                                                      *cp-cses*
 URL format: https://cses.fi/problemset/task/1068
 
 CSES is organized by categories rather than contests. Currently all problems
@@ -221,7 +221,7 @@ Usage examples: >
     :CP 1070                    " Switch to problem 1070 (if CSES loaded)
     :CP next                    " Navigate to next problem in CSES
 <
-COMPLETE WORKFLOW EXAMPLE					*cp-example*
+COMPLETE WORKFLOW EXAMPLE                      *cp-example*
 
 Example: Setting up and solving AtCoder contest ABC324
 
@@ -254,13 +254,13 @@ Example: Quick setup for single Codeforces problem >
     :CP test                    " Test immediately
 <
 
-TEST PANEL						*cp-test*
+TEST PANEL                                          *cp-test*
 
 The test panel provides individual test case debugging with a three-pane
 layout showing test list, expected output, and actual output side-by-side.
 
 Activation ~
-								*:CP-test*
+                                                      *:CP-test*
 :CP test [--debug]              Toggle test panel on/off. When activated,
                                 replaces current layout with test interface.
                                 Automatically compiles and runs all tests.
@@ -272,24 +272,24 @@ Interface ~
 
 The test panel uses a three-pane layout for easy comparison: >
 
-    ┌─ Test List ─────────────────────────────────────────────────┐
-    │  1. PASS   12ms                                             │
-    │> 2. FAIL   45ms                                             │
+    ┌─────────────────────────────────────────────────────────────┐
+    │  1. [ok:true ] [code:0] [time:12ms]                         │
+    │> 2. [ok:false] [code:0] [time:45ms]                         │
     │                                                             │
-    │ ── Input ──                                                 │
+    │ Input:                                                      │
     │ 5 3                                                         │
     │                                                             │
     └─────────────────────────────────────────────────────────────┘
-    ┌─ Expected ──────────────┐ ┌─ Actual ────────────────┐
-    │ 8                       │ │ 7                       │
-    │                         │ │                         │
-    │                         │ │                         │
-    │                         │ │                         │
-    └─────────────────────────┘ └─────────────────────────┘
+    ┌─ Expected ──────────────────┐ ┌───── Actual ────────────────┐
+    │ 8                           │ │ 7                           │
+    │                             │ │                             │
+    │                             │ │                             │
+    │                             │ │                             │
+    └─────────────────────────────┘ └─────────────────────────────┘
 <
 
 Keymaps ~
-								*cp-test-keys*
+                                                *cp-test-keys*
 j / <Down>                      Navigate to next test case
 k / <Up>                        Navigate to previous test case
 q                               Exit test panel (restore layout)
@@ -301,7 +301,7 @@ execution pipeline, but with isolated input/output for
 precise failure analysis. All tests are automatically run when the
 panel opens.
 
-FILE STRUCTURE						*cp-files*
+FILE STRUCTURE                                  *cp-files*
 
 cp.nvim creates the following file structure upon problem setup:
 
@@ -316,7 +316,7 @@ cp.nvim creates the following file structure upon problem setup:
 The plugin automatically manages this structure and navigation between problems
 maintains proper file associations.
 
-SNIPPETS						*cp-snippets*
+SNIPPETS                                        *cp-snippets*
 
 cp.nvim integrates with LuaSnip for automatic template expansion. Built-in
 snippets include basic C++ and Python templates for each contest type.
@@ -326,7 +326,7 @@ CodeForces, "cses" for CSES, etc.).
 
 Custom snippets can be added via the `snippets` configuration field.
 
-HEALTH CHECK						*cp-health*
+HEALTH CHECK                                    *cp-health*
 
 Run |:checkhealth| cp to verify your setup.
 

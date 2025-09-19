@@ -44,8 +44,7 @@ function M.create_context(contest, contest_id, problem_id, config, language)
 
   local base_name
   if config.filename then
-    local source_file = config.filename(contest, contest_id, problem_id, config, language)
-    base_name = vim.fn.fnamemodify(source_file, ':t:r')
+    base_name = config.filename(contest, contest_id, problem_id, config, language)
   else
     local default_filename = require('cp.config').default_filename
     base_name = default_filename(contest_id, problem_id)
