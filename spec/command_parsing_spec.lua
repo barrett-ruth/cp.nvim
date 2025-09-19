@@ -10,7 +10,7 @@ describe('cp command parsing', function()
     local mock_logger = {
       log = function(msg, level)
         table.insert(logged_messages, { msg = msg, level = level })
-      end
+      end,
     }
     package.loaded['cp.log'] = mock_logger
   end)
@@ -120,7 +120,9 @@ describe('cp command parsing', function()
 
       local error_logged = false
       for _, log_entry in ipairs(logged_messages) do
-        if log_entry.level == vim.log.levels.ERROR and log_entry.msg:match('--lang requires a value') then
+        if
+          log_entry.level == vim.log.levels.ERROR and log_entry.msg:match('--lang requires a value')
+        then
           error_logged = true
           break
         end

@@ -10,8 +10,10 @@ describe('cp.scrape', function()
 
     mock_cache = {
       load = function() end,
-      get_contest_data = function() return nil end,
-      set_contest_data = function() end
+      get_contest_data = function()
+        return nil
+      end,
+      set_contest_data = function() end,
     }
 
     mock_system_calls = {}
@@ -30,14 +32,15 @@ describe('cp.scrape', function()
         if vim.tbl_contains(cmd, 'metadata') then
           result.stdout = '{"success": true, "problems": [{"id": "a", "name": "Test Problem"}]}'
         elseif vim.tbl_contains(cmd, 'tests') then
-          result.stdout = '{"success": true, "tests": [{"input": "1 2", "expected": "3"}], "url": "https://example.com"}'
+          result.stdout =
+            '{"success": true, "tests": [{"input": "1 2", "expected": "3"}], "url": "https://example.com"}'
         end
       end
 
       return {
         wait = function()
           return result
-        end
+        end,
       }
     end
 
@@ -46,15 +49,21 @@ describe('cp.scrape', function()
     local original_fn = vim.fn
     vim.fn = vim.tbl_extend('force', vim.fn, {
       executable = function(cmd)
-        if cmd == 'uv' then return 1 end
+        if cmd == 'uv' then
+          return 1
+        end
         return original_fn.executable(cmd)
       end,
       isdirectory = function(path)
-        if path:match('%.venv$') then return 1 end
+        if path:match('%.venv$') then
+          return 1
+        end
         return original_fn.isdirectory(path)
       end,
       filereadable = function(path)
-        if temp_files[path] then return 1 end
+        if temp_files[path] then
+          return 1
+        end
         return 0
       end,
       readfile = function(path)
@@ -69,7 +78,7 @@ describe('cp.scrape', function()
           return path:gsub('%..*$', '')
         end
         return original_fn.fnamemodify(path, modifier)
-      end
+      end,
     })
   end)
 
@@ -115,7 +124,9 @@ describe('cp.scrape', function()
   describe('system dependency checks', function()
     it('handles missing uv executable', function()
       vim.fn.executable = function(cmd)
-        if cmd == 'uv' then return 0 end
+        if cmd == 'uv' then
+          return 0
+        end
         return 1
       end
 
@@ -128,14 +139,28 @@ describe('cp.scrape', function()
     it('handles python environment setup failure', function()
       vim.system = function(cmd, opts)
         if cmd[1] == 'ping' then
-          return { wait = function() return { code = 0 } end }
+          return {
+            wait = function()
+              return { code = 0 }
+            end,
+          }
         elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
-          return { wait = function() return { code = 1, stderr = 'setup failed' } end }
+          return {
+            wait = function()
+              return { code = 1, stderr = 'setup failed' }
+            end,
+          }
         end
-        return { wait = function() return { code = 0 } end }
+        return {
+          wait = function()
+            return { code = 0 }
+          end,
+        }
       end
 
-      vim.fn.isdirectory = function() return 0 end
+      vim.fn.isdirectory = function()
+        return 0
+      end
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
 
@@ -146,9 +171,17 @@ describe('cp.scrape', function()
     it('handles network connectivity issues', function()
       vim.system = function(cmd, opts)
         if cmd[1] == 'ping' then
-          return { wait = function() return { code = 1 } end }
+          return {
+            wait = function()
+              return { code = 1 }
+            end,
+          }
         end
-        return { wait = function() return { code = 0 } end }
+        return {
+          wait = function()
+            return { code = 0 }
+          end,
+        }
       end
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
@@ -197,11 +230,23 @@ describe('cp.scrape', function()
     it('handles subprocess execution failure', function()
       vim.system = function(cmd, opts)
         if cmd[1] == 'ping' then
-          return { wait = function() return { code = 0 } end }
+          return {
+            wait = function()
+              return { code = 0 }
+            end,
+          }
         elseif cmd[1] == 'uv' and vim.tbl_contains(cmd, 'metadata') then
-          return { wait = function() return { code = 1, stderr = 'execution failed' } end }
+          return {
+            wait = function()
+              return { code = 1, stderr = 'execution failed' }
+            end,
+          }
         end
-        return { wait = function() return { code = 0 } end }
+        return {
+          wait = function()
+            return { code = 0 }
+          end,
+        }
       end
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
@@ -216,11 +261,23 @@ describe('cp.scrape', function()
     it('handles invalid json output', function()
       vim.system = function(cmd, opts)
         if cmd[1] == 'ping' then
-          return { wait = function() return { code = 0 } end }
+          return {
+            wait = function()
+              return { code = 0 }
+            end,
+          }
         elseif cmd[1] == 'uv' and vim.tbl_contains(cmd, 'metadata') then
-          return { wait = function() return { code = 0, stdout = 'invalid json' } end }
+          return {
+            wait = function()
+              return { code = 0, stdout = 'invalid json' }
+            end,
+          }
         end
-        return { wait = function() return { code = 0 } end }
+        return {
+          wait = function()
+            return { code = 0 }
+          end,
+        }
       end
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
@@ -232,16 +289,26 @@ describe('cp.scrape', function()
     it('handles scraper-reported failures', function()
       vim.system = function(cmd, opts)
         if cmd[1] == 'ping' then
-          return { wait = function() return { code = 0 } end }
+          return {
+            wait = function()
+              return { code = 0 }
+            end,
+          }
         elseif cmd[1] == 'uv' and vim.tbl_contains(cmd, 'metadata') then
-          return { wait = function()
-            return {
-              code = 0,
-              stdout = '{"success": false, "error": "contest not found"}'
-            }
-          end }
+          return {
+            wait = function()
+              return {
+                code = 0,
+                stdout = '{"success": false, "error": "contest not found"}',
+              }
+            end,
+          }
         end
-        return { wait = function() return { code = 0 } end }
+        return {
+          wait = function()
+            return { code = 0 }
+          end,
+        }
       end
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
@@ -261,7 +328,7 @@ describe('cp.scrape', function()
         problem_id = 'a',
         problem_name = 'abc123a',
         input_file = 'io/abc123a.cpin',
-        expected_file = 'io/abc123a.expected'
+        expected_file = 'io/abc123a.expected',
       }
     end)
 
@@ -352,7 +419,7 @@ describe('cp.scrape', function()
         problem_id = 'a',
         problem_name = 'abc123a',
         input_file = 'io/abc123a.cpin',
-        expected_file = 'io/abc123a.expected'
+        expected_file = 'io/abc123a.expected',
       }
 
       assert.has_error(function()
