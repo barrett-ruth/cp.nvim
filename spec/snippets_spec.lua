@@ -1,39 +1,215 @@
 describe('cp.snippets', function()
   local snippets
+  local mock_luasnip
 
   before_each(function()
     snippets = require('cp.snippets')
+    mock_luasnip = {
+      snippet = function(trigger, body)
+        return { trigger = trigger, body = body }
+      end,
+      insert_node = function(pos)
+        return { type = 'insert', pos = pos }
+      end,
+      add_snippets = function(filetype, snippet_list)
+        mock_luasnip.added = mock_luasnip.added or {}
+        mock_luasnip.added[filetype] = snippet_list
+      end,
+      added = {},
+    }
+
+    mock_luasnip.extras = {
+      fmt = {
+        fmt = function(template, nodes)
+          return { template = template, nodes = nodes }
+        end,
+      },
+    }
+
+    package.loaded['luasnip'] = mock_luasnip
+    package.loaded['luasnip.extras.fmt'] = mock_luasnip.extras.fmt
   end)
 
-  describe('snippet loading', function()
-    it('loads default snippets correctly', function() end)
-
-    it('loads user snippets from config', function() end)
-
-    it('handles missing snippet files gracefully', function() end)
+  after_each(function()
+    package.loaded['luasnip'] = nil
+    package.loaded['luasnip.extras.fmt'] = nil
   end)
 
-  describe('snippet expansion', function()
-    it('expands basic templates correctly', function() end)
+  describe('setup without luasnip', function()
+    it('handles missing luasnip gracefully', function()
+      package.loaded['luasnip'] = nil
 
-    it('handles language-specific snippets', function() end)
-
-    it('processes snippet placeholders', function() end)
+      assert.has_no_errors(function()
+        snippets.setup({})
+      end)
+    end)
   end)
 
-  describe('template generation', function()
-    it('generates cpp templates', function() end)
+  describe('setup with luasnip available', function()
+    it('sets up default cpp snippets for all contests', function()
+      local config = { snippets = {} }
 
-    it('generates python templates', function() end)
+      snippets.setup(config)
 
-    it('applies contest-specific templates', function() end)
-  end)
+      assert.is_not_nil(mock_luasnip.added.cpp)
+      assert.is_true(#mock_luasnip.added.cpp >= 3)
 
-  describe('buffer integration', function()
-    it('inserts snippets into current buffer', function() end)
+      local triggers = {}
+      for _, snippet in ipairs(mock_luasnip.added.cpp) do
+        table.insert(triggers, snippet.trigger)
+      end
 
-    it('positions cursor correctly after expansion', function() end)
+      assert.is_true(vim.tbl_contains(triggers, 'cp.nvim/codeforces.cpp'))
+      assert.is_true(vim.tbl_contains(triggers, 'cp.nvim/atcoder.cpp'))
+      assert.is_true(vim.tbl_contains(triggers, 'cp.nvim/cses.cpp'))
+    end)
 
-    it('handles multiple snippet insertions', function() end)
+    it('sets up default python snippets for all contests', function()
+      local config = { snippets = {} }
+
+      snippets.setup(config)
+
+      assert.is_not_nil(mock_luasnip.added.python)
+      assert.is_true(#mock_luasnip.added.python >= 3)
+
+      local triggers = {}
+      for _, snippet in ipairs(mock_luasnip.added.python) do
+        table.insert(triggers, snippet.trigger)
+      end
+
+      assert.is_true(vim.tbl_contains(triggers, 'cp.nvim/codeforces.python'))
+      assert.is_true(vim.tbl_contains(triggers, 'cp.nvim/atcoder.python'))
+      assert.is_true(vim.tbl_contains(triggers, 'cp.nvim/cses.python'))
+    end)
+
+    it('includes template content with placeholders', function()
+      local config = { snippets = {} }
+
+      snippets.setup(config)
+
+      local cpp_snippets = mock_luasnip.added.cpp or {}
+      local codeforces_snippet = nil
+      for _, snippet in ipairs(cpp_snippets) do
+        if snippet.trigger == 'cp.nvim/codeforces.cpp' then
+          codeforces_snippet = snippet
+          break
+        end
+      end
+
+      assert.is_not_nil(codeforces_snippet)
+      assert.is_not_nil(codeforces_snippet.body)
+      assert.equals('table', type(codeforces_snippet.body))
+      assert.is_true(codeforces_snippet.body.template:match('#include'))
+      assert.is_true(codeforces_snippet.body.template:match('void solve'))
+    end)
+
+    it('respects user snippet overrides', function()
+      local custom_snippet = {
+        trigger = 'cp.nvim/custom.cpp',
+        body = 'custom template',
+      }
+      local config = {
+        snippets = { custom_snippet },
+      }
+
+      snippets.setup(config)
+
+      local cpp_snippets = mock_luasnip.added.cpp or {}
+      local found_custom = false
+      for _, snippet in ipairs(cpp_snippets) do
+        if snippet.trigger == 'cp.nvim/custom.cpp' then
+          found_custom = true
+          assert.equals('custom template', snippet.body)
+          break
+        end
+      end
+      assert.is_true(found_custom)
+    end)
+
+    it('filters user snippets by language', function()
+      local cpp_snippet = {
+        trigger = 'cp.nvim/custom.cpp',
+        body = 'cpp template',
+      }
+      local python_snippet = {
+        trigger = 'cp.nvim/custom.python',
+        body = 'python template',
+      }
+      local config = {
+        snippets = { cpp_snippet, python_snippet },
+      }
+
+      snippets.setup(config)
+
+      local cpp_snippets = mock_luasnip.added.cpp or {}
+      local python_snippets = mock_luasnip.added.python or {}
+
+      local cpp_has_custom = false
+      for _, snippet in ipairs(cpp_snippets) do
+        if snippet.trigger == 'cp.nvim/custom.cpp' then
+          cpp_has_custom = true
+          break
+        end
+      end
+
+      local python_has_custom = false
+      for _, snippet in ipairs(python_snippets) do
+        if snippet.trigger == 'cp.nvim/custom.python' then
+          python_has_custom = true
+          break
+        end
+      end
+
+      assert.is_true(cpp_has_custom)
+      assert.is_true(python_has_custom)
+    end)
+
+    it('handles empty config gracefully', function()
+      assert.has_no_errors(function()
+        snippets.setup({})
+      end)
+
+      assert.is_not_nil(mock_luasnip.added.cpp)
+      assert.is_not_nil(mock_luasnip.added.python)
+    end)
+
+    it('handles nil config gracefully', function()
+      assert.has_no_errors(function()
+        snippets.setup()
+      end)
+    end)
+
+    it('creates templates for correct filetypes', function()
+      local config = { snippets = {} }
+
+      snippets.setup(config)
+
+      assert.is_not_nil(mock_luasnip.added.cpp)
+      assert.is_not_nil(mock_luasnip.added.python)
+      assert.is_nil(mock_luasnip.added.c)
+      assert.is_nil(mock_luasnip.added.py)
+    end)
+
+    it('excludes overridden default snippets', function()
+      local override_snippet = {
+        trigger = 'cp.nvim/codeforces.cpp',
+        body = 'overridden template',
+      }
+      local config = {
+        snippets = { override_snippet },
+      }
+
+      snippets.setup(config)
+
+      local cpp_snippets = mock_luasnip.added.cpp or {}
+      local codeforces_count = 0
+      for _, snippet in ipairs(cpp_snippets) do
+        if snippet.trigger == 'cp.nvim/codeforces.cpp' then
+          codeforces_count = codeforces_count + 1
+        end
+      end
+
+      assert.equals(1, codeforces_count)
+    end)
   end)
 end)

@@ -5,35 +5,136 @@ describe('cp.problem', function()
     problem = require('cp.problem')
   end)
 
-  describe('problem creation', function()
-    it('creates problem files with correct naming', function() end)
+  describe('create_context', function()
+    local base_config = {
+      contests = {
+        atcoder = {
+          default_language = 'cpp',
+          cpp = { extension = 'cpp' },
+          python = { extension = 'py' },
+        },
+        codeforces = {
+          default_language = 'cpp',
+          cpp = { extension = 'cpp' },
+        },
+      },
+    }
 
-    it('applies language-specific templates', function() end)
+    it('creates basic context with required fields', function()
+      local context = problem.create_context('atcoder', 'abc123', 'a', base_config)
 
-    it('sets up directory structure correctly', function() end)
-  end)
+      assert.equals('atcoder', context.contest)
+      assert.equals('abc123', context.contest_id)
+      assert.equals('a', context.problem_id)
+      assert.equals('abc123a', context.problem_name)
+      assert.equals('abc123a.cpp', context.source_file)
+      assert.equals('build/abc123a.run', context.binary_file)
+      assert.equals('io/abc123a.cpin', context.input_file)
+      assert.equals('io/abc123a.cpout', context.output_file)
+      assert.equals('io/abc123a.expected', context.expected_file)
+    end)
 
-  describe('problem metadata', function()
-    it('extracts problem information correctly', function() end)
+    it('handles context without problem_id', function()
+      local context = problem.create_context('codeforces', '1933', nil, base_config)
 
-    it('handles missing metadata gracefully', function() end)
+      assert.equals('codeforces', context.contest)
+      assert.equals('1933', context.contest_id)
+      assert.is_nil(context.problem_id)
+      assert.equals('1933', context.problem_name)
+      assert.equals('1933.cpp', context.source_file)
+      assert.equals('build/1933.run', context.binary_file)
+    end)
 
-    it('validates problem identifiers', function() end)
-  end)
+    it('uses default language from contest config', function()
+      local context = problem.create_context('atcoder', 'abc123', 'a', base_config)
+      assert.equals('abc123a.cpp', context.source_file)
+    end)
 
-  describe('file management', function()
-    it('creates solution files in correct locations', function() end)
+    it('respects explicit language parameter', function()
+      local context = problem.create_context('atcoder', 'abc123', 'a', base_config, 'python')
+      assert.equals('abc123a.py', context.source_file)
+    end)
 
-    it('handles existing files appropriately', function() end)
+    it('uses custom filename function when provided', function()
+      local config_with_custom = vim.tbl_deep_extend('force', base_config, {
+        filename = function(contest, contest_id, problem_id)
+          return contest .. '_' .. contest_id .. (problem_id and ('_' .. problem_id) or '')
+        end,
+      })
 
-    it('manages backup files correctly', function() end)
-  end)
+      local context = problem.create_context('atcoder', 'abc123', 'a', config_with_custom)
+      assert.equals('atcoder_abc123_a.cpp', context.source_file)
+      assert.equals('atcoder_abc123_a', context.problem_name)
+    end)
 
-  describe('buffer setup', function()
-    it('opens problem files in appropriate buffers', function() end)
+    it('validates required parameters', function()
+      assert.has_error(function()
+        problem.create_context(nil, 'abc123', 'a', base_config)
+      end)
 
-    it('sets correct buffer options', function() end)
+      assert.has_error(function()
+        problem.create_context('atcoder', nil, 'a', base_config)
+      end)
 
-    it('applies filetype-specific settings', function() end)
+      assert.has_error(function()
+        problem.create_context('atcoder', 'abc123', 'a', nil)
+      end)
+    end)
+
+    it('validates contest exists in config', function()
+      assert.has_error(function()
+        problem.create_context('invalid_contest', 'abc123', 'a', base_config)
+      end)
+    end)
+
+    it('validates language exists in contest config', function()
+      assert.has_error(function()
+        problem.create_context('atcoder', 'abc123', 'a', base_config, 'invalid_language')
+      end)
+    end)
+
+    it('validates default language exists', function()
+      local bad_config = {
+        contests = {
+          test_contest = {
+            default_language = 'nonexistent',
+          },
+        },
+      }
+
+      assert.has_error(function()
+        problem.create_context('test_contest', 'abc123', 'a', bad_config)
+      end)
+    end)
+
+    it('validates language extension is configured', function()
+      local bad_config = {
+        contests = {
+          test_contest = {
+            default_language = 'cpp',
+            cpp = {},
+          },
+        },
+      }
+
+      assert.has_error(function()
+        problem.create_context('test_contest', 'abc123', 'a', bad_config)
+      end)
+    end)
+
+    it('handles complex contest and problem ids', function()
+      local context = problem.create_context('atcoder', 'arc123', 'f', base_config)
+      assert.equals('arc123f', context.problem_name)
+      assert.equals('arc123f.cpp', context.source_file)
+      assert.equals('build/arc123f.run', context.binary_file)
+    end)
+
+    it('generates correct io file paths', function()
+      local context = problem.create_context('atcoder', 'abc123', 'a', base_config)
+
+      assert.equals('io/abc123a.cpin', context.input_file)
+      assert.equals('io/abc123a.cpout', context.output_file)
+      assert.equals('io/abc123a.expected', context.expected_file)
+    end)
   end)
 end)
