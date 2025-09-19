@@ -1,6 +1,7 @@
 ---@class DiffResult
 ---@field content string[]
 ---@field highlights table[]?
+---@field raw_diff string?
 
 ---@class DiffBackend
 ---@field name string
