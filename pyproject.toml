@@ -9,3 +9,8 @@ dependencies = [
     "cloudscraper>=1.2.71",
     "requests>=2.32.5",
 ]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+]
