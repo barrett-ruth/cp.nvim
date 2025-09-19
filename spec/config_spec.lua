@@ -87,7 +87,7 @@ describe('cp.config', function()
 
       it('validates next_test_key is non-empty string', function()
         local invalid_config = {
-          run_panel = { next_test_key = nil },
+          run_panel = { next_test_key = '' },
         }
 
         assert.has_error(function()
