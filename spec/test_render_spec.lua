@@ -62,7 +62,7 @@ describe('cp.test_render', function()
         current_index = 1,
       }
       local result = test_render.render_test_list(test_state)
-      assert.is_true(result[1]:match('^┌'))
+      assert.is_true(result[1]:find('^┌') ~= nil)
       assert.is_true(result[2]:match('│.*#.*│.*Status.*│.*Time.*│.*Exit Code.*│'))
       assert.is_true(result[3]:match('^├'))
     end)
