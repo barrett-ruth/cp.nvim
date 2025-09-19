@@ -8,7 +8,6 @@ describe('cp.execute', function()
     mock_system_calls = {}
     temp_files = {}
 
-    local original_system = vim.system
     vim.system = function(cmd, opts)
       table.insert(mock_system_calls, { cmd = cmd, opts = opts })
       if not cmd or #cmd == 0 then
@@ -52,7 +51,6 @@ describe('cp.execute', function()
       end,
     })
 
-    local original_uv = vim.uv
     vim.uv = vim.tbl_extend('force', vim.uv or {}, {
       hrtime = function()
         return 1000000000
@@ -135,7 +133,7 @@ describe('cp.execute', function()
     end)
 
     it('handles compilation errors gracefully', function()
-      vim.system = function(cmd, opts)
+      vim.system = function()
         return {
           wait = function()
             return { code = 1, stderr = 'error: undefined variable' }
@@ -218,7 +216,7 @@ describe('cp.execute', function()
     end)
 
     it('captures stderr output', function()
-      vim.system = function(cmd, opts)
+      vim.system = function()
         return {
           wait = function()
             return { code = 1, stdout = '', stderr = 'runtime error\n' }
@@ -278,16 +276,10 @@ describe('cp.execute', function()
   describe('language detection', function()
     it('detects cpp from extension', function()
       -- This tests get_language_from_file indirectly
-      local contest_config = {
-        default_language = 'python',
-      }
 
       -- Mock the file extension detection
-      vim.fn.fnamemodify = function(path, modifier)
-        if modifier == ':e' and path == 'test.cpp' then
-          return 'cpp'
-        end
-        return ''
+      vim.fn.fnamemodify = function()
+        return 'cpp'
       end
 
       -- The actual function is local, but we can test it indirectly

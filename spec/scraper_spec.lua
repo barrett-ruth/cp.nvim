@@ -17,7 +17,6 @@ describe('cp.scrape', function()
 
     mock_system_calls = {}
 
-    local original_system = vim.system
     vim.system = function(cmd, opts)
       table.insert(mock_system_calls, { cmd = cmd, opts = opts })
 
@@ -26,7 +25,7 @@ describe('cp.scrape', function()
       if cmd[1] == 'ping' then
         result = { code = 0 }
       elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
-        result = { code = 0 }
+        result = { code = 0, stdout = '', stderr = '' }
       elseif cmd[1] == 'uv' and cmd[2] == 'run' then
         if vim.tbl_contains(cmd, 'metadata') then
           result.stdout = '{"success": true, "problems": [{"id": "a", "name": "Test Problem"}]}'
@@ -124,10 +123,7 @@ describe('cp.scrape', function()
   describe('system dependency checks', function()
     it('handles missing uv executable', function()
       vim.fn.executable = function(cmd)
-        if cmd == 'uv' then
-          return 0
-        end
-        return 1
+        return cmd == 'uv' and 0 or 1
       end
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
@@ -137,7 +133,7 @@ describe('cp.scrape', function()
     end)
 
     it('handles python environment setup failure', function()
-      vim.system = function(cmd, opts)
+      vim.system = function(cmd)
         if cmd[1] == 'ping' then
           return {
             wait = function()
@@ -169,7 +165,7 @@ describe('cp.scrape', function()
     end)
 
     it('handles network connectivity issues', function()
-      vim.system = function(cmd, opts)
+      vim.system = function(cmd)
         if cmd[1] == 'ping' then
           return {
             wait = function()
@@ -228,7 +224,7 @@ describe('cp.scrape', function()
     end)
 
     it('handles subprocess execution failure', function()
-      vim.system = function(cmd, opts)
+      vim.system = function(cmd)
         if cmd[1] == 'ping' then
           return {
             wait = function()
@@ -259,7 +255,7 @@ describe('cp.scrape', function()
 
   describe('json parsing', function()
     it('handles invalid json output', function()
-      vim.system = function(cmd, opts)
+      vim.system = function(cmd)
         if cmd[1] == 'ping' then
           return {
             wait = function()
@@ -287,7 +283,7 @@ describe('cp.scrape', function()
     end)
 
     it('handles scraper-reported failures', function()
-      vim.system = function(cmd, opts)
+      vim.system = function(cmd)
         if cmd[1] == 'ping' then
           return {
             wait = function()

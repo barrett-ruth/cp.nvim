@@ -166,7 +166,7 @@ describe('cp integration', function()
       }
 
       temp_files['test.run'] = {}
-      vim.system = function(cmd, opts)
+      vim.system = function(cmd)
         return {
           wait = function()
             return { code = 0, stdout = '3\n', stderr = '' }
@@ -200,7 +200,7 @@ describe('cp integration', function()
     end)
 
     it('handles scraper communication properly', function()
-      vim.system = function(cmd, opts)
+      vim.system = function(cmd)
         if cmd[1] == 'uv' and vim.tbl_contains(cmd, 'metadata') then
           return {
             wait = function()
@@ -231,7 +231,7 @@ describe('cp integration', function()
     end)
 
     it('processes scraper output correctly', function()
-      vim.system = function(cmd, opts)
+      vim.system = function(cmd)
         if vim.tbl_contains(cmd, 'metadata') then
           return {
             wait = function()
@@ -338,7 +338,7 @@ describe('cp integration', function()
     end)
 
     it('recovers from interrupted operations', function()
-      vim.system = function(cmd, opts)
+      vim.system = function(cmd)
         if vim.tbl_contains(cmd, 'metadata') then
           return {
             wait = function()
@@ -393,7 +393,7 @@ describe('cp integration', function()
     end)
 
     it('maintains system stability on errors', function()
-      vim.system = function(cmd, opts)
+      vim.system = function(cmd)
         if vim.tbl_contains(cmd, 'metadata') then
           return {
             wait = function()
@@ -422,7 +422,7 @@ describe('cp integration', function()
         table.insert(large_problems, { id = string.char(96 + i % 26), name = 'Problem ' .. i })
       end
 
-      vim.system = function(cmd, opts)
+      vim.system = function(cmd)
         if vim.tbl_contains(cmd, 'metadata') then
           return {
             wait = function()
@@ -462,7 +462,7 @@ describe('cp integration', function()
 
     it('maintains responsiveness during operations', function()
       local call_count = 0
-      vim.system = function(cmd, opts)
+      vim.system = function(cmd)
         call_count = call_count + 1
         vim.wait(10)
         return {
