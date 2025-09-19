@@ -46,7 +46,7 @@ describe('cp.config', function()
 
     it('validates scraper platforms', function()
       local invalid_config = {
-        scrapers = { invalid_platform = true },
+        scrapers = { 'invalid_platform' },
       }
 
       assert.has_error(function()
@@ -54,9 +54,9 @@ describe('cp.config', function()
       end)
     end)
 
-    it('validates scraper values are booleans', function()
+    it('validates scraper values are strings', function()
       local invalid_config = {
-        scrapers = { atcoder = 'not_boolean' },
+        scrapers = { 123 },
       }
 
       assert.has_error(function()

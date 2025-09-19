@@ -80,6 +80,7 @@ describe('cp integration', function()
           default_language = 'cpp',
           timeout_ms = 2000,
           cpp = {
+            extension = 'cpp',
             compile = { 'g++', '{source}', '-o', '{binary}' },
             run = { '{binary}' },
           },
@@ -201,7 +202,19 @@ describe('cp integration', function()
 
     it('handles scraper communication properly', function()
       vim.system = function(cmd)
-        if cmd[1] == 'uv' and vim.tbl_contains(cmd, 'metadata') then
+        if cmd[1] == 'ping' then
+          return {
+            wait = function()
+              return { code = 0 }
+            end,
+          }
+        elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
+          return {
+            wait = function()
+              return { code = 0 }
+            end,
+          }
+        elseif cmd[1] == 'uv' and vim.tbl_contains(cmd, 'metadata') then
           return {
             wait = function()
               return { code = 1, stderr = 'network error' }
@@ -232,7 +245,19 @@ describe('cp integration', function()
 
     it('processes scraper output correctly', function()
       vim.system = function(cmd)
-        if vim.tbl_contains(cmd, 'metadata') then
+        if cmd[1] == 'ping' then
+          return {
+            wait = function()
+              return { code = 0 }
+            end,
+          }
+        elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
+          return {
+            wait = function()
+              return { code = 0 }
+            end,
+          }
+        elseif vim.tbl_contains(cmd, 'metadata') then
           return {
             wait = function()
               return {
@@ -339,7 +364,19 @@ describe('cp integration', function()
 
     it('recovers from interrupted operations', function()
       vim.system = function(cmd)
-        if vim.tbl_contains(cmd, 'metadata') then
+        if cmd[1] == 'ping' then
+          return {
+            wait = function()
+              return { code = 0 }
+            end,
+          }
+        elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
+          return {
+            wait = function()
+              return { code = 0 }
+            end,
+          }
+        elseif vim.tbl_contains(cmd, 'metadata') then
           return {
             wait = function()
               return { code = 1, stderr = 'interrupted' }
@@ -394,7 +431,19 @@ describe('cp integration', function()
 
     it('maintains system stability on errors', function()
       vim.system = function(cmd)
-        if vim.tbl_contains(cmd, 'metadata') then
+        if cmd[1] == 'ping' then
+          return {
+            wait = function()
+              return { code = 0 }
+            end,
+          }
+        elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
+          return {
+            wait = function()
+              return { code = 0 }
+            end,
+          }
+        elseif vim.tbl_contains(cmd, 'metadata') then
           return {
             wait = function()
               return { code = 1, stderr = 'scraper failed' }

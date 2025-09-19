@@ -126,11 +126,14 @@ function M.setup(user_config)
     end
 
     if user_config.scrapers then
-      for _, contest_name in ipairs(user_config.scrapers) do
-        if not vim.tbl_contains(constants.PLATFORMS, contest_name) then
+      for _, platform_name in ipairs(user_config.scrapers) do
+        if type(platform_name) ~= 'string' then
+          error(('Invalid scraper value type. Expected string, got %s'):format(type(platform_name)))
+        end
+        if not vim.tbl_contains(constants.PLATFORMS, platform_name) then
           error(
-            ("Invalid contest '%s' in scrapers config. Valid contests: %s"):format(
-              contest_name,
+            ("Invalid platform '%s' in scrapers config. Valid platforms: %s"):format(
+              platform_name,
               table.concat(constants.PLATFORMS, ', ')
             )
           )

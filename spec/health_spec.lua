@@ -2,6 +2,9 @@ describe('cp.health', function()
   local health
 
   before_each(function()
+    local original_gsub = string.gsub
+    string.gsub = original_gsub
+
     vim.fn = vim.tbl_extend('force', vim.fn, {
       executable = function()
         return 1

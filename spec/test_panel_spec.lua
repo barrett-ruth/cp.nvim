@@ -154,7 +154,11 @@ describe('cp test panel', function()
       },
     })
 
-    vim.cmd('silent! %bwipeout!')
+    vim.cmd = function(cmd_str)
+      if cmd_str:match('silent! %%bwipeout!') then
+        return
+      end
+    end
   end)
 
   after_each(function()
@@ -163,7 +167,11 @@ describe('cp test panel', function()
     package.loaded['cp.test'] = nil
     package.loaded['cp.problem'] = nil
     package.loaded['cp.execute'] = nil
-    vim.cmd('silent! %bwipeout!')
+    vim.cmd = function(cmd_str)
+      if cmd_str:match('silent! %%bwipeout!') then
+        return
+      end
+    end
   end)
 
   describe('panel creation', function()
