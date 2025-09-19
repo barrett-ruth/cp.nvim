@@ -15,7 +15,14 @@ describe('cp.health', function()
       isdirectory = function()
         return 1
       end,
+      fnamemodify = function()
+        return '/test/path'
+      end,
     })
+
+    vim.system = function()
+      return { wait = function() return { code = 0, stdout = 'test version\n' } end }
+    end
 
     health = require('cp.health')
   end)

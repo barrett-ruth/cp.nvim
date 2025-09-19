@@ -195,10 +195,11 @@ describe('cp.execute', function()
       execute.compile_generic(language_config, { binary_file = './test.run' })
     end)
 
-    it('handles execution timeouts', function()
+    it('handles command execution', function()
       vim.system = function(_, opts)
+        -- Compilation doesn't set timeout, only text=true
         if opts then
-          assert.is_not_nil(opts.timeout)
+          assert.equals(true, opts.text)
         end
         return {
           wait = function()

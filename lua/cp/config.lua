@@ -126,18 +126,13 @@ function M.setup(user_config)
     end
 
     if user_config.scrapers then
-      for contest_name, enabled in pairs(user_config.scrapers) do
+      for _, contest_name in ipairs(user_config.scrapers) do
         if not vim.tbl_contains(constants.PLATFORMS, contest_name) then
           error(
             ("Invalid contest '%s' in scrapers config. Valid contests: %s"):format(
               contest_name,
               table.concat(constants.PLATFORMS, ', ')
             )
-          )
-        end
-        if type(enabled) ~= 'boolean' then
-          error(
-            ("Scraper setting for '%s' must be boolean, got %s"):format(contest_name, type(enabled))
           )
         end
       end

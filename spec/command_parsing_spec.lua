@@ -15,8 +15,14 @@ describe('cp command parsing', function()
     cp = require('cp')
     cp.setup({
       contests = {
-        atcoder = { default_language = 'cpp' },
-        cses = { default_language = 'cpp' },
+        atcoder = {
+          default_language = 'cpp',
+          cpp = { extension = 'cpp' },
+        },
+        cses = {
+          default_language = 'cpp',
+          cpp = { extension = 'cpp' },
+        },
       },
     })
   end)
