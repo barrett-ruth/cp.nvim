@@ -2,12 +2,15 @@
 
 import json
 import sys
+from dataclasses import asdict
 
 import cloudscraper
 from bs4 import BeautifulSoup, Tag
 
+from .models import MetadataResult, Problem, TestCase, TestsResult
 
-def scrape(url: str) -> list[tuple[str, str]]:
+
+def scrape(url: str) -> list[TestCase]:
     try:
         scraper = cloudscraper.create_scraper()
         response = scraper.get(url, timeout=10)
@@ -88,7 +91,7 @@ def scrape(url: str) -> list[tuple[str, str]]:
                     input_text = "\n".join(individual_inputs[test_num])
                     output_text = "\n".join(individual_outputs[test_num])
                     prefixed_input = "1\n" + input_text
-                    tests.append((prefixed_input, output_text))
+                    tests.append(TestCase(input=prefixed_input, expected=output_text))
                 return tests
         all_inputs = []
         all_outputs = []
@@ -124,7 +127,7 @@ def scrape(url: str) -> list[tuple[str, str]]:
 
         combined_input = "\n".join(all_inputs)
         combined_output = "\n".join(all_outputs)
-        return [(combined_input, combined_output)]
+        return [TestCase(input=combined_input, expected=combined_output)]
 
     except Exception as e:
         print(f"CloudScraper failed: {e}", file=sys.stderr)
@@ -137,7 +140,7 @@ def parse_problem_url(contest_id: str, problem_letter: str) -> str:
     )
 
 
-def scrape_contest_problems(contest_id: str) -> list[dict[str, str]]:
+def scrape_contest_problems(contest_id: str) -> list[Problem]:
     try:
         contest_url: str = f"https://codeforces.com/contest/{contest_id}"
         scraper = cloudscraper.create_scraper()
@@ -145,7 +148,7 @@ def scrape_contest_problems(contest_id: str) -> list[dict[str, str]]:
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
-        problems: list[dict[str, str]] = []
+        problems: list[Problem] = []
 
         problem_links = soup.find_all(
             "a", href=lambda x: x and f"/contest/{contest_id}/problem/" in x
@@ -160,15 +163,15 @@ def scrape_contest_problems(contest_id: str) -> list[dict[str, str]]:
                 problem_name: str = link.get_text(strip=True)
 
                 if problem_letter and problem_name:
-                    problems.append({"id": problem_letter, "name": problem_name})
+                    problems.append(Problem(id=problem_letter, name=problem_name))
 
-        problems.sort(key=lambda x: x["id"])
+        problems.sort(key=lambda x: x.id)
 
         seen: set[str] = set()
-        unique_problems: list[dict[str, str]] = []
+        unique_problems: list[Problem] = []
         for p in problems:
-            if p["id"] not in seen:
-                seen.add(p["id"])
+            if p.id not in seen:
+                seen.add(p.id)
                 unique_problems.append(p)
 
         return unique_problems
@@ -178,71 +181,50 @@ def scrape_contest_problems(contest_id: str) -> list[dict[str, str]]:
         return []
 
 
-def scrape_sample_tests(url: str) -> list[tuple[str, str]]:
+def scrape_sample_tests(url: str) -> list[TestCase]:
     print(f"Scraping: {url}", file=sys.stderr)
     return scrape(url)
 
 
 def main() -> None:
     if len(sys.argv) < 2:
-        print(
-            json.dumps(
-                {
-                    "success": False,
-                    "error": "Usage: codeforces.py metadata <contest_id> OR codeforces.py tests <contest_id> <problem_letter>",
-                }
-            )
+        result = MetadataResult(
+            success=False,
+            error="Usage: codeforces.py metadata <contest_id> OR codeforces.py tests <contest_id> <problem_letter>",
         )
+        print(json.dumps(asdict(result)))
         sys.exit(1)
 
     mode: str = sys.argv[1]
 
     if mode == "metadata":
         if len(sys.argv) != 3:
-            print(
-                json.dumps(
-                    {
-                        "success": False,
-                        "error": "Usage: codeforces.py metadata <contest_id>",
-                    }
-                )
+            result = MetadataResult(
+                success=False, error="Usage: codeforces.py metadata <contest_id>"
             )
+            print(json.dumps(asdict(result)))
             sys.exit(1)
 
         contest_id: str = sys.argv[2]
-        problems: list[dict[str, str]] = scrape_contest_problems(contest_id)
+        problems: list[Problem] = scrape_contest_problems(contest_id)
 
         if not problems:
-            print(
-                json.dumps(
-                    {
-                        "success": False,
-                        "error": f"No problems found for contest {contest_id}",
-                    }
-                )
+            result = MetadataResult(
+                success=False, error=f"No problems found for contest {contest_id}"
             )
+            print(json.dumps(asdict(result)))
             sys.exit(1)
 
-        print(
-            json.dumps(
-                {
-                    "success": True,
-                    "contest_id": contest_id,
-                    "problems": problems,
-                }
-            )
-        )
+        result = MetadataResult(success=True, contest_id=contest_id, problems=problems)
+        print(json.dumps(asdict(result)))
 
     elif mode == "tests":
         if len(sys.argv) != 4:
-            print(
-                json.dumps(
-                    {
-                        "success": False,
-                        "error": "Usage: codeforces.py tests <contest_id> <problem_letter>",
-                    }
-                )
+            tests_result = TestsResult(
+                success=False,
+                error="Usage: codeforces.py tests <contest_id> <problem_letter>",
             )
+            print(json.dumps(asdict(tests_result)))
             sys.exit(1)
 
         tests_contest_id: str = sys.argv[2]
@@ -250,45 +232,28 @@ def main() -> None:
         problem_id: str = tests_contest_id + problem_letter.lower()
 
         url: str = parse_problem_url(tests_contest_id, problem_letter)
-        tests: list[tuple[str, str]] = scrape_sample_tests(url)
+        tests: list[TestCase] = scrape_sample_tests(url)
 
         if not tests:
-            print(
-                json.dumps(
-                    {
-                        "success": False,
-                        "error": f"No tests found for {tests_contest_id} {problem_letter}",
-                        "problem_id": problem_id,
-                        "url": url,
-                    }
-                )
+            tests_result = TestsResult(
+                success=False,
+                error=f"No tests found for {tests_contest_id} {problem_letter}",
+                problem_id=problem_id,
+                url=url,
             )
+            print(json.dumps(asdict(tests_result)))
             sys.exit(1)
 
-        test_list: list[dict[str, str]] = []
-        for input_data, output_data in tests:
-            test_list.append({"input": input_data, "expected": output_data})
-
-        print(
-            json.dumps(
-                {
-                    "success": True,
-                    "problem_id": problem_id,
-                    "url": url,
-                    "tests": test_list,
-                }
-            )
+        tests_result = TestsResult(
+            success=True, problem_id=problem_id, url=url, tests=tests
         )
+        print(json.dumps(asdict(tests_result)))
 
     else:
-        print(
-            json.dumps(
-                {
-                    "success": False,
-                    "error": f"Unknown mode: {mode}. Use 'metadata' or 'tests'",
-                }
-            )
+        result = MetadataResult(
+            success=False, error=f"Unknown mode: {mode}. Use 'metadata' or 'tests'"
         )
+        print(json.dumps(asdict(result)))
         sys.exit(1)
 
 

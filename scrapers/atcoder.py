@@ -52,7 +52,7 @@ def scrape_contest_problems(contest_id: str) -> list[dict[str, str]]:
         if not task_table or not isinstance(task_table, Tag):
             return []
 
-        rows = task_table.find_all("tr")[1:]  # skip header
+        rows = task_table.find_all("tr")[1:]
         problems: list[dict[str, str]] = []
         for row in rows:
             problem = extract_problem_from_row(row, contest_id)
@@ -115,7 +115,7 @@ def scrape(url: str) -> list[tuple[str, str]]:
             test_case = extract_test_case_from_headers(sample_headers, i)
             if test_case:
                 tests.append(test_case)
-                i += 2  # move from "Sample Input n" to after "Sample Output n"
+                i += 2
             else:
                 i += 1
 

@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 from scrapers.codeforces import scrape, scrape_contest_problems
+from scrapers.models import Problem, TestCase
 
 
 def test_scrape_success(mocker, mock_codeforces_html):
@@ -15,8 +16,8 @@ def test_scrape_success(mocker, mock_codeforces_html):
     result = scrape("https://codeforces.com/contest/1900/problem/A")
 
     assert len(result) == 1
-    assert result[0][0] == "1\n3\n1 2 3"
-    assert result[0][1] == "6"
+    assert result[0].input == "1\n3\n1 2 3"
+    assert result[0].expected == "6"
 
 
 def test_scrape_contest_problems(mocker):
@@ -35,8 +36,8 @@ def test_scrape_contest_problems(mocker):
     result = scrape_contest_problems("1900")
 
     assert len(result) == 2
-    assert result[0] == {"id": "a", "name": "A. Problem A"}
-    assert result[1] == {"id": "b", "name": "B. Problem B"}
+    assert result[0] == Problem(id="a", name="A. Problem A")
+    assert result[1] == Problem(id="b", name="B. Problem B")
 
 
 def test_scrape_network_error(mocker):
