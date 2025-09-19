@@ -207,7 +207,7 @@ describe('cp test panel', function()
       cp.handle_command({ fargs = { 'atcoder', 'abc123', 'a' } })
       cp.handle_command({ fargs = { 'test' } })
 
-      for buf_id, opts in pairs(buffer_options) do
+      for _buf_id, opts in pairs(buffer_options) do
         if opts.bufhidden then
           assert.equals('wipe', opts.bufhidden)
         end
@@ -219,7 +219,7 @@ describe('cp test panel', function()
 
     it('sets up keymaps correctly', function()
       local keymaps = {}
-      vim.keymap.set = function(mode, key, fn, opts)
+      vim.keymap.set = function(mode, key, _fn, opts)
         table.insert(keymaps, { mode = mode, key = key, buffer = opts.buffer })
       end
 
@@ -251,7 +251,7 @@ describe('cp test panel', function()
   describe('test case display', function()
     it('renders test case tabs correctly', function()
       local tab_content = {}
-      vim.api.nvim_buf_set_lines = function(buf, start, end_line, strict, lines)
+      vim.api.nvim_buf_set_lines = function(buf, _start, _end_line, _strict, lines)
         tab_content[buf] = lines
       end
 
@@ -275,7 +275,7 @@ describe('cp test panel', function()
 
     it('displays input correctly', function()
       local tab_content = {}
-      vim.api.nvim_buf_set_lines = function(buf, start, end_line, strict, lines)
+      vim.api.nvim_buf_set_lines = function(buf, _start, _end_line, _strict, lines)
         tab_content[buf] = lines
       end
 
@@ -297,7 +297,7 @@ describe('cp test panel', function()
 
     it('displays expected output correctly', function()
       local expected_content = nil
-      vim.api.nvim_buf_set_lines = function(buf, start, end_line, strict, lines)
+      vim.api.nvim_buf_set_lines = function(buf, _start, _end_line, _strict, lines)
         if lines and #lines == 1 and lines[1] == '3' then
           expected_content = lines[1]
         end
@@ -311,7 +311,7 @@ describe('cp test panel', function()
 
     it('displays actual output correctly', function()
       local actual_outputs = {}
-      vim.api.nvim_buf_set_lines = function(buf, start, end_line, strict, lines)
+      vim.api.nvim_buf_set_lines = function(buf, _start, _end_line, _strict, lines)
         if lines and #lines > 0 then
           table.insert(actual_outputs, lines)
         end
@@ -484,7 +484,7 @@ describe('cp test panel', function()
 
     it('shows execution time', function()
       local tab_content = {}
-      vim.api.nvim_buf_set_lines = function(buf, start, end_line, strict, lines)
+      vim.api.nvim_buf_set_lines = function(buf, _start, _end_line, _strict, lines)
         tab_content[buf] = lines
       end
 
