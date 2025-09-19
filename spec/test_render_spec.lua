@@ -63,8 +63,8 @@ describe('cp.test_render', function()
       }
       local result = test_render.render_test_list(test_state)
       assert.is_true(result[1]:find('^┌') ~= nil)
-      assert.is_true(result[2]:match('│.*#.*│.*Status.*│.*Time.*│.*Exit Code.*│'))
-      assert.is_true(result[3]:match('^├'))
+      assert.is_true(result[2]:find('│.*#.*│.*Status.*│.*Time.*│.*Exit Code.*│') ~= nil)
+      assert.is_true(result[3]:find('^├') ~= nil)
     end)
 
     it('shows current test with > prefix in table', function()
