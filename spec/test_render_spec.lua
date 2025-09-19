@@ -3,9 +3,9 @@ describe('cp.test_render', function()
 
   describe('get_status_info', function()
     it('returns AC for pass status')
-    it('returns WA for fail status with non-zero code')
+    it('returns WA for fail status with normal exit codes')
     it('returns TLE for timeout status')
-    it('returns RTE for fail with zero code')
+    it('returns RTE for fail with signal codes (>= 128)')
     it('returns empty for pending status')
   end)
 
