@@ -20,7 +20,7 @@ describe('cp.config', function()
     it('merges user config with defaults', function()
       local user_config = {
         debug = true,
-        contests = { test_contest = { cpp = { extension = 'cpp' } } }
+        contests = { test_contest = { cpp = { extension = 'cpp' } } },
       }
 
       local result = config.setup(user_config)
@@ -34,9 +34,9 @@ describe('cp.config', function()
       local invalid_config = {
         contests = {
           test_contest = {
-            cpp = { extension = 'invalid' }
-          }
-        }
+            cpp = { extension = 'invalid' },
+          },
+        },
       }
 
       assert.has_error(function()
@@ -46,7 +46,7 @@ describe('cp.config', function()
 
     it('validates scraper platforms', function()
       local invalid_config = {
-        scrapers = { invalid_platform = true }
+        scrapers = { invalid_platform = true },
       }
 
       assert.has_error(function()
@@ -56,7 +56,7 @@ describe('cp.config', function()
 
     it('validates scraper values are booleans', function()
       local invalid_config = {
-        scrapers = { atcoder = 'not_boolean' }
+        scrapers = { atcoder = 'not_boolean' },
       }
 
       assert.has_error(function()
@@ -66,7 +66,7 @@ describe('cp.config', function()
 
     it('validates hook functions', function()
       local invalid_config = {
-        hooks = { before_run = 'not_a_function' }
+        hooks = { before_run = 'not_a_function' },
       }
 
       assert.has_error(function()
