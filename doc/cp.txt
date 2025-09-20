@@ -1,9 +1,10 @@
-*cp.txt*  Competitive programming plugin for Neovim
+*cp.txt*                 Competitive programming plugin for Neovim               *cp.txt*
 
 Author:  Barrett Ruth <br.barrettruth@gmail.com>
 License: Same terms as Vim itself (see |license|)
 
-INTRODUCTION                                            *cp* *cp.nvim*
+==============================================================================
+INTRODUCTION                                                    *cp* *cp.nvim*
 
 cp.nvim is a competitive programming plugin that automates problem setup,
 compilation, and testing workflow for online judges.
@@ -11,7 +12,8 @@ compilation, and testing workflow for online judges.
 Supported platforms: AtCoder, Codeforces, CSES
 Supported languages: C++, Python
 
-REQUIREMENTS                                        *cp-requirements*
+==============================================================================
+REQUIREMENTS                                                *cp-requirements*
 
 - Neovim 0.10.0+
 - uv package manager (https://docs.astral.sh/uv/)
@@ -20,99 +22,106 @@ REQUIREMENTS                                        *cp-requirements*
 Optional:
 - LuaSnip for template expansion (https://github.com/L3MON4D3/LuaSnip)
 
-COMMANDS                                            *cp-commands*
+==============================================================================
+COMMANDS                                                        *cp-commands*
 
-                                                            *:CP*
-cp.nvim uses a single :CP command with intelligent argument parsing:
+:CP                                                                     *:CP*
+        cp.nvim uses a single :CP command with intelligent argument parsing:
 
-State Restoration ~
-
-:CP                             Restore contest context from current file.
+        State Restoration ~
+            :CP                 Restore contest context from current file.
                                 Automatically detects platform, contest, problem,
                                 and language from cached state. Use this after
                                 switching files to restore your CP environment.
                                 Requires previous setup with full :CP command.
 
-Setup Commands ~
-
-:CP {platform} {contest_id} {problem_id} [--lang={language}]
+        Setup Commands ~
+            :CP {platform} {contest_id} {problem_id} [--lang={language}]
                                 Full setup: set platform, load contest metadata,
                                 and set up specific problem. Scrapes test cases
                                 and creates source file.
-                                Example: :CP codeforces 1933 a
-                                Example: :CP codeforces 1933 a --lang=python
-
-:CP {platform} {contest_id}     Contest setup: set platform and load contest
+                                Example: >
+                                    :CP codeforces 1933 a
+                                    :CP codeforces 1933 a --lang=python
+<
+            :CP {platform} {contest_id}
+                                Contest setup: set platform and load contest
                                 metadata for navigation. Caches problem list.
-                                Example: :CP atcoder abc324
-
-:CP {platform}                  Platform setup: set platform only.
-                                Example: :CP cses
-
-:CP {problem_id} [--lang={language}]
+                                Example: >
+                                    :CP atcoder abc324
+<
+            :CP {platform}      Platform setup: set platform only.
+                                Example: >
+                                    :CP cses
+<
+            :CP {problem_id} [--lang={language}]
                                 Problem switch: switch to different problem
                                 within current contest context.
-                                Example: :CP b (switch to problem b)
-                                Example: :CP b --lang=python
-
-Action Commands ~
-
-:CP run [--debug]               Toggle run panel for individual test case
+                                Example: >
+                                    :CP b
+                                    :CP b --lang=python
+<
+        Action Commands ~
+            :CP run [--debug]   Toggle run panel for individual test case
                                 debugging. Shows per-test results with redesigned
                                 layout for efficient comparison.
-                                Use --debug flag to compile with debug flags
+                                Use --debug flag to compile with debug flags.
                                 Requires contest setup first.
 
-Navigation Commands ~
-
-:CP next                        Navigate to next problem in current contest.
+        Navigation Commands ~
+            :CP next            Navigate to next problem in current contest.
                                 Stops at last problem (no wrapping).
 
-:CP prev                        Navigate to previous problem in current contest.
+            :CP prev            Navigate to previous problem in current contest.
                                 Stops at first problem (no wrapping).
 
-CONFIGURATION                                       *cp-config*
+==============================================================================
+CONFIGURATION                                                   *cp-config*
 
 cp.nvim works out of the box. No setup required.
 
-Here's an example configuration with lazy.nvim: >
+Here's an example configuration with lazy.nvim: >lua
     {
         'barrett-ruth/cp.nvim',
         cmd = 'CP',
         opts = {
-          contests = {
-            default = {
-              cpp = {
-                compile = { 'g++', '{source}', '-o', '{binary}', '-std=c++17' },
-                test = { '{binary}' },
-                debug = { 'g++', '{source}', '-o', '{binary}', '-std=c++17', '-g', '-fsanitize=address,undefined' },
-              },
-              python = {
-                test = { 'python3', '{source}' },
-              },
+            contests = {
+                default = {
+                    cpp = {
+                        compile = { 'g++', '{source}', '-o', '{binary}',
+                                   '-std=c++17' },
+                        test = { '{binary}' },
+                        debug = { 'g++', '{source}', '-o', '{binary}',
+                                 '-std=c++17', '-g',
+                                 '-fsanitize=address,undefined' },
+                    },
+                    python = {
+                        test = { 'python3', '{source}' },
+                    },
+                },
             },
-          },
-          snippets = {},
-          hooks = {
-            before_run = nil,
-            before_debug = nil,
-            setup_code = nil,
-          },
-          debug = false,
-          scrapers = { ... }, -- all scrapers enabled by default
-          filename = default_filename,  -- <contest id> + <problem id>
-          run_panel = {
-            diff_mode = 'vim',
-            next_test_key = '<c-n>',
-            prev_test_key = '<c-p>',
-            toggle_diff_key = 't',
-            max_output_lines = 50,
-          },
-          diff = {
-            git = {
-              args = { 'diff', '--no-index', '--word-diff=plain', '--word-diff-regex=.', '--no-prefix' },
+            snippets = {},
+            hooks = {
+                before_run = nil,
+                before_debug = nil,
+                setup_code = nil,
             },
-          },
+            debug = false,
+            scrapers = { 'atcoder', 'codeforces', 'cses' },
+            filename = default_filename,  -- <contest id> + <problem id>
+            run_panel = {
+                diff_mode = 'vim',
+                next_test_key = '<c-n>',
+                prev_test_key = '<c-p>',
+                toggle_diff_key = 't',
+                max_output_lines = 50,
+            },
+            diff = {
+                git = {
+                    args = { 'diff', '--no-index', '--word-diff=plain',
+                            '--word-diff-regex=.', '--no-prefix' },
+                },
+            },
         }
     }
 <

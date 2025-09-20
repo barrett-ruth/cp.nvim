@@ -2,13 +2,10 @@ describe('cp.execute', function()
   local execute
   local mock_system_calls
   local temp_files
+  local spec_helper = require('spec.spec_helper')
 
   before_each(function()
-    package.loaded['cp.log'] = {
-      log = function() end,
-      set_config = function() end,
-    }
-
+    spec_helper.setup()
     execute = require('cp.execute')
     mock_system_calls = {}
     temp_files = {}
@@ -65,7 +62,7 @@ describe('cp.execute', function()
 
   after_each(function()
     vim.system = vim.system_original or vim.system
-    package.loaded['cp.log'] = nil
+    spec_helper.teardown()
     temp_files = {}
   end)
 
