@@ -380,8 +380,8 @@ describe('cp.scrape', function()
 
     it('constructs correct command for cses problem tests', function()
       test_context.contest = 'cses'
-      test_context.contest_id = '1001'
-      test_context.problem_id = nil
+      test_context.contest_id = 'sorting_and_searching'
+      test_context.problem_id = '1001'
 
       scrape.scrape_problem(test_context)
 
@@ -396,7 +396,7 @@ describe('cp.scrape', function()
       assert.is_not_nil(tests_call)
       assert.is_true(vim.tbl_contains(tests_call.cmd, 'tests'))
       assert.is_true(vim.tbl_contains(tests_call.cmd, '1001'))
-      assert.is_false(vim.tbl_contains(tests_call.cmd, 'a'))
+      assert.is_false(vim.tbl_contains(tests_call.cmd, 'sorting_and_searching'))
     end)
   end)
 

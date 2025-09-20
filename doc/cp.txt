@@ -326,7 +326,7 @@ CSES ~
 URL format: https://cses.fi/problemset/task/1068
 
 CSES (Code Submission Evaluation System) is organized by problem categories
-rather than traditional contests. All problems are accessible individually.
+rather than traditional contests. Problems are grouped by topic and difficulty.
 
 Platform characteristics:
 • Organization: Category-based (Introductory, Sorting, Dynamic Programming)
@@ -337,17 +337,17 @@ Platform characteristics:
 
 In terms of cp.nvim, this corresponds to:
 - Platform: cses
-- Contest ID: Problem ID (1068) - used as both contest and problem identifier
-- Problem ID: nil (not applicable for CSES structure)
+- Contest ID: Category name (introductory_problems, sorting_and_searching)
+- Problem ID: Problem number (1068, 1640)
 
 Usage examples: >
-    :CP cses 1068               " Set up problem 1068 from CSES
-    :CP 1070                    " Switch to problem 1070 (if CSES context loaded)
-    :CP next                    " Navigate to next problem in CSES sequence
+    :CP cses dynamic_programming 1633      " Set up problem 1633 from DP category
 <
-                                Note: CSES problems are treated as individual
+                                Note: Both category and problem ID are required
                                 entities rather than contest problems.
+
 ==============================================================================
+
 COMPLETE WORKFLOW EXAMPLE                                        *cp-example*
 
 Example: Setting up and solving AtCoder contest ABC324

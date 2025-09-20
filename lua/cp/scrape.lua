@@ -205,7 +205,7 @@ function M.scrape_problem(ctx)
       '-m',
       'scrapers.' .. ctx.contest,
       'tests',
-      ctx.contest_id,
+      ctx.problem_id,
     }
   else
     args = {
