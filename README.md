@@ -11,7 +11,7 @@ https://github.com/user-attachments/assets/cb142535-fba0-4280-8f11-66ad1ca50ca9
 ## Features
 
 - Support for multiple online judges ([AtCoder](https://atcoder.jp/), [Codeforces](https://codeforces.com/), [CSES](https://cses.fi))
-- Multi-language support (C++, Python)
+- Language-agnostic features
 - Automatic problem scraping and test case management
 - Integrated running and debugging
 - Enhanced test viewer

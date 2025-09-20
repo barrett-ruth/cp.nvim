@@ -13,28 +13,28 @@ describe('cp.test_render', function()
       local test_case = { status = 'fail', code = 1 }
       local result = test_render.get_status_info(test_case)
       assert.equals('WA', result.text)
-      assert.equals('CpTestError', result.highlight_group)
+      assert.equals('CpTestWA', result.highlight_group)
     end)
 
     it('returns TLE for timeout status', function()
       local test_case = { status = 'timeout' }
       local result = test_render.get_status_info(test_case)
       assert.equals('TLE', result.text)
-      assert.equals('CpTestError', result.highlight_group)
+      assert.equals('CpTestTLE', result.highlight_group)
     end)
 
     it('returns TLE for timed out fail status', function()
       local test_case = { status = 'fail', timed_out = true }
       local result = test_render.get_status_info(test_case)
       assert.equals('TLE', result.text)
-      assert.equals('CpTestError', result.highlight_group)
+      assert.equals('CpTestTLE', result.highlight_group)
     end)
 
     it('returns RTE for fail with signal codes (>= 128)', function()
       local test_case = { status = 'fail', code = 139 }
       local result = test_render.get_status_info(test_case)
       assert.equals('RTE', result.text)
-      assert.equals('CpTestError', result.highlight_group)
+      assert.equals('CpTestRTE', result.highlight_group)
     end)
 
     it('returns empty for pending status', function()
@@ -159,11 +159,40 @@ describe('cp.test_render', function()
       local mock_set_hl = spy.on(vim.api, 'nvim_set_hl')
       test_render.setup_highlights()
 
-      assert.spy(mock_set_hl).was_called(5)
-      assert.spy(mock_set_hl).was_called_with(0, 'CpTestAC', { fg = '#10b981', bold = true })
-      assert.spy(mock_set_hl).was_called_with(0, 'CpTestError', { fg = '#ef4444', bold = true })
+      assert.spy(mock_set_hl).was_called(7)
+      assert.spy(mock_set_hl).was_called_with(0, 'CpTestAC', { fg = '#10b981' })
+      assert.spy(mock_set_hl).was_called_with(0, 'CpTestWA', { fg = '#ef4444' })
+      assert.spy(mock_set_hl).was_called_with(0, 'CpTestTLE', { fg = '#f59e0b' })
+      assert.spy(mock_set_hl).was_called_with(0, 'CpTestRTE', { fg = '#8b5cf6' })
 
       mock_set_hl:revert()
+    end)
+  end)
+
+  describe('highlight positioning', function()
+    it('generates correct highlight positions for status text', function()
+      local test_state = {
+        test_cases = {
+          { status = 'pass', input = '' },
+          { status = 'fail', code = 1, input = '' },
+        },
+        current_index = 1,
+      }
+      local lines, highlights = test_render.render_test_list(test_state)
+
+      assert.equals(2, #highlights)
+
+      for _, hl in ipairs(highlights) do
+        assert.is_not_nil(hl.line)
+        assert.is_not_nil(hl.col_start)
+        assert.is_not_nil(hl.col_end)
+        assert.is_not_nil(hl.highlight_group)
+        assert.is_true(hl.col_end > hl.col_start)
+
+        local line_content = lines[hl.line + 1]
+        local highlighted_text = line_content:sub(hl.col_start + 1, hl.col_end)
+        assert.is_true(highlighted_text == 'AC' or highlighted_text == 'WA')
+      end
     end)
   end)
 end)
