@@ -89,29 +89,16 @@ function M.scrape_contest_metadata(platform, contest_id)
 
   local plugin_path = get_plugin_path()
 
-  local args
-  if platform == 'cses' then
-    args = {
-      'uv',
-      'run',
-      '--directory',
-      plugin_path,
-      '-m',
-      'scrapers.' .. platform,
-      'metadata',
-    }
-  else
-    args = {
-      'uv',
-      'run',
-      '--directory',
-      plugin_path,
-      '-m',
-      'scrapers.' .. platform,
-      'metadata',
-      contest_id,
-    }
-  end
+  local args = {
+    'uv',
+    'run',
+    '--directory',
+    plugin_path,
+    '-m',
+    'scrapers.' .. platform,
+    'metadata',
+    contest_id,
+  }
 
   local result = vim
     .system(args, {
@@ -140,12 +127,7 @@ function M.scrape_contest_metadata(platform, contest_id)
     return data
   end
 
-  local problems_list
-  if platform == 'cses' then
-    problems_list = data.categories and data.categories['CSES Problem Set'] or {}
-  else
-    problems_list = data.problems or {}
-  end
+  local problems_list = data.problems or {}
 
   cache.set_contest_data(platform, contest_id, problems_list)
   return {
@@ -223,7 +205,7 @@ function M.scrape_problem(ctx)
       '-m',
       'scrapers.' .. ctx.contest,
       'tests',
-      ctx.contest_id,
+      ctx.problem_id,
     }
   else
     args = {

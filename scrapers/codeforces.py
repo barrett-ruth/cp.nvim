@@ -7,7 +7,14 @@ from dataclasses import asdict
 import cloudscraper
 from bs4 import BeautifulSoup, Tag
 
-from .models import MetadataResult, ProblemSummary, TestCase, TestsResult
+from .models import (
+    ContestListResult,
+    ContestSummary,
+    MetadataResult,
+    ProblemSummary,
+    TestCase,
+    TestsResult,
+)
 
 
 def scrape(url: str) -> list[TestCase]:
@@ -218,11 +225,54 @@ def scrape_sample_tests(url: str) -> list[TestCase]:
     return scrape(url)
 
 
+def scrape_contests() -> list[ContestSummary]:
+    try:
+        scraper = cloudscraper.create_scraper()
+        response = scraper.get("https://codeforces.com/api/contest.list", timeout=10)
+        response.raise_for_status()
+
+        data = response.json()
+        if data["status"] != "OK":
+            return []
+
+        contests = []
+        for contest in data["result"]:
+            contest_id = str(contest["id"])
+            name = contest["name"]
+
+            # Clean up contest names for display
+            display_name = name
+            if "Educational Codeforces Round" in name:
+                import re
+
+                match = re.search(r"Educational Codeforces Round (\d+)", name)
+                if match:
+                    display_name = f"Educational Round {match.group(1)}"
+            elif "Codeforces Round" in name and "Div" in name:
+                match = re.search(r"Codeforces Round (\d+) \(Div\. (\d+)\)", name)
+                if match:
+                    display_name = f"Round {match.group(1)} (Div. {match.group(2)})"
+            elif "Codeforces Global Round" in name:
+                match = re.search(r"Codeforces Global Round (\d+)", name)
+                if match:
+                    display_name = f"Global Round {match.group(1)}"
+
+            contests.append(
+                ContestSummary(id=contest_id, name=name, display_name=display_name)
+            )
+
+        return contests[:100]  # Limit to recent 100 contests
+
+    except Exception as e:
+        print(f"Failed to fetch contests: {e}", file=sys.stderr)
+        return []
+
+
 def main() -> None:
     if len(sys.argv) < 2:
         result = MetadataResult(
             success=False,
-            error="Usage: codeforces.py metadata <contest_id> OR codeforces.py tests <contest_id> <problem_letter>",
+            error="Usage: codeforces.py metadata <contest_id> OR codeforces.py tests <contest_id> <problem_letter> OR codeforces.py contests",
         )
         print(json.dumps(asdict(result)))
         sys.exit(1)
@@ -316,9 +366,27 @@ def main() -> None:
         )
         print(json.dumps(asdict(tests_result)))
 
+    elif mode == "contests":
+        if len(sys.argv) != 2:
+            contest_result = ContestListResult(
+                success=False, error="Usage: codeforces.py contests"
+            )
+            print(json.dumps(asdict(contest_result)))
+            sys.exit(1)
+
+        contests = scrape_contests()
+        if not contests:
+            contest_result = ContestListResult(success=False, error="No contests found")
+            print(json.dumps(asdict(contest_result)))
+            sys.exit(1)
+
+        contest_result = ContestListResult(success=True, error="", contests=contests)
+        print(json.dumps(asdict(contest_result)))
+
     else:
         result = MetadataResult(
-            success=False, error=f"Unknown mode: {mode}. Use 'metadata' or 'tests'"
+            success=False,
+            error=f"Unknown mode: {mode}. Use 'metadata', 'tests', or 'contests'",
         )
         print(json.dumps(asdict(result)))
         sys.exit(1)

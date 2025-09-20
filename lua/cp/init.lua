@@ -700,12 +700,11 @@ local function parse_command(args)
       }
     elseif #filtered_args == 2 then
       if first == 'cses' then
-        return {
-          type = 'cses_problem',
-          platform = first,
-          problem = filtered_args[2],
-          language = language,
-        }
+        logger.log(
+          'CSES requires both category and problem ID. Usage: :CP cses <category> <problem_id>',
+          vim.log.levels.ERROR
+        )
+        return { type = 'error' }
       else
         return {
           type = 'contest_setup',
@@ -847,22 +846,6 @@ function M.handle_command(opts)
       end
 
       setup_problem(cmd.contest, cmd.problem, cmd.language)
-    end
-    return
-  end
-
-  if cmd.type == 'cses_problem' then
-    if set_platform(cmd.platform) then
-      if vim.tbl_contains(config.scrapers, cmd.platform) then
-        local metadata_result = scrape.scrape_contest_metadata(cmd.platform, '')
-        if not metadata_result.success then
-          logger.log(
-            'failed to load contest metadata: ' .. (metadata_result.error or 'unknown error'),
-            vim.log.levels.WARN
-          )
-        end
-      end
-      setup_problem(cmd.problem, nil, cmd.language)
     end
     return
   end

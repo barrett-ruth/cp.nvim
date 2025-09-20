@@ -11,6 +11,85 @@ from bs4 import BeautifulSoup, Tag
 from .models import MetadataResult, ProblemSummary, TestCase, TestsResult
 
 
+def normalize_category_name(category_name: str) -> str:
+    return category_name.lower().replace(" ", "_").replace("&", "and")
+
+
+def denormalize_category_name(category_id: str) -> str:
+    category_map = {
+        "introductory_problems": "Introductory Problems",
+        "sorting_and_searching": "Sorting and Searching",
+        "dynamic_programming": "Dynamic Programming",
+        "graph_algorithms": "Graph Algorithms",
+        "range_queries": "Range Queries",
+        "tree_algorithms": "Tree Algorithms",
+        "mathematics": "Mathematics",
+        "string_algorithms": "String Algorithms",
+        "geometry": "Geometry",
+        "advanced_techniques": "Advanced Techniques",
+    }
+
+    return category_map.get(category_id, category_id.replace("_", " ").title())
+
+
+def scrape_category_problems(category_id: str) -> list[ProblemSummary]:
+    category_name = denormalize_category_name(category_id)
+
+    try:
+        problemset_url = "https://cses.fi/problemset/"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+
+        response = requests.get(problemset_url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        current_category = None
+        problems = []
+        target_found = False
+
+        for element in soup.find_all(["h1", "h2", "ul"]):
+            if not isinstance(element, Tag):
+                continue
+            if element.name in ["h1", "h2"]:
+                text = element.get_text(strip=True)
+                if not text or text.startswith("CSES") or text == "CSES Problem Set":
+                    continue
+
+                if target_found and current_category != text:
+                    break
+
+                current_category = text
+                if text.lower() == category_name.lower():
+                    target_found = True
+
+            elif element.name == "ul" and current_category and target_found:
+                problem_links = element.find_all(
+                    "a", href=lambda x: x and "/problemset/task/" in x
+                )
+                for link in problem_links:
+                    href = link.get("href", "")
+                    if not href:
+                        continue
+
+                    problem_id = href.split("/")[-1]
+                    problem_name = link.get_text(strip=True)
+
+                    if not problem_id.isdigit() or not problem_name:
+                        continue
+
+                    problems.append(ProblemSummary(id=problem_id, name=problem_name))
+
+        problems.sort(key=lambda x: int(x.id))
+        return problems
+
+    except Exception as e:
+        print(f"Failed to scrape CSES category {category_id}: {e}", file=sys.stderr)
+        return []
+
+
 def parse_problem_url(problem_input: str) -> str | None:
     if problem_input.startswith("https://cses.fi/problemset/task/"):
         return problem_input
@@ -94,21 +173,39 @@ def scrape_all_problems() -> dict[str, list[ProblemSummary]]:
         soup = BeautifulSoup(response.text, "html.parser")
         all_categories: dict[str, list[ProblemSummary]] = {}
 
-        problem_links = soup.find_all(
-            "a", href=lambda x: x and "/problemset/task/" in x
-        )
-        print(f"Found {len(problem_links)} problem links", file=sys.stderr)
-
         current_category = None
-        for element in soup.find_all(["h1", "a"]):
-            current_category = process_problem_element(
-                element, current_category, all_categories
-            )
+        for element in soup.find_all(["h1", "h2", "ul"]):
+            if not isinstance(element, Tag):
+                continue
+            if element.name in ["h1", "h2"]:
+                text = element.get_text(strip=True)
+                if text and not text.startswith("CSES") and text != "CSES Problem Set":
+                    current_category = text
+                    if current_category not in all_categories:
+                        all_categories[current_category] = []
+                        print(f"Found category: {current_category}", file=sys.stderr)
+
+            elif element.name == "ul" and current_category:
+                problem_links = element.find_all(
+                    "a", href=lambda x: x and "/problemset/task/" in x
+                )
+                for link in problem_links:
+                    href = link.get("href", "")
+                    if href:
+                        problem_id = href.split("/")[-1]
+                        problem_name = link.get_text(strip=True)
+
+                        if problem_id.isdigit() and problem_name:
+                            problem = ProblemSummary(id=problem_id, name=problem_name)
+                            all_categories[current_category].append(problem)
 
         for category in all_categories:
             all_categories[category].sort(key=lambda x: int(x.id))
 
-        print(f"Found {len(all_categories)} categories", file=sys.stderr)
+        print(
+            f"Found {len(all_categories)} categories with {sum(len(probs) for probs in all_categories.values())} problems",
+            file=sys.stderr,
+        )
         return all_categories
 
     except Exception as e:
@@ -170,7 +267,7 @@ def main() -> None:
     if len(sys.argv) < 2:
         result = MetadataResult(
             success=False,
-            error="Usage: cses.py metadata OR cses.py tests <problem_id_or_url>",
+            error="Usage: cses.py metadata <category_id> OR cses.py tests <problem_id_or_url>",
         )
         print(json.dumps(asdict(result)))
         sys.exit(1)
@@ -178,25 +275,26 @@ def main() -> None:
     mode: str = sys.argv[1]
 
     if mode == "metadata":
-        if len(sys.argv) != 2:
+        if len(sys.argv) != 3:
             result = MetadataResult(
                 success=False,
-                error="Usage: cses.py metadata",
+                error="Usage: cses.py metadata <category_id>",
             )
             print(json.dumps(asdict(result)))
             sys.exit(1)
 
-        all_categories: dict[str, list[ProblemSummary]] = scrape_all_problems()
+        category_id = sys.argv[2]
+        problems = scrape_category_problems(category_id)
 
-        if not all_categories:
+        if not problems:
             result = MetadataResult(
                 success=False,
-                error="Failed to scrape CSES problem categories",
+                error=f"No problems found for category: {category_id}",
             )
             print(json.dumps(asdict(result)))
-            sys.exit(1)
+            return
 
-        result = MetadataResult(success=True, error="", categories=all_categories)
+        result = MetadataResult(success=True, error="", problems=problems)
         print(json.dumps(asdict(result)))
 
     elif mode == "tests":

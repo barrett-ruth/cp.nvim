@@ -3,12 +3,20 @@
 import json
 import re
 import sys
+import time
 from dataclasses import asdict
 
 import requests
 from bs4 import BeautifulSoup, Tag
 
-from .models import MetadataResult, ProblemSummary, TestCase, TestsResult
+from .models import (
+    ContestListResult,
+    ContestSummary,
+    MetadataResult,
+    ProblemSummary,
+    TestCase,
+    TestsResult,
+)
 
 
 def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, float]:
@@ -159,11 +167,78 @@ def scrape(url: str) -> list[TestCase]:
         return []
 
 
+def scrape_contests() -> list[ContestSummary]:
+    contests = []
+    max_pages = 15
+
+    for page in range(1, max_pages + 1):
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            url = f"https://atcoder.jp/contests/archive?page={page}"
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+
+            soup = BeautifulSoup(response.text, "html.parser")
+            table = soup.find("table", class_="table")
+            if not table:
+                break
+
+            tbody = table.find("tbody")
+            if not tbody or not isinstance(tbody, Tag):
+                break
+
+            rows = tbody.find_all("tr")
+            if not rows:
+                break
+
+            for row in rows:
+                cells = row.find_all("td")
+                if len(cells) < 2:
+                    continue
+
+                contest_cell = cells[1]
+                link = contest_cell.find("a")
+                if not link or not link.get("href"):
+                    continue
+
+                href = link.get("href")
+                contest_id = href.split("/")[-1]
+                name = link.get_text().strip()
+
+                display_name = name
+                if "AtCoder Beginner Contest" in name:
+                    match = re.search(r"AtCoder Beginner Contest (\d+)", name)
+                    if match:
+                        display_name = f"Beginner Contest {match.group(1)} (ABC)"
+                elif "AtCoder Regular Contest" in name:
+                    match = re.search(r"AtCoder Regular Contest (\d+)", name)
+                    if match:
+                        display_name = f"Regular Contest {match.group(1)} (ARC)"
+                elif "AtCoder Grand Contest" in name:
+                    match = re.search(r"AtCoder Grand Contest (\d+)", name)
+                    if match:
+                        display_name = f"Grand Contest {match.group(1)} (AGC)"
+
+                contests.append(
+                    ContestSummary(id=contest_id, name=name, display_name=display_name)
+                )
+
+            time.sleep(0.5)
+
+        except Exception as e:
+            print(f"Failed to scrape page {page}: {e}", file=sys.stderr)
+            continue
+
+    return contests
+
+
 def main() -> None:
     if len(sys.argv) < 2:
         result = MetadataResult(
             success=False,
-            error="Usage: atcoder.py metadata <contest_id> OR atcoder.py tests <contest_id> <problem_letter>",
+            error="Usage: atcoder.py metadata <contest_id> OR atcoder.py tests <contest_id> <problem_letter> OR atcoder.py contests",
         )
         print(json.dumps(asdict(result)))
         sys.exit(1)
@@ -264,10 +339,27 @@ def main() -> None:
         )
         print(json.dumps(asdict(tests_result)))
 
+    elif mode == "contests":
+        if len(sys.argv) != 2:
+            contest_result = ContestListResult(
+                success=False, error="Usage: atcoder.py contests"
+            )
+            print(json.dumps(asdict(contest_result)))
+            sys.exit(1)
+
+        contests = scrape_contests()
+        if not contests:
+            contest_result = ContestListResult(success=False, error="No contests found")
+            print(json.dumps(asdict(contest_result)))
+            sys.exit(1)
+
+        contest_result = ContestListResult(success=True, error="", contests=contests)
+        print(json.dumps(asdict(contest_result)))
+
     else:
         result = MetadataResult(
             success=False,
-            error=f"Unknown mode: {mode}. Use 'metadata' or 'tests'",
+            error=f"Unknown mode: {mode}. Use 'metadata', 'tests', or 'contests'",
         )
         print(json.dumps(asdict(result)))
         sys.exit(1)

@@ -96,7 +96,7 @@ describe('cp command parsing', function()
     end)
 
     it('handles cses problem command', function()
-      local opts = { fargs = { 'cses', '1234' } }
+      local opts = { fargs = { 'cses', 'sorting_and_searching', '1234' } }
 
       assert.has_no_errors(function()
         cp.handle_command(opts)
