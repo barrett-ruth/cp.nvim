@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -8,34 +8,36 @@ class TestCase:
 
 
 @dataclass
-class Problem:
+class ProblemSummary:
     id: str
     name: str
 
 
 @dataclass
+class Problem:
+    id: str
+    name: str
+    timeout_ms: int
+    memory_mb: int
+
+
+@dataclass
 class ScrapingResult:
     success: bool
-    error: str | None = None
+    error: str
 
 
 @dataclass
 class MetadataResult(ScrapingResult):
-    contest_id: str | None = None
-    problems: list[Problem] | None = None
-    categories: dict[str, list[Problem]] | None = None
-
-    def __post_init__(self):
-        if self.problems is None:
-            self.problems = []
+    contest_id: str = ""
+    problems: list[ProblemSummary] = field(default_factory=list)
+    categories: dict[str, list[ProblemSummary]] = field(default_factory=dict)
 
 
 @dataclass
 class TestsResult(ScrapingResult):
-    problem_id: str = ""
-    url: str = ""
-    tests: list[TestCase] | None = None
-
-    def __post_init__(self):
-        if self.tests is None:
-            self.tests = []
+    problem_id: str
+    url: str
+    tests: list[TestCase]
+    timeout_ms: int
+    memory_mb: int
