@@ -24,6 +24,7 @@ local M = {}
 
 local cache_file = vim.fn.stdpath('data') .. '/cp-nvim.json'
 local cache_data = {}
+local loaded = false
 
 ---@param platform string
 ---@return number?
