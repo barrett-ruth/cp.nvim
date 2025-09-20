@@ -242,7 +242,6 @@ local function toggle_run_panel(is_debug)
 
     vim.api.nvim_buf_clear_namespace(bufnr, test_list_namespace, 0, -1)
     for _, hl in ipairs(highlights) do
-      local logger = require('cp.log')
       logger.log(
         'Applying extmark: buf='
           .. bufnr

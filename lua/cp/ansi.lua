@@ -48,7 +48,7 @@ function M.parse_ansi_text(text)
     return table.concat(parts)
   end
 
-  local function apply_highlight(start_line, start_col, end_line, end_col)
+  local function apply_highlight(start_line, start_col, end_col)
     local hl_group = get_highlight_group()
     if hl_group then
       table.insert(highlights, {
@@ -73,7 +73,7 @@ function M.parse_ansi_text(text)
         for char in segment:gmatch('.') do
           if char == '\n' then
             if col_pos > start_col then
-              apply_highlight(start_line, start_col, start_line, col_pos)
+              apply_highlight(start_line, start_col, col_pos)
             end
             line_num = line_num + 1
             start_line = line_num
@@ -85,7 +85,7 @@ function M.parse_ansi_text(text)
         end
 
         if col_pos > start_col then
-          apply_highlight(start_line, start_col, start_line, col_pos)
+          apply_highlight(start_line, start_col, col_pos)
         end
       end
 
@@ -102,7 +102,7 @@ function M.parse_ansi_text(text)
         for char in segment:gmatch('.') do
           if char == '\n' then
             if col_pos > start_col then
-              apply_highlight(start_line, start_col, start_line, col_pos)
+              apply_highlight(start_line, start_col, col_pos)
             end
             line_num = line_num + 1
             start_line = line_num
@@ -114,7 +114,7 @@ function M.parse_ansi_text(text)
         end
 
         if col_pos > start_col then
-          apply_highlight(start_line, start_col, start_line, col_pos)
+          apply_highlight(start_line, start_col, col_pos)
         end
       end
       break

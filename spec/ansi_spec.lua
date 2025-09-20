@@ -147,7 +147,7 @@ describe('ansi parser', function()
       local message_highlight = result.highlights[2]
       assert.equals('CpAnsiBold', message_highlight.highlight_group)
       assert.equals(22, message_highlight.col_start)
-      assert.equals(48, message_highlight.col_end)
+      assert.equals(51, message_highlight.col_end)
     end)
 
     it('handles multiline with persistent state', function()

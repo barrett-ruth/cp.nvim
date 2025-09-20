@@ -372,7 +372,6 @@ end
 
 function M.handle_compilation_failure(compilation_stderr)
   local ansi = require('cp.ansi')
-  local logger = require('cp.log')
   local clean_text = 'Compilation failed'
   local highlights = {}
 
@@ -405,7 +404,7 @@ function M.handle_compilation_failure(compilation_stderr)
     end
   end
 
-  for i, test_case in ipairs(run_panel_state.test_cases) do
+  for _, test_case in ipairs(run_panel_state.test_cases) do
     test_case.status = 'fail'
     test_case.actual = clean_text
     test_case.actual_highlights = highlights
