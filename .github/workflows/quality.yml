@@ -114,4 +114,4 @@ jobs:
       - name: Install dependencies with mypy
         run: uv sync --dev
       - name: Type check Python files with mypy
-        run: uv run mypy scrapers/ tests/scrapers/
+        run: cd scrapers && PYTHONPATH=.. uv run mypy . ../tests/scrapers/
