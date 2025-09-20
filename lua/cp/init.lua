@@ -251,8 +251,25 @@ local function toggle_run_panel(is_debug)
     vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
     vim.api.nvim_set_option_value('readonly', was_readonly, { buf = bufnr })
 
+    local ansi = require('cp.ansi')
+    ansi.setup_highlight_groups()
+
     vim.api.nvim_buf_clear_namespace(bufnr, test_list_namespace, 0, -1)
     for _, hl in ipairs(highlights) do
+      local logger = require('cp.log')
+      logger.log(
+        'Applying extmark: buf='
+          .. bufnr
+          .. ' line='
+          .. hl.line
+          .. ' col='
+          .. hl.col_start
+          .. '-'
+          .. hl.col_end
+          .. ' group='
+          .. (hl.highlight_group or 'nil')
+      )
+
       vim.api.nvim_buf_set_extmark(bufnr, test_list_namespace, hl.line, hl.col_start, {
         end_col = hl.col_end,
         hl_group = hl.highlight_group,
@@ -382,6 +399,7 @@ local function toggle_run_panel(is_debug)
 
     local expected_content = current_test.expected or ''
     local actual_content = current_test.actual or '(not run yet)'
+    local actual_highlights = current_test.actual_highlights or {}
     local is_compilation_failure = current_test.error
       and current_test.error:match('Compilation failed')
     local should_show_diff = current_test.status == 'fail'
@@ -424,7 +442,7 @@ local function toggle_run_panel(is_debug)
     else
       if desired_mode == 'single' then
         local lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
-        update_buffer_content(current_diff_layout.buffers[1], lines, {})
+        update_buffer_content(current_diff_layout.buffers[1], lines, actual_highlights)
       elseif desired_mode == 'git' then
         local diff_backend = require('cp.diff')
         local backend = diff_backend.get_best_backend('git')
@@ -438,13 +456,13 @@ local function toggle_run_panel(is_debug)
           )
         else
           local lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
-          update_buffer_content(current_diff_layout.buffers[1], lines, {})
+          update_buffer_content(current_diff_layout.buffers[1], lines, actual_highlights)
         end
       else
         local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
         local actual_lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
         update_buffer_content(current_diff_layout.buffers[1], expected_lines, {})
-        update_buffer_content(current_diff_layout.buffers[2], actual_lines, {})
+        update_buffer_content(current_diff_layout.buffers[2], actual_lines, actual_highlights)
 
         if should_show_diff then
           vim.api.nvim_set_option_value('diff', true, { win = current_diff_layout.windows[1] })
@@ -472,6 +490,9 @@ local function toggle_run_panel(is_debug)
 
     local test_render = require('cp.test_render')
     test_render.setup_highlights()
+
+    local ansi = require('cp.ansi')
+    ansi.setup_highlight_groups()
     local test_state = test_module.get_run_panel_state()
     local tab_lines, tab_highlights = test_render.render_test_list(test_state)
     update_buffer_content(test_buffers.tab_buf, tab_lines, tab_highlights)
@@ -596,8 +617,8 @@ local function navigate_problem(delta, language)
   local new_index = current_index + delta
 
   if new_index < 1 or new_index > #problems then
-    local direction = delta > 0 and 'next' or 'previous'
-    logger.log(('no %s problem available'):format(direction), vim.log.levels.INFO)
+    local msg = delta > 0 and 'at last problem' or 'at first problem'
+    logger.log(msg, vim.log.levels.WARN)
     return
   end
 

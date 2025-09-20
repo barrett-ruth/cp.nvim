@@ -86,8 +86,12 @@ function M.compile_generic(language_config, substitutions)
   logger.log(('compiling: %s'):format(table.concat(compile_cmd, ' ')))
 
   local start_time = vim.uv.hrtime()
-  local result = vim.system(compile_cmd, { text = true }):wait()
+  local result = vim.system(compile_cmd, { text = false }):wait()
   local compile_time = (vim.uv.hrtime() - start_time) / 1000000
+
+  local ansi = require('cp.ansi')
+  result.stdout = ansi.bytes_to_string(result.stdout or '')
+  result.stderr = ansi.bytes_to_string(result.stderr or '')
 
   if result.code == 0 then
     logger.log(('compilation successful (%.1fms)'):format(compile_time))
