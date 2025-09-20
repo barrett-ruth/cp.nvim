@@ -29,6 +29,8 @@
 
 local M = {}
 
+local logger = require('cp.log')
+
 local cache_file = vim.fn.stdpath('data') .. '/cp-nvim.json'
 local cache_data = {}
 local loaded = false
@@ -110,18 +112,22 @@ function M.get_contest_data(platform, contest_id)
   })
 
   if not cache_data[platform] then
+    logger.log(('cache miss: no %s data cached'):format(platform))
     return nil
   end
 
   local contest_data = cache_data[platform][contest_id]
   if not contest_data then
+    logger.log(('cache miss: %s/%s not cached'):format(platform, contest_id))
     return nil
   end
 
   if not is_cache_valid(contest_data, platform) then
+    logger.log(('cache miss: %s/%s expired'):format(platform, contest_id))
     return nil
   end
 
+  logger.log(('cache hit: %s/%s metadata'):format(platform, contest_id))
   return contest_data
 end
 
@@ -175,9 +181,15 @@ function M.get_test_cases(platform, contest_id, problem_id)
 
   local problem_key = problem_id and (contest_id .. '_' .. problem_id) or contest_id
   if not cache_data[platform] or not cache_data[platform][problem_key] then
+    logger.log(('cache miss: %s/%s test cases not cached'):format(platform, problem_key))
     return nil
   end
-  return cache_data[platform][problem_key].test_cases
+
+  local test_cases = cache_data[platform][problem_key].test_cases
+  if test_cases then
+    logger.log(('cache hit: %s/%s test cases'):format(platform, problem_key))
+  end
+  return test_cases
 end
 
 ---@param platform string
