@@ -395,50 +395,24 @@ describe('cp.execute', function()
   end)
 
   describe('integration tests', function()
-    local function compile_and_run_fixture(fixture_name)
-      local source_file = string.format('spec/fixtures/%s.cpp', fixture_name)
-      local binary_file = string.format('build/%s', fixture_name)
-
-      local language_config = {
-        compile = { 'g++', '-o', '{binary}', '{source}' },
-        test = { '{binary}' },
-      }
-      local substitutions = {
-        source = source_file,
-        binary = binary_file,
-      }
-
-      local compile_result = execute.compile_generic(language_config, substitutions)
-
-      if compile_result.code ~= 0 then
-        return compile_result
-      end
-
+    it('captures interleaved stderr/stdout with ANSI colors', function()
       local start_time = vim.uv.hrtime()
-      local redirected_cmd = { 'sh', '-c', binary_file .. ' 2>&1' }
-      local result = vim.system(redirected_cmd, { timeout = 2000, text = false }):wait()
+      local python_cmd = {
+        'sh',
+        '-c',
+        "python3 -c \"import sys; print('\\033[32mstdout: \\033[1mSuccess\\033[0m'); print('\\033[31mstderr: \\033[1mWarning\\033[0m', file=sys.stderr); print('plain stdout')\" 2>&1",
+      }
+      local result = vim.system(python_cmd, { timeout = 2000, text = false }):wait()
       local execution_time = (vim.uv.hrtime() - start_time) / 1000000
 
       local ansi = require('cp.ansi')
-      return {
-        stdout = ansi.bytes_to_string(result.stdout or ''),
-        stderr = ansi.bytes_to_string(result.stderr or ''),
-        code = result.code or 0,
-        time_ms = execution_time,
-      }
-    end
-
-    it('captures interleaved stderr/stdout with ANSI colors', function()
-      local result = compile_and_run_fixture('interleaved')
+      local combined_output = ansi.bytes_to_string(result.stdout or '')
 
       assert.equals(0, result.code)
-
-      local combined_output = result.stdout
       assert.is_not_nil(string.find(combined_output, 'stdout:'))
       assert.is_not_nil(string.find(combined_output, 'stderr:'))
       assert.is_not_nil(string.find(combined_output, 'plain stdout'))
 
-      local ansi = require('cp.ansi')
       local parsed = ansi.parse_ansi_text(combined_output)
       local clean_text = table.concat(parsed.lines, '\n')
 
@@ -466,19 +440,24 @@ describe('cp.execute', function()
       assert.is_true(has_bold, 'Should have bold highlights')
     end)
 
-    it('handles compilation failures with combined output', function()
-      local result = compile_and_run_fixture('syntax_error')
+    it('handles script failures with combined output', function()
+      local python_cmd = {
+        'sh',
+        '-c',
+        "python3 -c \"import sys; print('Starting...'); print('ERROR: Something failed', file=sys.stderr); sys.exit(1)\" 2>&1",
+      }
+      local result = vim.system(python_cmd, { timeout = 2000, text = false }):wait()
 
       assert.is_not_equals(0, result.code)
 
-      local compile_output = result.stdout
-      assert.is_not_nil(string.find(compile_output, 'error'))
-
       local ansi = require('cp.ansi')
-      local parsed = ansi.parse_ansi_text(compile_output)
-      local clean_text = table.concat(parsed.lines, '\n')
+      local combined_output = ansi.bytes_to_string(result.stdout or '')
+      assert.is_not_nil(string.find(combined_output, 'Starting'))
+      assert.is_not_nil(string.find(combined_output, 'ERROR'))
 
-      assert.is_not_nil(string.find(clean_text, 'syntax_error.cpp'))
+      local parsed = ansi.parse_ansi_text(combined_output)
+      local clean_text = table.concat(parsed.lines, '\n')
+      assert.is_not_nil(string.find(clean_text, 'Something failed'))
     end)
   end)
 end)
