@@ -1,5 +1,15 @@
 describe('cp.diff', function()
-  local diff = require('cp.diff')
+  local spec_helper = require('spec.spec_helper')
+  local diff
+
+  before_each(function()
+    spec_helper.setup()
+    diff = require('cp.diff')
+  end)
+
+  after_each(function()
+    spec_helper.teardown()
+  end)
 
   describe('get_available_backends', function()
     it('returns vim and git backends', function()

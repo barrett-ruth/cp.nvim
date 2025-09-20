@@ -1,8 +1,14 @@
 describe('cp.config', function()
   local config
+  local spec_helper = require('spec.spec_helper')
 
   before_each(function()
+    spec_helper.setup()
     config = require('cp.config')
+  end)
+
+  after_each(function()
+    spec_helper.teardown()
   end)
 
   describe('setup', function()
