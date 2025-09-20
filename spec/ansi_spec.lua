@@ -29,7 +29,7 @@ describe('ansi parser', function()
       assert.equals(0, #result.highlights)
     end)
 
-    it('creates correct highlight for colored text', function()
+    it('creates correct highlight for simple colored text', function()
       local input = 'Hello \027[31mworld\027[0m!'
       local result = ansi.parse_ansi_text(input)
 
@@ -41,67 +41,175 @@ describe('ansi parser', function()
       assert.equals('CpAnsiRed', highlight.highlight_group)
     end)
 
-    it('handles multiple colors on same line', function()
-      local input = '\027[31mred\027[0m and \027[32mgreen\027[0m'
+    it('handles bold text', function()
+      local input = 'Hello \027[1mbold\027[0m world'
       local result = ansi.parse_ansi_text(input)
 
-      assert.equals('red and green', table.concat(result.lines, '\n'))
-      assert.equals(2, #result.highlights)
-
-      local red_highlight = result.highlights[1]
-      assert.equals(0, red_highlight.col_start)
-      assert.equals(3, red_highlight.col_end)
-      assert.equals('CpAnsiRed', red_highlight.highlight_group)
-
-      local green_highlight = result.highlights[2]
-      assert.equals(8, green_highlight.col_start)
-      assert.equals(13, green_highlight.col_end)
-      assert.equals('CpAnsiGreen', green_highlight.highlight_group)
+      assert.equals('Hello bold world', table.concat(result.lines, '\n'))
+      assert.equals(1, #result.highlights)
+      local highlight = result.highlights[1]
+      assert.equals('CpAnsiBold', highlight.highlight_group)
     end)
 
-    it('handles multiline colored text', function()
-      local input = '\027[31mline1\nline2\027[0m'
+    it('handles italic text', function()
+      local input = 'Hello \027[3mitalic\027[0m world'
       local result = ansi.parse_ansi_text(input)
 
-      assert.equals('line1\nline2', table.concat(result.lines, '\n'))
-      assert.equals(2, #result.highlights)
-
-      local line1_highlight = result.highlights[1]
-      assert.equals(0, line1_highlight.line)
-      assert.equals(0, line1_highlight.col_start)
-      assert.equals(5, line1_highlight.col_end)
-
-      local line2_highlight = result.highlights[2]
-      assert.equals(1, line2_highlight.line)
-      assert.equals(0, line2_highlight.col_start)
-      assert.equals(5, line2_highlight.col_end)
+      assert.equals('Hello italic world', table.concat(result.lines, '\n'))
+      assert.equals(1, #result.highlights)
+      local highlight = result.highlights[1]
+      assert.equals('CpAnsiItalic', highlight.highlight_group)
     end)
 
-    it('handles compiler-like output', function()
+    it('handles bold + color combination', function()
+      local input = 'Hello \027[1;31mbold red\027[0m world'
+      local result = ansi.parse_ansi_text(input)
+
+      assert.equals('Hello bold red world', table.concat(result.lines, '\n'))
+      assert.equals(1, #result.highlights)
+      local highlight = result.highlights[1]
+      assert.equals('CpAnsiBoldRed', highlight.highlight_group)
+      assert.equals(6, highlight.col_start)
+      assert.equals(14, highlight.col_end)
+    end)
+
+    it('handles italic + color combination', function()
+      local input = 'Hello \027[3;32mitalic green\027[0m world'
+      local result = ansi.parse_ansi_text(input)
+
+      assert.equals('Hello italic green world', table.concat(result.lines, '\n'))
+      assert.equals(1, #result.highlights)
+      local highlight = result.highlights[1]
+      assert.equals('CpAnsiItalicGreen', highlight.highlight_group)
+    end)
+
+    it('handles bold + italic + color combination', function()
+      local input = 'Hello \027[1;3;33mbold italic yellow\027[0m world'
+      local result = ansi.parse_ansi_text(input)
+
+      assert.equals('Hello bold italic yellow world', table.concat(result.lines, '\n'))
+      assert.equals(1, #result.highlights)
+      local highlight = result.highlights[1]
+      assert.equals('CpAnsiBoldItalicYellow', highlight.highlight_group)
+    end)
+
+    it('handles sequential attribute setting', function()
+      local input = 'Hello \027[1m\027[31mbold red\027[0m world'
+      local result = ansi.parse_ansi_text(input)
+
+      assert.equals('Hello bold red world', table.concat(result.lines, '\n'))
+      assert.equals(1, #result.highlights)
+      local highlight = result.highlights[1]
+      assert.equals('CpAnsiBoldRed', highlight.highlight_group)
+    end)
+
+    it('handles selective attribute reset', function()
+      local input = 'Hello \027[1;31mbold red\027[22mno longer bold\027[0m world'
+      local result = ansi.parse_ansi_text(input)
+
+      assert.equals('Hello bold redno longer bold world', table.concat(result.lines, '\n'))
+      assert.equals(2, #result.highlights)
+
+      local bold_red = result.highlights[1]
+      assert.equals('CpAnsiBoldRed', bold_red.highlight_group)
+      assert.equals(6, bold_red.col_start)
+      assert.equals(14, bold_red.col_end)
+
+      local just_red = result.highlights[2]
+      assert.equals('CpAnsiRed', just_red.highlight_group)
+      assert.equals(14, just_red.col_start)
+      assert.equals(28, just_red.col_end)
+    end)
+
+    it('handles bright colors', function()
+      local input = 'Hello \027[91mbright red\027[0m world'
+      local result = ansi.parse_ansi_text(input)
+
+      assert.equals(1, #result.highlights)
+      local highlight = result.highlights[1]
+      assert.equals('CpAnsiBrightRed', highlight.highlight_group)
+    end)
+
+    it('handles compiler-like output with complex formatting', function()
       local input =
         "error.cpp:10:5: \027[1m\027[31merror:\027[0m\027[1m 'undefined' was not declared\027[0m"
       local result = ansi.parse_ansi_text(input)
 
       local clean_text = table.concat(result.lines, '\n')
-      assert.is_true(clean_text:find("error.cpp:10:5: error: 'undefined' was not declared") ~= nil)
-      assert.is_false(clean_text:find('\027') ~= nil)
+      assert.equals("error.cpp:10:5: error: 'undefined' was not declared", clean_text)
+      assert.equals(2, #result.highlights)
+
+      local error_highlight = result.highlights[1]
+      assert.equals('CpAnsiBoldRed', error_highlight.highlight_group)
+      assert.equals(16, error_highlight.col_start)
+      assert.equals(22, error_highlight.col_end)
+
+      local message_highlight = result.highlights[2]
+      assert.equals('CpAnsiBold', message_highlight.highlight_group)
+      assert.equals(22, message_highlight.col_start)
+      assert.equals(48, message_highlight.col_end)
+    end)
+
+    it('handles multiline with persistent state', function()
+      local input = '\027[1;31mline1\nline2\nline3\027[0m'
+      local result = ansi.parse_ansi_text(input)
+
+      assert.equals('line1\nline2\nline3', table.concat(result.lines, '\n'))
+      assert.equals(3, #result.highlights)
+
+      for i, highlight in ipairs(result.highlights) do
+        assert.equals('CpAnsiBoldRed', highlight.highlight_group)
+        assert.equals(i - 1, highlight.line)
+        assert.equals(0, highlight.col_start)
+        assert.equals(5, highlight.col_end)
+      end
     end)
   end)
 
-  describe('ansi_code_to_highlight', function()
-    it('maps standard colors', function()
-      assert.equals('CpAnsiRed', ansi.ansi_code_to_highlight('31'))
-      assert.equals('CpAnsiGreen', ansi.ansi_code_to_highlight('32'))
-      assert.equals('CpAnsiYellow', ansi.ansi_code_to_highlight('33'))
+  describe('update_ansi_state', function()
+    it('resets all state on reset code', function()
+      local state = { bold = true, italic = true, foreground = 'Red' }
+      ansi.update_ansi_state(state, '0')
+
+      assert.is_false(state.bold)
+      assert.is_false(state.italic)
+      assert.is_nil(state.foreground)
     end)
 
-    it('handles reset codes', function()
-      assert.is_nil(ansi.ansi_code_to_highlight('0'))
-      assert.is_nil(ansi.ansi_code_to_highlight(''))
+    it('sets individual attributes', function()
+      local state = { bold = false, italic = false, foreground = nil }
+
+      ansi.update_ansi_state(state, '1')
+      assert.is_true(state.bold)
+
+      ansi.update_ansi_state(state, '3')
+      assert.is_true(state.italic)
+
+      ansi.update_ansi_state(state, '31')
+      assert.equals('Red', state.foreground)
     end)
 
-    it('handles unknown codes', function()
-      assert.is_nil(ansi.ansi_code_to_highlight('99'))
+    it('handles compound codes', function()
+      local state = { bold = false, italic = false, foreground = nil }
+      ansi.update_ansi_state(state, '1;3;31')
+
+      assert.is_true(state.bold)
+      assert.is_true(state.italic)
+      assert.equals('Red', state.foreground)
+    end)
+
+    it('handles selective resets', function()
+      local state = { bold = true, italic = true, foreground = 'Red' }
+
+      ansi.update_ansi_state(state, '22')
+      assert.is_false(state.bold)
+      assert.is_true(state.italic)
+      assert.equals('Red', state.foreground)
+
+      ansi.update_ansi_state(state, '39')
+      assert.is_false(state.bold)
+      assert.is_true(state.italic)
+      assert.is_nil(state.foreground)
     end)
   end)
 end)
