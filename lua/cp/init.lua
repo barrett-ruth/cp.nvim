@@ -8,7 +8,7 @@ local scrape = require('cp.scrape')
 local snippets = require('cp.snippets')
 
 if not vim.fn.has('nvim-0.10.0') then
-  vim.notify('[cp.nvim]: requires nvim-0.10.0+', vim.log.levels.ERROR)
+  logger.log('[cp.nvim]: requires nvim-0.10.0+', vim.log.levels.ERROR)
   return {}
 end
 

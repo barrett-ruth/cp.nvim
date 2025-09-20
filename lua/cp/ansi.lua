@@ -4,6 +4,8 @@
 
 local M = {}
 
+local logger = require('cp.log')
+
 ---@param raw_output string|table
 ---@return string
 function M.bytes_to_string(raw_output)
@@ -192,20 +194,17 @@ function M.setup_highlight_groups()
     BrightWhite = vim.g.terminal_color_15,
   }
 
-  local missing_colors = {}
-  for color_name, terminal_color in pairs(color_map) do
+  local missing_color = false
+  for _, terminal_color in pairs(color_map) do
     if terminal_color == nil then
-      table.insert(missing_colors, color_name)
+      missing_color = true
+      break
     end
   end
 
-  if #missing_colors > 0 then
-    vim.notify(
-      string.format(
-        '[cp.nvim] Terminal colors not configured: %s. ANSI colors will not display properly. '
-          .. 'Set vim.g.terminal_color_* variables or use a colorscheme that provides them.',
-        table.concat(missing_colors, ', ')
-      ),
+  if missing_color or #color_map == 0 then
+    logger.log(
+      'ansi terminal colors (vim.g.terminal_color_*) not configured. . ANSI colors will not display properly. ',
       vim.log.levels.WARN
     )
   end
