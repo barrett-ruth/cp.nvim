@@ -140,7 +140,7 @@ local function setup_problem(contest_id, problem_id, language)
     config.hooks.setup_code(ctx)
   end
 
-  cache.set_file_state(ctx.source_file, state.platform, contest_id, problem_id, language)
+  cache.set_file_state(vim.fn.expand('%:p'), state.platform, contest_id, problem_id, language)
 
   logger.log(('switched to problem %s'):format(ctx.problem_name))
 end

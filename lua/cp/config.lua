@@ -139,8 +139,6 @@ function M.setup(user_config)
                 return false
               end
 
-              -- Allow any language and extension configurations
-
               return true
             end,
             'contest configuration',
