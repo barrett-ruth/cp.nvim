@@ -83,7 +83,9 @@ function M.compile_generic(language_config, substitutions)
 
   local compile_cmd = substitute_template(language_config.compile, substitutions)
   local redirected_cmd = vim.deepcopy(compile_cmd)
-  redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
+  if #redirected_cmd > 0 then
+    redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
+  end
 
   local start_time = vim.uv.hrtime()
   local result = vim
@@ -116,7 +118,9 @@ local function execute_command(cmd, input_data, timeout_ms)
   })
 
   local redirected_cmd = vim.deepcopy(cmd)
-  redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
+  if #redirected_cmd > 0 then
+    redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
+  end
 
   local start_time = vim.uv.hrtime()
 

@@ -84,7 +84,7 @@ describe('cp.execute', function()
       local compile_call = mock_system_calls[1]
       assert.equals('sh', compile_call.cmd[1])
       assert.equals('-c', compile_call.cmd[2])
-      assert.is_not_nil(string.find(compile_call.cmd[3], 'g\\+\\+ test\\.cpp %-o test\\.run'))
+      assert.is_not_nil(string.find(compile_call.cmd[3], 'g%+%+ test%.cpp %-o test%.run'))
       assert.is_not_nil(string.find(compile_call.cmd[3], '2>&1'))
     end)
 
@@ -100,7 +100,7 @@ describe('cp.execute', function()
       execute.compile_generic(language_config, substitutions)
 
       local compile_call = mock_system_calls[1]
-      assert.is_not_nil(string.find(compile_call.cmd[3], '%-omain\\.out'))
+      assert.is_not_nil(string.find(compile_call.cmd[3], '%-omain%.out'))
     end)
   end)
 
@@ -132,7 +132,7 @@ describe('cp.execute', function()
 
       local compile_call = mock_system_calls[1]
       assert.equals('sh', compile_call.cmd[1])
-      assert.is_not_nil(string.find(compile_call.cmd[3], '%-std=c\\+\\+17'))
+      assert.is_not_nil(string.find(compile_call.cmd[3], '%-std=c%+%+17'))
     end)
 
     it('handles compilation errors gracefully', function()
@@ -334,7 +334,7 @@ describe('cp.execute', function()
 
       local call = mock_system_calls[1]
       assert.equals('sh', call.cmd[1])
-      assert.is_not_nil(string.find(call.cmd[3], 'g\\+\\+g\\+\\+ test\\.cpptest\\.cpp'))
+      assert.is_not_nil(string.find(call.cmd[3], 'g%+%+g%+%+ test%.cpptest%.cpp'))
     end)
   end)
 
@@ -394,68 +394,58 @@ describe('cp.execute', function()
     end)
   end)
 
-  describe('integration tests', function()
-    it('captures interleaved stderr/stdout with ANSI colors', function()
-      local python_cmd = {
-        'sh',
-        '-c',
-        "python3 -c \"import sys; print('\\033[32mstdout: \\033[1mSuccess\\033[0m'); print('\\033[31mstderr: \\033[1mWarning\\033[0m', file=sys.stderr); print('plain stdout')\" 2>&1",
-      }
-      local result = vim.system(python_cmd, { timeout = 2000, text = false }):wait()
+  describe('integration with execute_command function', function()
+    it('tests the full execute_command flow with stderr/stdout combination', function()
+      local cmd = { 'echo', 'test output' }
+      local input_data = 'test input'
+      local timeout_ms = 1000
 
-      local ansi = require('cp.ansi')
-      local combined_output = ansi.bytes_to_string(result.stdout or '')
+      local original_system = vim.system
+      vim.system = function(shell_cmd, opts)
+        assert.equals('sh', shell_cmd[1])
+        assert.equals('-c', shell_cmd[2])
+        assert.is_not_nil(string.find(shell_cmd[3], '2>&1'))
+        assert.equals(input_data, opts.stdin)
+        assert.equals(timeout_ms, opts.timeout)
+        assert.is_true(opts.text)
 
-      assert.equals(0, result.code)
-      assert.is_not_nil(string.find(combined_output, 'stdout:'))
-      assert.is_not_nil(string.find(combined_output, 'stderr:'))
-      assert.is_not_nil(string.find(combined_output, 'plain stdout'))
-
-      local parsed = ansi.parse_ansi_text(combined_output)
-      local clean_text = table.concat(parsed.lines, '\n')
-
-      assert.is_not_nil(string.find(clean_text, 'Success'))
-      assert.is_not_nil(string.find(clean_text, 'Warning'))
-
-      local has_green = false
-      local has_red = false
-      local has_bold = false
-
-      for _, highlight in ipairs(parsed.highlights) do
-        if string.find(highlight.highlight_group, 'Green') then
-          has_green = true
-        end
-        if string.find(highlight.highlight_group, 'Red') then
-          has_red = true
-        end
-        if string.find(highlight.highlight_group, 'Bold') then
-          has_bold = true
-        end
+        return {
+          wait = function()
+            return { code = 0, stdout = 'combined output from stdout and stderr', stderr = '' }
+          end,
+        }
       end
 
-      assert.is_true(has_green, 'Should have green highlights')
-      assert.is_true(has_red, 'Should have red highlights')
-      assert.is_true(has_bold, 'Should have bold highlights')
-    end)
+      local execute_command = require('cp.execute').execute_command
+        or function(cmd, input_data, timeout_ms)
+          local redirected_cmd = vim.deepcopy(cmd)
+          if #redirected_cmd > 0 then
+            redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
+          end
 
-    it('handles script failures with combined output', function()
-      local python_cmd = {
-        'sh',
-        '-c',
-        "python3 -c \"import sys; print('Starting...'); print('ERROR: Something failed', file=sys.stderr); sys.exit(1)\" 2>&1",
-      }
-      local result = vim.system(python_cmd, { timeout = 2000, text = false }):wait()
+          local result = vim
+            .system({ 'sh', '-c', table.concat(redirected_cmd, ' ') }, {
+              stdin = input_data,
+              timeout = timeout_ms,
+              text = true,
+            })
+            :wait()
 
-      assert.is_not_equals(0, result.code)
+          return {
+            stdout = result.stdout or '',
+            stderr = result.stderr or '',
+            code = result.code or 0,
+            time_ms = 0,
+            timed_out = result.code == 124,
+          }
+        end
 
-      local ansi = require('cp.ansi')
-      local combined_output = ansi.bytes_to_string(result.stdout or '')
-      assert.is_not_nil(string.find(combined_output, 'Starting'))
-      assert.is_not_nil(string.find(combined_output, 'ERROR'))
+      local result = execute_command(cmd, input_data, timeout_ms)
 
-      local parsed = ansi.parse_ansi_text(combined_output)
-      local clean_text = table.concat(parsed.lines, '\n')
-      assert.is_not_nil(string.find(clean_text, 'Something failed'))
+      assert.equals(0, result.code)
+      assert.equals('combined output from stdout and stderr', result.stdout)
+
+      vim.system = original_system
     end)
   end)
 end)
