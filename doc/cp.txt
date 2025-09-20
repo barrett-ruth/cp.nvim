@@ -520,15 +520,11 @@ HIGHLIGHT CUSTOMIZATION                                    *cp-highlight-custom*
 
 You can customize any highlight group by linking to existing groups or
 defining custom colors: >lua
-    -- Link to existing colorscheme groups
-    vim.api.nvim_set_hl(0, 'CpTestAC', { link = 'DiffAdd' })
-    vim.api.nvim_set_hl(0, 'CpTestWA', { link = 'DiagnosticError' })
 
-    -- Define custom colors
+    -- Customize the color of "TLE" text in run panel:
     vim.api.nvim_set_hl(0, 'CpTestTLE', { fg = '#ffa500', bold = true })
-    vim.api.nvim_set_hl(0, 'DiffAdd', { fg = '#10b981', bg = '#1e293b' })
 
-    -- Customize ANSI colors while preserving terminal integration
+    -- ... or the ANSI colors used to display stderr
     vim.api.nvim_set_hl(0, 'CpAnsiRed', {
         fg = vim.g.terminal_color_1 or '#ef4444'
     })
