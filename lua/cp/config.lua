@@ -139,23 +139,7 @@ function M.setup(user_config)
                 return false
               end
 
-              for lang_name, lang_config in pairs(config) do
-                if type(lang_config) == 'table' then
-                  if
-                    lang_config.extension
-                    and not vim.tbl_contains(
-                      vim.tbl_keys(constants.filetype_to_language),
-                      lang_config.extension
-                    )
-                  then
-                    return false,
-                      ("Invalid extension '%s'. Valid extensions: %s"):format(
-                        lang_config.extension,
-                        table.concat(vim.tbl_keys(constants.filetype_to_language), ', ')
-                      )
-                  end
-                end
-              end
+              -- Allow any language and extension configurations
 
               return true
             end,
