@@ -26,6 +26,8 @@ local state = {
   test_cases = nil,
   test_states = {},
   run_panel_active = false,
+  saved_cursor_pos = nil,
+  saved_source_win = nil,
 }
 
 local current_diff_layout = nil
@@ -179,6 +181,16 @@ local function toggle_run_panel(is_debug)
       vim.fn.delete(state.saved_session)
       state.saved_session = nil
     end
+
+    if state.saved_source_win and vim.api.nvim_win_is_valid(state.saved_source_win) then
+      vim.api.nvim_set_current_win(state.saved_source_win)
+      if state.saved_cursor_pos then
+        pcall(vim.api.nvim_win_set_cursor, 0, state.saved_cursor_pos)
+      end
+    end
+
+    state.saved_cursor_pos = nil
+    state.saved_source_win = nil
     state.run_panel_active = false
     logger.log('test panel closed')
     return
@@ -191,6 +203,9 @@ local function toggle_run_panel(is_debug)
     )
     return
   end
+
+  state.saved_cursor_pos = vim.api.nvim_win_get_cursor(0)
+  state.saved_source_win = vim.api.nvim_get_current_win()
 
   local problem_id = get_current_problem()
   if not problem_id then
@@ -326,8 +341,31 @@ local function toggle_run_panel(is_debug)
     }
   end
 
+  local function create_single_layout(parent_win, content)
+    local buf = create_buffer_with_options()
+    local lines = vim.split(content, '\n', { plain = true, trimempty = true })
+    update_buffer_content(buf, lines, {})
+
+    vim.api.nvim_set_current_win(parent_win)
+    vim.cmd.split()
+    local win = vim.api.nvim_get_current_win()
+    vim.api.nvim_win_set_buf(win, buf)
+    vim.api.nvim_set_option_value('filetype', 'cptest', { buf = buf })
+
+    return {
+      buffers = { buf },
+      windows = { win },
+      cleanup = function()
+        pcall(vim.api.nvim_win_close, win, true)
+        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+      end,
+    }
+  end
+
   local function create_diff_layout(mode, parent_win, expected_content, actual_content)
-    if mode == 'git' then
+    if mode == 'single' then
+      return create_single_layout(parent_win, actual_content)
+    elseif mode == 'git' then
       return create_git_diff_layout(parent_win, expected_content, actual_content)
     else
       return create_vim_diff_layout(parent_win, expected_content, actual_content)
@@ -344,14 +382,18 @@ local function toggle_run_panel(is_debug)
 
     local expected_content = current_test.expected or ''
     local actual_content = current_test.actual or '(not run yet)'
-    local should_show_diff = current_test.status == 'fail' and current_test.actual
+    local is_compilation_failure = current_test.error
+      and current_test.error:match('Compilation failed')
+    local should_show_diff = current_test.status == 'fail'
+      and current_test.actual
+      and not is_compilation_failure
 
     if not should_show_diff then
       expected_content = expected_content
       actual_content = actual_content
     end
 
-    local desired_mode = config.run_panel.diff_mode
+    local desired_mode = is_compilation_failure and 'single' or config.run_panel.diff_mode
 
     if current_diff_layout and current_mode ~= desired_mode then
       local saved_pos = vim.api.nvim_win_get_cursor(0)
@@ -380,7 +422,10 @@ local function toggle_run_panel(is_debug)
         setup_keybindings_for_buffer(buf)
       end
     else
-      if desired_mode == 'git' then
+      if desired_mode == 'single' then
+        local lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
+        update_buffer_content(current_diff_layout.buffers[1], lines, {})
+      elseif desired_mode == 'git' then
         local diff_backend = require('cp.diff')
         local backend = diff_backend.get_best_backend('git')
         local diff_result = backend.render(expected_content, actual_content)
@@ -410,6 +455,8 @@ local function toggle_run_panel(is_debug)
           vim.api.nvim_win_call(current_diff_layout.windows[2], function()
             vim.cmd.diffthis()
           end)
+          vim.api.nvim_set_option_value('foldcolumn', '0', { win = current_diff_layout.windows[1] })
+          vim.api.nvim_set_option_value('foldcolumn', '0', { win = current_diff_layout.windows[2] })
         else
           vim.api.nvim_set_option_value('diff', false, { win = current_diff_layout.windows[1] })
           vim.api.nvim_set_option_value('diff', false, { win = current_diff_layout.windows[2] })
@@ -456,6 +503,12 @@ local function toggle_run_panel(is_debug)
       config.run_panel.diff_mode = config.run_panel.diff_mode == 'vim' and 'git' or 'vim'
       refresh_run_panel()
     end, { buffer = buf, silent = true })
+    vim.keymap.set('n', config.run_panel.next_test_key, function()
+      navigate_test_case(1)
+    end, { buffer = buf, silent = true })
+    vim.keymap.set('n', config.run_panel.prev_test_key, function()
+      navigate_test_case(-1)
+    end, { buffer = buf, silent = true })
   end
 
   vim.keymap.set('n', config.run_panel.next_test_key, function()
@@ -477,8 +530,11 @@ local function toggle_run_panel(is_debug)
 
   local execute_module = require('cp.execute')
   local contest_config = config.contests[state.platform]
-  if execute_module.compile_problem(ctx, contest_config, is_debug) then
+  local compile_result = execute_module.compile_problem(ctx, contest_config, is_debug)
+  if compile_result.success then
     test_module.run_all_test_cases(ctx, contest_config, config)
+  else
+    test_module.handle_compilation_failure(compile_result.stderr)
   end
 
   refresh_run_panel()

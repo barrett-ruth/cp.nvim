@@ -92,10 +92,7 @@ function M.compile_generic(language_config, substitutions)
   if result.code == 0 then
     logger.log(('compilation successful (%.1fms)'):format(compile_time))
   else
-    logger.log(
-      ('compilation failed (%.1fms): %s'):format(compile_time, result.stderr),
-      vim.log.levels.WARN
-    )
+    logger.log(('compilation failed (%.1fms)'):format(compile_time))
   end
 
   return result
@@ -202,7 +199,7 @@ end
 ---@param ctx ProblemContext
 ---@param contest_config ContestConfig
 ---@param is_debug? boolean
----@return boolean success
+---@return {success: boolean, stderr: string?}
 function M.compile_problem(ctx, contest_config, is_debug)
   vim.validate({
     ctx = { ctx, 'table' },
@@ -214,7 +211,7 @@ function M.compile_problem(ctx, contest_config, is_debug)
 
   if not language_config then
     logger.log('No configuration for language: ' .. language, vim.log.levels.ERROR)
-    return false
+    return { success = false, stderr = 'No configuration for language: ' .. language }
   end
 
   local substitutions = {
@@ -229,16 +226,12 @@ function M.compile_problem(ctx, contest_config, is_debug)
     language_config.compile = compile_cmd
     local compile_result = M.compile_generic(language_config, substitutions)
     if compile_result.code ~= 0 then
-      logger.log(
-        'compilation failed: ' .. (compile_result.stderr or 'unknown error'),
-        vim.log.levels.ERROR
-      )
-      return false
+      return { success = false, stderr = compile_result.stderr or 'unknown error' }
     end
     logger.log(('compilation successful (%s)'):format(is_debug and 'debug mode' or 'test mode'))
   end
 
-  return true
+  return { success = true, stderr = nil }
 end
 
 function M.run_problem(ctx, contest_config, is_debug)

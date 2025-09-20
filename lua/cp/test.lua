@@ -192,7 +192,12 @@ local function run_single_test_case(ctx, contest_config, cp_config, test_case)
         status = 'fail',
         actual = '',
         error = 'Compilation failed: ' .. (compile_result.stderr or 'Unknown error'),
+        stderr = compile_result.stderr or '',
         time_ms = 0,
+        code = compile_result.code,
+        ok = false,
+        signal = nil,
+        timed_out = false,
       }
     end
   end
@@ -217,6 +222,15 @@ local function run_single_test_case(ctx, contest_config, cp_config, test_case)
   local execution_time = (vim.uv.hrtime() - start_time) / 1000000
 
   local actual_output = (result.stdout or ''):gsub('\n$', '')
+  local stderr_output = (result.stderr or ''):gsub('\n$', '')
+
+  if stderr_output ~= '' then
+    if actual_output ~= '' then
+      actual_output = actual_output .. '\n\n--- stderr ---\n' .. stderr_output
+    else
+      actual_output = '--- stderr ---\n' .. stderr_output
+    end
+  end
 
   local max_lines = cp_config.run_panel.max_output_lines
   local output_lines = vim.split(actual_output, '\n')
@@ -251,6 +265,7 @@ local function run_single_test_case(ctx, contest_config, cp_config, test_case)
     status = status,
     actual = actual_output,
     error = result.code ~= 0 and result.stderr or nil,
+    stderr = result.stderr or '',
     time_ms = execution_time,
     code = result.code,
     ok = ok,
@@ -303,6 +318,7 @@ function M.run_test_case(ctx, contest_config, cp_config, index)
   test_case.status = result.status
   test_case.actual = result.actual
   test_case.error = result.error
+  test_case.stderr = result.stderr
   test_case.time_ms = result.time_ms
   test_case.code = result.code
   test_case.ok = result.ok
@@ -327,6 +343,20 @@ end
 ---@return RunPanelState
 function M.get_run_panel_state()
   return run_panel_state
+end
+
+function M.handle_compilation_failure(compilation_stderr)
+  for i, test_case in ipairs(run_panel_state.test_cases) do
+    test_case.status = 'fail'
+    test_case.actual = compilation_stderr or 'Compilation failed'
+    test_case.error = 'Compilation failed'
+    test_case.stderr = ''
+    test_case.time_ms = 0
+    test_case.code = 1
+    test_case.ok = false
+    test_case.signal = nil
+    test_case.timed_out = false
+  end
 end
 
 return M
