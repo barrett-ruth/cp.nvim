@@ -239,7 +239,7 @@ local function toggle_run_panel(is_debug)
       vim.api.nvim_buf_set_extmark(bufnr, test_list_namespace, hl.line, hl.col_start, {
         end_col = hl.col_end,
         hl_group = hl.highlight_group,
-        priority = 100,
+        priority = 200,
       })
     end
   end

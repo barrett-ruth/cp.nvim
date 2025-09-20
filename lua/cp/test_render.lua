@@ -30,14 +30,14 @@ function M.get_status_info(test_case)
     return { text = 'AC', highlight_group = 'CpTestAC' }
   elseif test_case.status == 'fail' then
     if test_case.timed_out then
-      return { text = 'TLE', highlight_group = 'CpTestError' }
+      return { text = 'TLE', highlight_group = 'CpTestTLE' }
     elseif test_case.code and test_case.code >= 128 then
-      return { text = 'RTE', highlight_group = 'CpTestError' }
+      return { text = 'RTE', highlight_group = 'CpTestRTE' }
     else
-      return { text = 'WA', highlight_group = 'CpTestError' }
+      return { text = 'WA', highlight_group = 'CpTestWA' }
     end
   elseif test_case.status == 'timeout' then
-    return { text = 'TLE', highlight_group = 'CpTestError' }
+    return { text = 'TLE', highlight_group = 'CpTestTLE' }
   elseif test_case.status == 'running' then
     return { text = '...', highlight_group = 'CpTestPending' }
   else
@@ -264,15 +264,14 @@ local function data_row(c, idx, tc, is_current, test_state)
 
   local hi
   if status.text ~= '' then
-    local content = ' ' .. status.text .. ' '
-    local pad = w.status - #content
-    local status_start_col = 1 + w.num + 1 + pad + 1
-    local status_end_col = status_start_col + #status.text
-    hi = {
-      col_start = status_start_col,
-      col_end = status_end_col,
-      highlight_group = status.highlight_group,
-    }
+    local status_pos = line:find(status.text)
+    if status_pos then
+      hi = {
+        col_start = status_pos - 1,
+        col_end = status_pos - 1 + #status.text,
+        highlight_group = status.highlight_group,
+      }
+    end
   end
 
   return line, hi
@@ -352,8 +351,10 @@ end
 ---@return table<string, table>
 function M.get_highlight_groups()
   return {
-    CpTestAC = { fg = '#10b981', bold = true },
-    CpTestError = { fg = '#ef4444', bold = true },
+    CpTestAC = { fg = '#10b981' },
+    CpTestWA = { fg = '#ef4444' },
+    CpTestTLE = { fg = '#f59e0b' },
+    CpTestRTE = { fg = '#8b5cf6' },
     CpTestPending = { fg = '#6b7280' },
     CpDiffRemoved = { fg = '#ef4444', bg = '#1f1f1f' },
     CpDiffAdded = { fg = '#10b981', bg = '#1f1f1f' },

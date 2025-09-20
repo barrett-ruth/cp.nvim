@@ -72,61 +72,29 @@ Here's an example configuration with lazy.nvim: >
         'barrett-ruth/cp.nvim',
         cmd = 'CP',
         opts = {
-          debug = false,
-          scrapers = {
-            atcoder = true,
-            codeforces = false,
-            cses = true,
-          },
-          contests = {
-            codeforces = {
-              cpp = {
-                compile = {
-                  'g++', '-std=c++{version}', '-O2', '-Wall', '-Wextra',
-                  '-DLOCAL', '{source}', '-o', '{binary}',
-                },
-                test = { '{binary}' },
-                debug = {
-                  'g++', '-std=c++{version}', '-g3',
-                  '-fsanitize=address,undefined', '-DLOCAL',
-                  '{source}', '-o', '{binary}',
-                },
-                version = 23,
-                extension = "cc",
-              },
-              python = {
-                test = { 'python3', '{source}' },
-                debug = { 'python3', '{source}' },
-                extension = "py",
-              },
-              default_language = "cpp",
-            },
-          },
+          contests = {},
+          snippets = {},
           hooks = {
-            before_run = function(ctx) vim.cmd.w() end,
-            before_debug = function(ctx) ... end,
-            setup_code = function(ctx)
-              vim.wo.foldmethod = "marker"
-              vim.wo.foldmarker = "{{{,}}}"
-              vim.diagnostic.enable(false)
-            end,
+            before_run = nil,
+            before_debug = nil,
+            setup_code = nil,
           },
+          debug = false,
+          scrapers = { atcoder = true, codeforces = true, cses = true },
+          filename = nil,
           run_panel = {
-            diff_mode = "vim",
-            next_test_key = "<c-n>",
-            prev_test_key = "<c-p>",
-            toggle_diff_key = "t",
+            diff_mode = 'vim',
+            next_test_key = '<c-n>',
+            prev_test_key = '<c-p>',
+            toggle_diff_key = '<c-t>',
             max_output_lines = 50,
           },
           diff = {
             git = {
-              command = "git",
-              args = {"diff", "--no-index", "--word-diff=plain",
-                     "--word-diff-regex=.", "--no-prefix"},
+              command = 'git',
+              args = { 'diff', '--no-index', '--word-diff=plain', '--word-diff-regex=.', '--no-prefix' },
             },
           },
-          snippets = { ... },  -- LuaSnip snippets
-          filename = function(contest, contest_id, problem_id, config, language) ... end,
         }
     }
 <
@@ -134,16 +102,16 @@ Here's an example configuration with lazy.nvim: >
 *cp.Config*
 
     Fields: ~
-      • {contests}      (`table<string,ContestConfig>`) Contest configurations.
-      • {hooks}         (`cp.Hooks`) Hook functions called at various stages.
-      • {snippets}      (`table[]`) LuaSnip snippet definitions.
-      • {debug}         (`boolean`, default: `false`) Show info messages
+      - {contests}      (`table<string,ContestConfig>`) Contest configurations.
+      - {hooks}         (`cp.Hooks`) Hook functions called at various stages.
+      - {snippets}      (`table[]`) LuaSnip snippet definitions.
+      - {debug}         (`boolean`, default: `false`) Show info messages
                         during operation.
-      • {scrapers}      (`table<string,boolean>`) Per-platform scraper control.
+      - {scrapers}      (`table<string,boolean>`) Per-platform scraper control.
                          Default enables all platforms.
-      • {run_panel}     (`RunPanelConfig`) Test panel behavior configuration.
-      • {diff}          (`DiffConfig`) Diff backend configuration.
-      • {filename}?     (`function`) Custom filename generation function.
+      - {run_panel}     (`RunPanelConfig`) Test panel behavior configuration.
+      - {diff}          (`DiffConfig`) Diff backend configuration.
+      - {filename}?     (`function`) Custom filename generation function.
                         `function(contest, contest_id, problem_id, config, language)`
                         Should return full filename with extension.
                         (default: concats contest_id and problem id)
@@ -151,60 +119,60 @@ Here's an example configuration with lazy.nvim: >
 *cp.ContestConfig*
 
     Fields: ~
-      • {cpp}               (`LanguageConfig`) C++ language configuration.
-      • {python}            (`LanguageConfig`) Python language configuration.
-      • {default_language}  (`string`, default: `"cpp"`) Default language when
+      - {cpp}               (`LanguageConfig`) C++ language configuration.
+      - {python}            (`LanguageConfig`) Python language configuration.
+      - {default_language}  (`string`, default: `"cpp"`) Default language when
                             `--lang` not specified.
 
 *cp.LanguageConfig*
 
     Fields: ~
-      • {compile}?      (`string[]`) Compile command template with
+      - {compile}?      (`string[]`) Compile command template with
                         `{version}`, `{source}`, `{binary}` placeholders.
-      • {test}          (`string[]`) Test execution command template.
-      • {debug}?        (`string[]`) Debug compile command template.
-      • {version}?      (`number`) Language version (e.g. 20, 23 for C++).
-      • {extension}     (`string`) File extension (e.g. "cc", "py").
-      • {executable}?   (`string`) Executable name for interpreted languages.
+      - {test}          (`string[]`) Test execution command template.
+      - {debug}?        (`string[]`) Debug compile command template.
+      - {version}?      (`number`) Language version (e.g. 20, 23 for C++).
+      - {extension}     (`string`) File extension (e.g. "cc", "py").
+      - {executable}?   (`string`) Executable name for interpreted languages.
 
 *cp.RunPanelConfig*
 
     Fields: ~
-      • {diff_mode}     (`string`, default: `"vim"`) Diff backend: "vim" or "git".
+      - {diff_mode}     (`string`, default: `"vim"`) Diff backend: "vim" or "git".
                         Git provides character-level precision, vim uses built-in diff.
-      • {next_test_key} (`string`, default: `"<c-n>"`) Key to navigate to next test case.
-      • {prev_test_key} (`string`, default: `"<c-p>"`) Key to navigate to previous test case.
-      • {toggle_diff_key} (`string`, default: `"t"`) Key to toggle diff mode between vim and git.
-      • {max_output_lines} (`number`, default: `50`) Maximum lines of test output to display.
+      - {next_test_key} (`string`, default: `"<c-n>"`) Key to navigate to next test case.
+      - {prev_test_key} (`string`, default: `"<c-p>"`) Key to navigate to previous test case.
+      - {toggle_diff_key} (`string`, default: `"<c-t>"`) Key to toggle diff mode between vim and git.
+      - {max_output_lines} (`number`, default: `50`) Maximum lines of test output to display.
 
 *cp.DiffConfig*
 
     Fields: ~
-      • {git}           (`DiffGitConfig`) Git diff backend configuration.
+      - {git}           (`DiffGitConfig`) Git diff backend configuration.
 
 *cp.Hooks*
 
     Fields: ~
-      • {before_run}?  (`function`) Called before test panel opens.
+      - {before_run}?  (`function`) Called before test panel opens.
                         `function(ctx: ProblemContext)`
-      • {before_debug}? (`function`) Called before debug compilation.
+      - {before_debug}? (`function`) Called before debug compilation.
                         `function(ctx: ProblemContext)`
-      • {setup_code}?   (`function`) Called after source file is opened.
+      - {setup_code}?   (`function`) Called after source file is opened.
                         Good for configuring buffer settings.
                         `function(ctx: ProblemContext)`
 
 *ProblemContext*
 
     Fields: ~
-      • {contest}       (`string`) Platform name (e.g. "atcoder", "codeforces")
-      • {contest_id}    (`string`) Contest ID (e.g. "abc123", "1933")
-      • {problem_id}?   (`string`) Problem ID (e.g. "a", "b") - nil for CSES
-      • {source_file}   (`string`) Source filename (e.g. "abc123a.cpp")
-      • {binary_file}   (`string`) Binary output path (e.g. "build/abc123a.run")
-      • {input_file}    (`string`) Test input path (e.g. "io/abc123a.cpin")
-      • {output_file}   (`string`) Program output path (e.g. "io/abc123a.cpout")
-      • {expected_file} (`string`) Expected output path (e.g. "io/abc123a.expected")
-      • {problem_name}  (`string`) Display name (e.g. "abc123a")
+      - {contest}       (`string`) Platform name (e.g. "atcoder", "codeforces")
+      - {contest_id}    (`string`) Contest ID (e.g. "abc123", "1933")
+      - {problem_id}?   (`string`) Problem ID (e.g. "a", "b") - nil for CSES
+      - {source_file}   (`string`) Source filename (e.g. "abc123a.cpp")
+      - {binary_file}   (`string`) Binary output path (e.g. "build/abc123a.run")
+      - {input_file}    (`string`) Test input path (e.g. "io/abc123a.cpin")
+      - {output_file}   (`string`) Program output path (e.g. "io/abc123a.cpout")
+      - {expected_file} (`string`) Expected output path (e.g. "io/abc123a.expected")
+      - {problem_name}  (`string`) Display name (e.g. "abc123a")
 
 WORKFLOW                                            *cp-workflow*
 
@@ -337,13 +305,28 @@ characters below) >
 
 Status Indicators ~
 
-Test cases use competitive programming terminology:
+Test cases use competitive programming terminology with color highlighting:
 
-    AC      Accepted (passed)
-    WA      Wrong Answer (output mismatch)
-    TLE     Time Limit Exceeded (timeout)
-    RTE     Runtime Error (non-zero exit)
+    AC      Accepted (passed) - Green
+    WA      Wrong Answer (output mismatch) - Red
+    TLE     Time Limit Exceeded (timeout) - Orange
+    RTE     Runtime Error (non-zero exit) - Purple
 
+Highlight Groups ~
+                                                *cp-highlights*
+cp.nvim defines the following highlight groups for status indicators:
+
+    CpTestAC        Green foreground for AC status
+    CpTestWA        Red foreground for WA status
+    CpTestTLE       Orange foreground for TLE status
+    CpTestRTE       Purple foreground for RTE status
+    CpTestPending   Gray foreground for pending tests
+
+You can customize these colors by linking to other highlight groups in your
+colorscheme or by redefining them: >
+    vim.api.nvim_set_hl(0, 'CpTestAC', { link = 'DiffAdd' })
+    vim.api.nvim_set_hl(0, 'CpTestWA', { fg = '#ff0000' })
+<
 Keymaps ~
                                                 *cp-test-keys*
 <c-n>                           Navigate to next test case (configurable via run_panel.next_test_key)
