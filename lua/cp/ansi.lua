@@ -192,6 +192,24 @@ function M.setup_highlight_groups()
     BrightWhite = vim.g.terminal_color_15,
   }
 
+  local missing_colors = {}
+  for color_name, terminal_color in pairs(color_map) do
+    if terminal_color == nil then
+      table.insert(missing_colors, color_name)
+    end
+  end
+
+  if #missing_colors > 0 then
+    vim.notify(
+      string.format(
+        '[cp.nvim] Terminal colors not configured: %s. ANSI colors will not display properly. '
+          .. 'Set vim.g.terminal_color_* variables or use a colorscheme that provides them.',
+        table.concat(missing_colors, ', ')
+      ),
+      vim.log.levels.WARN
+    )
+  end
+
   local combinations = {
     { bold = false, italic = false },
     { bold = true, italic = false },
@@ -202,7 +220,7 @@ function M.setup_highlight_groups()
   for _, combo in ipairs(combinations) do
     for color_name, terminal_color in pairs(color_map) do
       local parts = { 'CpAnsi' }
-      local opts = { fg = terminal_color }
+      local opts = { fg = terminal_color or 'NONE' }
 
       if combo.bold then
         table.insert(parts, 'Bold')

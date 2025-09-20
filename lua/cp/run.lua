@@ -241,9 +241,13 @@ local function run_single_test_case(ctx, contest_config, cp_config, test_case)
   local actual_highlights = {}
 
   if actual_output ~= '' then
-    local parsed = ansi.parse_ansi_text(actual_output)
-    actual_output = table.concat(parsed.lines, '\n')
-    actual_highlights = parsed.highlights
+    if cp_config.run_panel.ansi then
+      local parsed = ansi.parse_ansi_text(actual_output)
+      actual_output = table.concat(parsed.lines, '\n')
+      actual_highlights = parsed.highlights
+    else
+      actual_output = actual_output:gsub('\027%[[%d;]*[a-zA-Z]', '')
+    end
   end
 
   local max_lines = cp_config.run_panel.max_output_lines
@@ -362,11 +366,18 @@ end
 
 function M.handle_compilation_failure(compilation_output)
   local ansi = require('cp.ansi')
+  local config = require('cp.config').setup()
 
-  -- Always parse the compilation output - it contains everything now
-  local parsed = ansi.parse_ansi_text(compilation_output or '')
-  local clean_text = table.concat(parsed.lines, '\n')
-  local highlights = parsed.highlights
+  local clean_text
+  local highlights = {}
+
+  if config.run_panel.ansi then
+    local parsed = ansi.parse_ansi_text(compilation_output or '')
+    clean_text = table.concat(parsed.lines, '\n')
+    highlights = parsed.highlights
+  else
+    clean_text = (compilation_output or ''):gsub('\027%[[%d;]*[a-zA-Z]', '')
+  end
 
   for _, test_case in ipairs(run_panel_state.test_cases) do
     test_case.status = 'fail'

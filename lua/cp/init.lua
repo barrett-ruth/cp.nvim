@@ -537,8 +537,10 @@ local function toggle_run_panel(is_debug)
   refresh_run_panel()
 
   vim.schedule(function()
-    local ansi = require('cp.ansi')
-    ansi.setup_highlight_groups()
+    if config.run_panel.ansi then
+      local ansi = require('cp.ansi')
+      ansi.setup_highlight_groups()
+    end
     if current_diff_layout then
       update_diff_panes()
     end
