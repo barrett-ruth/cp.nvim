@@ -4,7 +4,7 @@
 
 Scrape problems, run tests, and debug solutions across multiple platforms with zero configuration.
 
-> **Disclaimer**: This plugin scrapes data from competitive programming websites. Use at your own risk.
+> **Disclaimer**: cp.nvim webs crapes data from competitive programming platforms - use at your own risk.
 
 https://github.com/user-attachments/assets/cb142535-fba0-4280-8f11-66ad1ca50ca9
 
@@ -24,30 +24,31 @@ https://github.com/user-attachments/assets/cb142535-fba0-4280-8f11-66ad1ca50ca9
 
 ## Quick Start
 
-Set up a Codeforces problem with contest ID 1848:
-```
-:CP codeforces 1848 A
-```
-
-Navigate between problems:
-```
-:CP next
-:CP prev
-```
-
-Run tests:
-```
-:CP run
-```
-
-## Workflow
-
 cp.nvim follows a simple principle: **solve locally, submit remotely**.
+
+### Basic Usage
 
 1. **Find a problem** on the judge website
 2. **Set up locally** with `:CP <platform> <contest> <problem>`
+
+   ```
+   :CP codeforces 1848 A
+   ```
+
 3. **Code and test** with instant feedback and rich diffs
-4. **Submit** on the original website
+
+   ```
+   :CP run
+   ```
+
+4. **Navigate between problems**
+
+   ```
+   :CP next
+   :CP prev
+   ```
+
+5. **Submit** on the original website
 
 ## Documentation
 

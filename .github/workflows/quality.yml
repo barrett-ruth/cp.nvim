@@ -12,6 +12,7 @@ jobs:
     outputs:
       lua: ${{ steps.changes.outputs.lua }}
       python: ${{ steps.changes.outputs.python }}
+      markdown: ${{ steps.changes.outputs.markdown }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -33,6 +34,9 @@ jobs:
               - 'tests/scrapers/**'
               - 'pyproject.toml'
               - 'uv.lock'
+            markdown:
+              - '*.md'
+              - 'docs/**/*.md'
 
   lua-format:
     name: Lua Format Check
@@ -115,3 +119,24 @@ jobs:
         run: uv sync --dev
       - name: Type check Python files with mypy
         run: uv run mypy scrapers/ tests/scrapers/
+
+  markdown-format:
+    name: Markdown Format Check
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.markdown == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - name: Install prettier
+        run: pnpm add -g prettier@3.1.0
+      - name: Check markdown formatting with prettier
+        run: prettier --check "*.md" "docs/**/*.md" || true
