@@ -1,5 +1,15 @@
 describe('cp.highlight', function()
-  local highlight = require('cp.highlight')
+  local spec_helper = require('spec.spec_helper')
+  local highlight
+
+  before_each(function()
+    spec_helper.setup()
+    highlight = require('cp.highlight')
+  end)
+
+  after_each(function()
+    spec_helper.teardown()
+  end)
 
   describe('parse_git_diff', function()
     it('skips git diff headers', function()

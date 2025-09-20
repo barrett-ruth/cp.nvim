@@ -126,91 +126,87 @@ Here's an example configuration with lazy.nvim: >lua
     }
 <
 
-*cp.Config*
-
+                                                               *cp.Config*
     Fields: ~
-      - {contests}      (`table<string,ContestConfig>`) Contest configurations.
-      - {hooks}         (`cp.Hooks`) Hook functions called at various stages.
-      - {snippets}      (`table[]`) LuaSnip snippet definitions.
-      - {debug}         (`boolean`, default: `false`) Show info messages
+        {contests}      (table<string,ContestConfig>) Contest configurations.
+        {hooks}         (|cp.Hooks|) Hook functions called at various stages.
+        {snippets}      (table[]) LuaSnip snippet definitions.
+        {debug}         (boolean, default: false) Show info messages
                         during operation.
-      - {scrapers}      (`table<string>`) List of enabled scrapers.
-                         Default: all scrapers enabled
-      - {run_panel}     (`RunPanelConfig`) Test panel behavior configuration.
-      - {diff}          (`DiffConfig`) Diff backend configuration.
-      - {filename}?     (`function`) Custom filename generation function.
-                        `function(contest, contest_id, problem_id, config, language)`
+        {scrapers}      (table<string>) List of enabled scrapers.
+                        Default: all scrapers enabled
+        {run_panel}     (|RunPanelConfig|) Test panel behavior configuration.
+        {diff}          (|DiffConfig|) Diff backend configuration.
+        {filename}      (function, optional) Custom filename generation.
+                        function(contest, contest_id, problem_id, config, language)
                         Should return full filename with extension.
-                        (default: `default_filename` - concatenates contest_id and problem_id, lowercased)
+                        (default: concatenates contest_id and problem_id, lowercased)
 
-*cp.ContestConfig*
-
+                                                         *cp.ContestConfig*
     Fields: ~
-      - {cpp}               (`LanguageConfig`) C++ language configuration.
-      - {python}            (`LanguageConfig`) Python language configuration.
-      - {default_language}  (`string`, default: `"cpp"`) Default language when
-                            `--lang` not specified.
+        {cpp}               (|LanguageConfig|) C++ language configuration.
+        {python}            (|LanguageConfig|) Python language configuration.
+        {default_language}  (string, default: "cpp") Default language when
+                            --lang not specified.
 
-*cp.LanguageConfig*
-
+                                                          *cp.LanguageConfig*
     Fields: ~
-      - {compile}?      (`string[]`) Compile command template with
-                        `{version}`, `{source}`, `{binary}` placeholders.
-      - {test}          (`string[]`) Test execution command template.
-      - {debug}?        (`string[]`) Debug compile command template.
-      - {version}?      (`number`) Language version (e.g. 20, 23 for C++).
-      - {extension}     (`string`) File extension (e.g. "cc", "py").
-      - {executable}?   (`string`) Executable name for interpreted languages.
+        {compile}       (string[], optional) Compile command template with
+                        {version}, {source}, {binary} placeholders.
+        {test}          (string[]) Test execution command template.
+        {debug}         (string[], optional) Debug compile command template.
+        {version}       (number, optional) Language version (e.g. 20, 23 for C++).
+        {extension}     (string) File extension (e.g. "cc", "py").
+        {executable}    (string, optional) Executable name for interpreted languages.
 
-*cp.RunPanelConfig*
-
+                                                        *cp.RunPanelConfig*
     Fields: ~
-      - {diff_mode}     (`string`, default: `"vim"`) Diff backend: "vim" or "git".
-                        Git provides character-level precision, vim uses built-in diff.
-      - {next_test_key} (`string`, default: `"<c-n>"`) Key to navigate to next test case.
-      - {prev_test_key} (`string`, default: `"<c-p>"`) Key to navigate to previous test case.
-      - {toggle_diff_key} (`string`, default: `"t"`) Key to toggle diff mode between vim and git.
-      - {max_output_lines} (`number`, default: `50`) Maximum lines of test output to display.
+        {diff_mode}       (string, default: "vim") Diff backend: "vim" or "git".
+                          Git provides character-level precision, vim uses
+                          built-in diff.
+        {next_test_key}   (string, default: "<c-n>") Key to navigate to next test case.
+        {prev_test_key}   (string, default: "<c-p>") Key to navigate to previous test case.
+        {toggle_diff_key} (string, default: "t") Key to toggle diff mode.
+        {max_output_lines} (number, default: 50) Maximum lines of test output.
 
-*cp.DiffConfig*
-
+                                                            *cp.DiffConfig*
     Fields: ~
-      - {git}           (`DiffGitConfig`) Git diff backend configuration.
+        {git}           (|DiffGitConfig|) Git diff backend configuration.
 
-*cp.Hooks*
-
+                                                                *cp.Hooks*
     Fields: ~
-      - {before_run}?  (`function`) Called before test panel opens.
-                        `function(ctx: ProblemContext)`
-      - {before_debug}? (`function`) Called before debug compilation.
-                        `function(ctx: ProblemContext)`
-      - {setup_code}?   (`function`) Called after source file is opened.
+        {before_run}    (function, optional) Called before test panel opens.
+                        function(ctx: ProblemContext)
+        {before_debug}  (function, optional) Called before debug compilation.
+                        function(ctx: ProblemContext)
+        {setup_code}    (function, optional) Called after source file is opened.
                         Good for configuring buffer settings.
-                        `function(ctx: ProblemContext)`
+                        function(ctx: ProblemContext)
 
-*ProblemContext*
-
+                                                         *ProblemContext*
     Fields: ~
-      - {contest}       (`string`) Platform name (e.g. "atcoder", "codeforces")
-      - {contest_id}    (`string`) Contest ID (e.g. "abc123", "1933")
-      - {problem_id}?   (`string`) Problem ID (e.g. "a", "b") - nil for CSES
-      - {source_file}   (`string`) Source filename (e.g. "abc123a.cpp")
-      - {binary_file}   (`string`) Binary output path (e.g. "build/abc123a.run")
-      - {input_file}    (`string`) Test input path (e.g. "io/abc123a.cpin")
-      - {output_file}   (`string`) Program output path (e.g. "io/abc123a.cpout")
-      - {expected_file} (`string`) Expected output path (e.g. "io/abc123a.expected")
-      - {problem_name}  (`string`) Display name (e.g. "abc123a")
+        {contest}       (string) Platform name (e.g. "atcoder", "codeforces")
+        {contest_id}    (string) Contest ID (e.g. "abc123", "1933")
+        {problem_id}    (string, optional) Problem ID (e.g. "a", "b") - nil for CSES
+        {source_file}   (string) Source filename (e.g. "abc123a.cpp")
+        {binary_file}   (string) Binary output path (e.g. "build/abc123a.run")
+        {input_file}    (string) Test input path (e.g. "io/abc123a.cpin")
+        {output_file}   (string) Program output path (e.g. "io/abc123a.cpout")
+        {expected_file} (string) Expected output path (e.g. "io/abc123a.expected")
+        {problem_name}  (string) Display name (e.g. "abc123a")
 
-WORKFLOW                                            *cp-workflow*
+==============================================================================
+WORKFLOW                                                        *cp-workflow*
 
-For the sake of consistency and simplicity, cp.nvim extracts contest/problem identifiers from
-URLs. This means that, for example, CodeForces/AtCoder contests are configured by
-their round id rather than round number. See below.
+For the sake of consistency and simplicity, cp.nvim extracts contest/problem
+identifiers from URLs. This means that, for example, CodeForces/AtCoder
+contests are configured by their round id rather than round number. See below.
 
-PLATFORM-SPECIFIC USAGE                        *cp-platforms*
+==============================================================================
+PLATFORM-SPECIFIC USAGE                                        *cp-platforms*
 
 AtCoder ~
-                                                   *cp-atcoder*
+                                                             *cp-atcoder*
 URL format: https://atcoder.jp/contests/abc123/tasks/abc123_a
 
 In terms of cp.nvim, this corresponds to:
@@ -224,8 +220,9 @@ Usage examples: >
     :CP b                       " Switch to problem B (if contest loaded)
     :CP next                    " Navigate to next problem in contest
 <
+
 Codeforces ~
-                                                *cp-codeforces*
+                                                          *cp-codeforces*
 URL format: https://codeforces.com/contest/1234/problem/A
 
 In terms of cp.nvim, this corresponds to:
@@ -239,8 +236,9 @@ Usage examples: >
     :CP c                       " Switch to problem C (if contest loaded)
     :CP prev                    " Navigate to previous problem in contest
 <
+
 CSES ~
-                                                      *cp-cses*
+                                                                *cp-cses*
 URL format: https://cses.fi/problemset/task/1068
 
 CSES is organized by categories rather than contests. Currently all problems
@@ -256,21 +254,22 @@ Usage examples: >
     :CP 1070                    " Switch to problem 1070 (if CSES loaded)
     :CP next                    " Navigate to next problem in CSES
 <
-COMPLETE WORKFLOW EXAMPLE                      *cp-example*
+==============================================================================
+COMPLETE WORKFLOW EXAMPLE                                        *cp-example*
 
 Example: Setting up and solving AtCoder contest ABC324
 
 1. Browse to https://atcoder.jp/contests/abc324
+
 2. Set up contest and load metadata: >
     :CP atcoder abc324
 <   This caches all problems (A, B, ...) for navigation
 
 3. Start with problem A: >
     :CP a
-
-   Or do both at once with:
+<
+   Or do both at once with: >
     :CP atcoder abc324 a
-
 <   This creates a.cc and scrapes test cases
 
 4. Code your solution, then test: >
@@ -281,27 +280,29 @@ Example: Setting up and solving AtCoder contest ABC324
 5. If needed, debug with sanitizers: >
     :CP run --debug
 <
+
 6. Move to next problem: >
     :CP next
 <   This automatically sets up problem B
 
-6. Continue solving problems with :CP next/:CP prev navigation
-7. Switch to another file (e.g., previous contest): >
+7. Continue solving problems with :CP next/:CP prev navigation
+
+8. Switch to another file (e.g., previous contest): >
     :e ~/contests/abc323/a.cpp
     :CP
 <   Automatically restores abc323 contest context
 
-8. Submit solutions on AtCoder website
-<
+9. Submit solutions on AtCoder website
 
-RUN PANEL                                          *cp-run*
+==============================================================================
+RUN PANEL                                                           *cp-run*
 
 The run panel provides individual test case debugging with a streamlined
 layout optimized for modern screens. Shows test status with competitive
 programming terminology and efficient space usage.
 
 Activation ~
-                                                      *:CP-run*
+                                                                  *:CP-run*
 :CP run [--debug]               Toggle run panel on/off. When activated,
                                 replaces current layout with test interface.
                                 Automatically compiles and runs all tests.

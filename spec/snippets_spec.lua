@@ -31,6 +31,7 @@ describe('cp.snippets', function()
   end)
 
   after_each(function()
+    spec_helper.teardown()
     package.loaded['luasnip'] = nil
     package.loaded['luasnip.extras.fmt'] = nil
   end)
