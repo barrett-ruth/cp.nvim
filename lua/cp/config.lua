@@ -142,17 +142,6 @@ function M.setup(user_config)
               for lang_name, lang_config in pairs(config) do
                 if type(lang_config) == 'table' then
                   if
-                    lang_name ~= 'default_language'
-                    and not vim.tbl_contains(vim.tbl_keys(constants.canonical_filetypes), lang_name)
-                  then
-                    return false,
-                      ("Invalid language '%s'. Valid languages: %s"):format(
-                        lang_name,
-                        table.concat(vim.tbl_keys(constants.canonical_filetypes), ', ')
-                      )
-                  end
-
-                  if
                     lang_config.extension
                     and not vim.tbl_contains(
                       vim.tbl_keys(constants.filetype_to_language),
@@ -166,20 +155,6 @@ function M.setup(user_config)
                       )
                   end
                 end
-              end
-
-              if
-                config.default_language
-                and not vim.tbl_contains(
-                  vim.tbl_keys(constants.canonical_filetypes),
-                  config.default_language
-                )
-              then
-                return false,
-                  ("Invalid default_language '%s'. Valid languages: %s"):format(
-                    config.default_language,
-                    table.concat(vim.tbl_keys(constants.canonical_filetypes), ', ')
-                  )
               end
 
               return true

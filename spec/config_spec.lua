@@ -157,7 +157,6 @@ describe('cp.config', function()
           contests = {
             test = {
               python = { test = { 'python3' } },
-              rust = { compile = { 'rustc' } },
             },
           },
         }
@@ -192,36 +191,27 @@ describe('cp.config', function()
 
         assert.has_error(function()
           config.setup(invalid_config)
-        end, 'No language configurations found for test')
+        end, 'No language configurations found')
       end)
 
-      it('validates language names against canonical_filetypes', function()
-        local invalid_config = {
+      it('allows custom language names', function()
+        local user_config = {
           contests = {
             test = {
-              invalid_lang = { compile = { 'gcc' } },
-            },
-          },
-        }
-
-        assert.has_error(function()
-          config.setup(invalid_config)
-        end, "Invalid language 'invalid_lang'")
-      end)
-
-      it('validates default_language value', function()
-        local invalid_config = {
-          contests = {
-            test = {
+              rust = {
+                compile = { 'rustc', '{source}', '-o', '{binary}' },
+                test = { '{binary}' },
+                extension = 'rs',
+              },
               cpp = { compile = { 'g++' } },
-              default_language = 'xd',
             },
           },
         }
 
-        assert.has_error(function()
-          config.setup(invalid_config)
-        end, "Invalid default_language 'xd'")
+        assert.has_no.errors(function()
+          local result = config.setup(user_config)
+          assert.equals('cpp', result.contests.test.default_language)
+        end)
       end)
     end)
   end)
