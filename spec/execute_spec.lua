@@ -82,10 +82,10 @@ describe('cp.execute', function()
       assert.is_true(#mock_system_calls > 0)
 
       local compile_call = mock_system_calls[1]
-      assert.equals('g++', compile_call.cmd[1])
-      assert.equals('test.cpp', compile_call.cmd[2])
-      assert.equals('-o', compile_call.cmd[3])
-      assert.equals('test.run', compile_call.cmd[4])
+      assert.equals('sh', compile_call.cmd[1])
+      assert.equals('-c', compile_call.cmd[2])
+      assert.is_not_nil(string.find(compile_call.cmd[3], 'g\\+\\+ test\\.cpp %-o test\\.run'))
+      assert.is_not_nil(string.find(compile_call.cmd[3], '2>&1'))
     end)
 
     it('handles multiple substitutions in single argument', function()
@@ -100,7 +100,7 @@ describe('cp.execute', function()
       execute.compile_generic(language_config, substitutions)
 
       local compile_call = mock_system_calls[1]
-      assert.equals('-omain.out', compile_call.cmd[3])
+      assert.is_not_nil(string.find(compile_call.cmd[3], '%-omain\\.out'))
     end)
   end)
 
@@ -131,8 +131,8 @@ describe('cp.execute', function()
       assert.is_true(#mock_system_calls > 0)
 
       local compile_call = mock_system_calls[1]
-      assert.equals('g++', compile_call.cmd[1])
-      assert.is_true(vim.tbl_contains(compile_call.cmd, '-std=c++17'))
+      assert.equals('sh', compile_call.cmd[1])
+      assert.is_not_nil(string.find(compile_call.cmd[3], '%-std=c\\+\\+17'))
     end)
 
     it('handles compilation errors gracefully', function()
@@ -266,9 +266,10 @@ describe('cp.execute', function()
       execute.compile_generic(language_config, {})
 
       local mkdir_call = mock_system_calls[1]
-      assert.equals('mkdir', mkdir_call.cmd[1])
-      assert.is_true(vim.tbl_contains(mkdir_call.cmd, 'build'))
-      assert.is_true(vim.tbl_contains(mkdir_call.cmd, 'io'))
+      assert.equals('sh', mkdir_call.cmd[1])
+      assert.is_not_nil(string.find(mkdir_call.cmd[3], 'mkdir'))
+      assert.is_not_nil(string.find(mkdir_call.cmd[3], 'build'))
+      assert.is_not_nil(string.find(mkdir_call.cmd[3], 'io'))
     end)
   end)
 
@@ -316,8 +317,8 @@ describe('cp.execute', function()
       assert.equals(0, result.code)
 
       local echo_call = mock_system_calls[1]
-      assert.equals('echo', echo_call.cmd[1])
-      assert.equals('hello', echo_call.cmd[2])
+      assert.equals('sh', echo_call.cmd[1])
+      assert.is_not_nil(string.find(echo_call.cmd[3], 'echo hello'))
     end)
 
     it('handles multiple consecutive substitutions', function()
@@ -332,8 +333,152 @@ describe('cp.execute', function()
       execute.compile_generic(language_config, substitutions)
 
       local call = mock_system_calls[1]
-      assert.equals('g++g++', call.cmd[1])
-      assert.equals('test.cpptest.cpp', call.cmd[2])
+      assert.equals('sh', call.cmd[1])
+      assert.is_not_nil(string.find(call.cmd[3], 'g\\+\\+g\\+\\+ test\\.cpptest\\.cpp'))
+    end)
+  end)
+
+  describe('stderr/stdout redirection', function()
+    it('should use stderr redirection (2>&1)', function()
+      local original_system = vim.system
+      local captured_command = nil
+
+      vim.system = function(cmd, opts)
+        captured_command = cmd
+        return {
+          wait = function()
+            return { code = 0, stdout = '', stderr = '' }
+          end,
+        }
+      end
+
+      local language_config = {
+        compile = { 'g++', '-std=c++17', '-o', '{binary}', '{source}' },
+      }
+      local substitutions = { source = 'test.cpp', binary = 'build/test', version = '17' }
+      execute.compile_generic(language_config, substitutions)
+
+      assert.is_not_nil(captured_command)
+      assert.equals('sh', captured_command[1])
+      assert.equals('-c', captured_command[2])
+      assert.is_not_nil(
+        string.find(captured_command[3], '2>&1'),
+        'Command should contain 2>&1 redirection'
+      )
+
+      vim.system = original_system
+    end)
+
+    it('should return combined stdout+stderr in result', function()
+      local original_system = vim.system
+      local test_output = 'STDOUT: Hello\nSTDERR: Error message\n'
+
+      vim.system = function(cmd, opts)
+        return {
+          wait = function()
+            return { code = 1, stdout = test_output, stderr = '' }
+          end,
+        }
+      end
+
+      local language_config = {
+        compile = { 'g++', '-std=c++17', '-o', '{binary}', '{source}' },
+      }
+      local substitutions = { source = 'test.cpp', binary = 'build/test', version = '17' }
+      local result = execute.compile_generic(language_config, substitutions)
+
+      assert.equals(1, result.code)
+      assert.equals(test_output, result.stdout)
+
+      vim.system = original_system
+    end)
+  end)
+
+  describe('integration tests', function()
+    local function compile_and_run_fixture(fixture_name)
+      local source_file = string.format('spec/fixtures/%s.cpp', fixture_name)
+      local binary_file = string.format('build/%s', fixture_name)
+
+      local language_config = {
+        compile = { 'g++', '-o', '{binary}', '{source}' },
+        test = { '{binary}' },
+      }
+      local substitutions = {
+        source = source_file,
+        binary = binary_file,
+      }
+
+      local compile_result = execute.compile_generic(language_config, substitutions)
+
+      if compile_result.code ~= 0 then
+        return compile_result
+      end
+
+      local start_time = vim.uv.hrtime()
+      local redirected_cmd = { 'sh', '-c', binary_file .. ' 2>&1' }
+      local result = vim.system(redirected_cmd, { timeout = 2000, text = false }):wait()
+      local execution_time = (vim.uv.hrtime() - start_time) / 1000000
+
+      local ansi = require('cp.ansi')
+      return {
+        stdout = ansi.bytes_to_string(result.stdout or ''),
+        stderr = ansi.bytes_to_string(result.stderr or ''),
+        code = result.code or 0,
+        time_ms = execution_time,
+      }
+    end
+
+    it('captures interleaved stderr/stdout with ANSI colors', function()
+      local result = compile_and_run_fixture('interleaved')
+
+      assert.equals(0, result.code)
+
+      local combined_output = result.stdout
+      assert.is_not_nil(string.find(combined_output, 'stdout:'))
+      assert.is_not_nil(string.find(combined_output, 'stderr:'))
+      assert.is_not_nil(string.find(combined_output, 'plain stdout'))
+
+      local ansi = require('cp.ansi')
+      local parsed = ansi.parse_ansi_text(combined_output)
+      local clean_text = table.concat(parsed.lines, '\n')
+
+      assert.is_not_nil(string.find(clean_text, 'Success'))
+      assert.is_not_nil(string.find(clean_text, 'Warning'))
+
+      local has_green = false
+      local has_red = false
+      local has_bold = false
+
+      for _, highlight in ipairs(parsed.highlights) do
+        if string.find(highlight.highlight_group, 'Green') then
+          has_green = true
+        end
+        if string.find(highlight.highlight_group, 'Red') then
+          has_red = true
+        end
+        if string.find(highlight.highlight_group, 'Bold') then
+          has_bold = true
+        end
+      end
+
+      assert.is_true(has_green, 'Should have green highlights')
+      assert.is_true(has_red, 'Should have red highlights')
+      assert.is_true(has_bold, 'Should have bold highlights')
+    end)
+
+    it('handles compilation failures with combined output', function()
+      local result = compile_and_run_fixture('syntax_error')
+
+      assert.is_not_equals(0, result.code)
+
+      local compile_output = result.stdout
+      assert.is_not_nil(string.find(compile_output, 'error'))
+
+      local ansi = require('cp.ansi')
+      local parsed = ansi.parse_ansi_text(compile_output)
+      local clean_text = table.concat(parsed.lines, '\n')
+
+      assert.is_not_nil(string.find(clean_text, 'syntax_error.cpp'))
     end)
   end)
 end)
