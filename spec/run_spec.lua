@@ -41,7 +41,7 @@ describe('run module ANSI processing', function()
     end)
 
     it('handles compilation failure with ansi disabled', function()
-      local test_config = config.setup({ run_panel = { ansi = false } })
+      config.setup({ run_panel = { ansi = false } })
 
       local compilation_output = 'error.cpp:1:1: \027[1m\027[31merror:\027[0m undefined variable'
 
