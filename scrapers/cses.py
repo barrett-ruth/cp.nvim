@@ -8,7 +8,14 @@ from dataclasses import asdict
 import requests
 from bs4 import BeautifulSoup, Tag
 
-from .models import MetadataResult, ProblemSummary, TestCase, TestsResult
+from .models import (
+    ContestListResult,
+    ContestSummary,
+    MetadataResult,
+    ProblemSummary,
+    TestCase,
+    TestsResult,
+)
 
 
 def normalize_category_name(category_name: str) -> str:
@@ -129,6 +136,46 @@ def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, float]:
         )
 
     return timeout_ms, memory_mb
+
+
+def scrape_categories() -> list[ContestSummary]:
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        response = requests.get(
+            "https://cses.fi/problemset/", headers=headers, timeout=10
+        )
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        categories = []
+
+        for h2 in soup.find_all("h2"):
+            category_name = h2.get_text().strip()
+            if category_name == "General":
+                continue
+
+            category_id = normalize_category_name(category_name)
+
+            ul = h2.find_next_sibling("ul", class_="task-list")
+            problem_count = 0
+            if ul:
+                problem_count = len(ul.find_all("li", class_="task"))
+
+            display_name = f"{category_name} ({problem_count} problems)"
+
+            categories.append(
+                ContestSummary(
+                    id=category_id, name=category_name, display_name=display_name
+                )
+            )
+
+        return categories
+
+    except Exception as e:
+        print(f"Failed to scrape CSES categories: {e}", file=sys.stderr)
+        return []
 
 
 def process_problem_element(
@@ -267,7 +314,7 @@ def main() -> None:
     if len(sys.argv) < 2:
         result = MetadataResult(
             success=False,
-            error="Usage: cses.py metadata <category_id> OR cses.py tests <problem_id_or_url>",
+            error="Usage: cses.py metadata <category_id> OR cses.py tests <problem_id_or_url> OR cses.py contests",
         )
         print(json.dumps(asdict(result)))
         sys.exit(1)
@@ -379,10 +426,27 @@ def main() -> None:
         )
         print(json.dumps(asdict(tests_result)))
 
+    elif mode == "contests":
+        if len(sys.argv) != 2:
+            contest_result = ContestListResult(
+                success=False, error="Usage: cses.py contests"
+            )
+            print(json.dumps(asdict(contest_result)))
+            sys.exit(1)
+
+        categories = scrape_categories()
+        if not categories:
+            contest_result = ContestListResult(success=False, error="No contests found")
+            print(json.dumps(asdict(contest_result)))
+            sys.exit(1)
+
+        contest_result = ContestListResult(success=True, error="", contests=categories)
+        print(json.dumps(asdict(contest_result)))
+
     else:
         result = MetadataResult(
             success=False,
-            error=f"Unknown mode: {mode}. Use 'metadata' or 'tests'",
+            error=f"Unknown mode: {mode}. Use 'metadata', 'tests', or 'contests'",
         )
         print(json.dumps(asdict(result)))
         sys.exit(1)
