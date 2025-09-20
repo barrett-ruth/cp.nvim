@@ -119,6 +119,111 @@ describe('cp.config', function()
         end)
       end)
     end)
+
+    describe('auto-configuration', function()
+      it('sets default extensions for cpp and python', function()
+        local user_config = {
+          contests = {
+            test = {
+              cpp = { compile = { 'g++' } },
+              python = { test = { 'python3' } },
+            },
+          },
+        }
+
+        local result = config.setup(user_config)
+
+        assert.equals('cpp', result.contests.test.cpp.extension)
+        assert.equals('py', result.contests.test.python.extension)
+      end)
+
+      it('sets default_language to cpp when available', function()
+        local user_config = {
+          contests = {
+            test = {
+              cpp = { compile = { 'g++' } },
+              python = { test = { 'python3' } },
+            },
+          },
+        }
+
+        local result = config.setup(user_config)
+
+        assert.equals('cpp', result.contests.test.default_language)
+      end)
+
+      it('sets default_language to first available when cpp not present', function()
+        local user_config = {
+          contests = {
+            test = {
+              python = { test = { 'python3' } },
+              rust = { compile = { 'rustc' } },
+            },
+          },
+        }
+
+        local result = config.setup(user_config)
+
+        assert.equals('python', result.contests.test.default_language)
+      end)
+
+      it('preserves explicit default_language', function()
+        local user_config = {
+          contests = {
+            test = {
+              cpp = { compile = { 'g++' } },
+              python = { test = { 'python3' } },
+              default_language = 'python',
+            },
+          },
+        }
+
+        local result = config.setup(user_config)
+
+        assert.equals('python', result.contests.test.default_language)
+      end)
+
+      it('errors when no language configurations exist', function()
+        local invalid_config = {
+          contests = {
+            test = {},
+          },
+        }
+
+        assert.has_error(function()
+          config.setup(invalid_config)
+        end, 'No language configurations found for test')
+      end)
+
+      it('validates language names against canonical_filetypes', function()
+        local invalid_config = {
+          contests = {
+            test = {
+              invalid_lang = { compile = { 'gcc' } },
+            },
+          },
+        }
+
+        assert.has_error(function()
+          config.setup(invalid_config)
+        end, "Invalid language 'invalid_lang'")
+      end)
+
+      it('validates default_language value', function()
+        local invalid_config = {
+          contests = {
+            test = {
+              cpp = { compile = { 'g++' } },
+              default_language = 'xd',
+            },
+          },
+        }
+
+        assert.has_error(function()
+          config.setup(invalid_config)
+        end, "Invalid default_language 'xd'")
+      end)
+    end)
   end)
 
   describe('default_filename', function()
