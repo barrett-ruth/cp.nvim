@@ -214,7 +214,7 @@ describe('cp.scrape', function()
     end)
 
     it('constructs correct command for cses metadata', function()
-      scrape.scrape_contest_metadata('cses', 'problemset')
+      scrape.scrape_contest_metadata('cses', 'sorting_and_searching')
 
       local metadata_call = nil
       for _, call in ipairs(mock_system_calls) do
@@ -227,7 +227,7 @@ describe('cp.scrape', function()
       assert.is_not_nil(metadata_call)
       assert.equals('uv', metadata_call.cmd[1])
       assert.is_true(vim.tbl_contains(metadata_call.cmd, 'metadata'))
-      assert.is_false(vim.tbl_contains(metadata_call.cmd, 'problemset'))
+      assert.is_true(vim.tbl_contains(metadata_call.cmd, 'sorting_and_searching'))
     end)
 
     it('handles subprocess execution failure', function()
