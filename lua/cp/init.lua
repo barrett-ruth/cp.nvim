@@ -26,8 +26,6 @@ local state = {
   test_cases = nil,
   test_states = {},
   run_panel_active = false,
-  saved_cursor_pos = nil,
-  saved_source_win = nil,
 }
 
 local current_diff_layout = nil
@@ -182,15 +180,6 @@ local function toggle_run_panel(is_debug)
       state.saved_session = nil
     end
 
-    if state.saved_source_win and vim.api.nvim_win_is_valid(state.saved_source_win) then
-      vim.api.nvim_set_current_win(state.saved_source_win)
-      if state.saved_cursor_pos then
-        pcall(vim.api.nvim_win_set_cursor, 0, state.saved_cursor_pos)
-      end
-    end
-
-    state.saved_cursor_pos = nil
-    state.saved_source_win = nil
     state.run_panel_active = false
     logger.log('test panel closed')
     return
@@ -203,9 +192,6 @@ local function toggle_run_panel(is_debug)
     )
     return
   end
-
-  state.saved_cursor_pos = vim.api.nvim_win_get_cursor(0)
-  state.saved_source_win = vim.api.nvim_get_current_win()
 
   local problem_id = get_current_problem()
   if not problem_id then
