@@ -314,7 +314,7 @@ def main() -> None:
     if len(sys.argv) < 2:
         result = MetadataResult(
             success=False,
-            error="Usage: cses.py metadata <category_id> OR cses.py tests <problem_id_or_url> OR cses.py categories",
+            error="Usage: cses.py metadata <category_id> OR cses.py tests <problem_id_or_url> OR cses.py contests",
         )
         print(json.dumps(asdict(result)))
         sys.exit(1)
@@ -426,19 +426,17 @@ def main() -> None:
         )
         print(json.dumps(asdict(tests_result)))
 
-    elif mode == "categories":
+    elif mode == "contests":
         if len(sys.argv) != 2:
             contest_result = ContestListResult(
-                success=False, error="Usage: cses.py categories"
+                success=False, error="Usage: cses.py contests"
             )
             print(json.dumps(asdict(contest_result)))
             sys.exit(1)
 
         categories = scrape_categories()
         if not categories:
-            contest_result = ContestListResult(
-                success=False, error="No categories found"
-            )
+            contest_result = ContestListResult(success=False, error="No contests found")
             print(json.dumps(asdict(contest_result)))
             sys.exit(1)
 
@@ -448,7 +446,7 @@ def main() -> None:
     else:
         result = MetadataResult(
             success=False,
-            error=f"Unknown mode: {mode}. Use 'metadata', 'tests', or 'categories'",
+            error=f"Unknown mode: {mode}. Use 'metadata', 'tests', or 'contests'",
         )
         print(json.dumps(asdict(result)))
         sys.exit(1)
