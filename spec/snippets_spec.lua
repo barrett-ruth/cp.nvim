@@ -1,6 +1,7 @@
 describe('cp.snippets', function()
   local snippets
   local mock_luasnip
+  local spec_helper = require('spec.spec_helper')
 
   before_each(function()
     spec_helper.setup()
