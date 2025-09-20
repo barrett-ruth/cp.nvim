@@ -30,17 +30,17 @@ describe('cp.config', function()
       assert.equals('table', type(result.scrapers))
     end)
 
-    it('validates extension against supported filetypes', function()
-      local invalid_config = {
+    it('allows custom extensions', function()
+      local custom_config = {
         contests = {
           test_contest = {
-            cpp = { extension = 'invalid' },
+            cpp = { extension = 'custom' },
           },
         },
       }
 
-      assert.has_error(function()
-        config.setup(invalid_config)
+      assert.has_no.errors(function()
+        config.setup(custom_config)
       end)
     end)
 
