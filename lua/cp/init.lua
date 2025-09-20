@@ -199,9 +199,9 @@ local function toggle_run_panel(is_debug)
   end
 
   local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
-  local test_module = require('cp.test')
+  local run = require('cp.run')
 
-  if not test_module.load_test_cases(ctx, state) then
+  if not run.load_test_cases(ctx, state) then
     logger.log('no test cases found', vim.log.levels.WARN)
     return
   end
@@ -375,7 +375,7 @@ local function toggle_run_panel(is_debug)
   end
 
   local function update_diff_panes()
-    local test_state = test_module.get_run_panel_state()
+    local test_state = run.get_run_panel_state()
     local current_test = test_state.test_cases[test_state.current_index]
 
     if not current_test then
@@ -473,20 +473,20 @@ local function toggle_run_panel(is_debug)
       return
     end
 
-    local test_render = require('cp.test_render')
-    test_render.setup_highlights()
+    local run_render = require('cp.run_render')
+    run_render.setup_highlights()
 
     local ansi = require('cp.ansi')
     ansi.setup_highlight_groups()
-    local test_state = test_module.get_run_panel_state()
-    local tab_lines, tab_highlights = test_render.render_test_list(test_state)
+    local test_state = run.get_run_panel_state()
+    local tab_lines, tab_highlights = run_render.render_test_list(test_state)
     update_buffer_content(test_buffers.tab_buf, tab_lines, tab_highlights)
 
     update_diff_panes()
   end
 
   local function navigate_test_case(delta)
-    local test_state = test_module.get_run_panel_state()
+    local test_state = run.get_run_panel_state()
     if #test_state.test_cases == 0 then
       return
     end
@@ -538,9 +538,9 @@ local function toggle_run_panel(is_debug)
   local contest_config = config.contests[state.platform]
   local compile_result = execute_module.compile_problem(ctx, contest_config, is_debug)
   if compile_result.success then
-    test_module.run_all_test_cases(ctx, contest_config, config)
+    run.run_all_test_cases(ctx, contest_config, config)
   else
-    test_module.handle_compilation_failure(compile_result.stderr)
+    run.handle_compilation_failure(compile_result.stderr)
   end
 
   refresh_run_panel()
@@ -550,7 +550,7 @@ local function toggle_run_panel(is_debug)
   state.run_panel_active = true
   state.test_buffers = test_buffers
   state.test_windows = test_windows
-  local test_state = test_module.get_run_panel_state()
+  local test_state = run.get_run_panel_state()
   logger.log(string.format('test panel opened (%d test cases)', #test_state.test_cases))
 end
 
