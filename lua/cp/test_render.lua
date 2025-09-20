@@ -54,7 +54,7 @@ local function format_exit_code(code)
 end
 
 local function compute_cols(test_state)
-  local w = { num = 3, status = 8, time = 6, exit = 11, timeout = 8, memory = 8 }
+  local w = { num = 4, status = 8, time = 6, timeout = 8, memory = 8, exit = 11 }
 
   local timeout_str = ''
   local memory_str = ''
@@ -72,19 +72,19 @@ local function compute_cols(test_state)
     w.status = math.max(w.status, #(' ' .. M.get_status_info(tc).text .. ' '))
     local time_str = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
     w.time = math.max(w.time, #(' ' .. time_str .. ' '))
-    w.exit = math.max(w.exit, #(' ' .. format_exit_code(tc.code) .. ' '))
     w.timeout = math.max(w.timeout, #(' ' .. timeout_str .. ' '))
     w.memory = math.max(w.memory, #(' ' .. memory_str .. ' '))
+    w.exit = math.max(w.exit, #(' ' .. format_exit_code(tc.code) .. ' '))
   end
 
   w.num = math.max(w.num, #' # ')
   w.status = math.max(w.status, #' Status ')
   w.time = math.max(w.time, #' Runtime (ms) ')
-  w.exit = math.max(w.exit, #' Exit Code ')
   w.timeout = math.max(w.timeout, #' Time (ms) ')
   w.memory = math.max(w.memory, #' Mem (MB) ')
+  w.exit = math.max(w.exit, #' Exit Code ')
 
-  local sum = w.num + w.status + w.time + w.exit + w.timeout + w.memory
+  local sum = w.num + w.status + w.time + w.timeout + w.memory + w.exit
   local inner = sum + 5
   local total = inner + 2
   return { w = w, sum = sum, inner = inner, total = total }
@@ -108,6 +108,20 @@ local function right_align(text, width)
   return string.rep(' ', pad) .. content
 end
 
+local function format_num_column(prefix, idx, width)
+  local num_str = tostring(idx)
+  if #num_str == 1 then
+    local content = prefix .. num_str .. ' '
+    local pad = width - #content
+    if pad <= 0 then
+      return content
+    end
+    return string.rep(' ', pad) .. content
+  else
+    return center(prefix .. idx, width)
+  end
+end
+
 local function top_border(c)
   local w = c.w
   return '┌'
@@ -117,11 +131,11 @@ local function top_border(c)
     .. '┬'
     .. string.rep('─', w.time)
     .. '┬'
-    .. string.rep('─', w.exit)
-    .. '┬'
     .. string.rep('─', w.timeout)
     .. '┬'
     .. string.rep('─', w.memory)
+    .. '┬'
+    .. string.rep('─', w.exit)
     .. '┐'
 end
 
@@ -134,11 +148,11 @@ local function row_sep(c)
     .. '┼'
     .. string.rep('─', w.time)
     .. '┼'
-    .. string.rep('─', w.exit)
-    .. '┼'
     .. string.rep('─', w.timeout)
     .. '┼'
     .. string.rep('─', w.memory)
+    .. '┼'
+    .. string.rep('─', w.exit)
     .. '┤'
 end
 
@@ -151,11 +165,11 @@ local function bottom_border(c)
     .. '┴'
     .. string.rep('─', w.time)
     .. '┴'
-    .. string.rep('─', w.exit)
-    .. '┴'
     .. string.rep('─', w.timeout)
     .. '┴'
     .. string.rep('─', w.memory)
+    .. '┴'
+    .. string.rep('─', w.exit)
     .. '┘'
 end
 
@@ -168,11 +182,11 @@ local function flat_fence_above(c)
     .. '┴'
     .. string.rep('─', w.time)
     .. '┴'
-    .. string.rep('─', w.exit)
-    .. '┴'
     .. string.rep('─', w.timeout)
     .. '┴'
     .. string.rep('─', w.memory)
+    .. '┴'
+    .. string.rep('─', w.exit)
     .. '┤'
 end
 
@@ -185,11 +199,11 @@ local function flat_fence_below(c)
     .. '┬'
     .. string.rep('─', w.time)
     .. '┬'
-    .. string.rep('─', w.exit)
-    .. '┬'
     .. string.rep('─', w.timeout)
     .. '┬'
     .. string.rep('─', w.memory)
+    .. '┬'
+    .. string.rep('─', w.exit)
     .. '┤'
 end
 
@@ -206,11 +220,11 @@ local function header_line(c)
     .. '│'
     .. center('Runtime (ms)', w.time)
     .. '│'
-    .. center('Exit Code', w.exit)
-    .. '│'
     .. center('Time (ms)', w.timeout)
     .. '│'
     .. center('Mem (MB)', w.memory)
+    .. '│'
+    .. center('Exit Code', w.exit)
     .. '│'
 end
 
@@ -238,11 +252,11 @@ local function data_row(c, idx, tc, is_current, test_state)
     .. '│'
     .. right_align(time, w.time)
     .. '│'
-    .. right_align(exit, w.exit)
-    .. '│'
     .. right_align(timeout, w.timeout)
     .. '│'
     .. right_align(memory, w.memory)
+    .. '│'
+    .. right_align(exit, w.exit)
     .. '│'
 
   local hi
@@ -285,6 +299,10 @@ function M.render_test_list(test_state)
 
     if has_input then
       table.insert(lines, flat_fence_above(c))
+
+      local input_header = 'Input:'
+      local header_pad = c.inner - #input_header
+      table.insert(lines, '│' .. input_header .. string.rep(' ', header_pad) .. '│')
 
       for _, input_line in ipairs(vim.split(tc.input, '\n', { plain = true, trimempty = false })) do
         local s = input_line or ''
