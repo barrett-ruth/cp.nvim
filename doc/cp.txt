@@ -380,7 +380,7 @@ Example: Setting up and solving AtCoder contest ABC324
 
 7. Continue solving problems with :CP next/:CP prev navigation
 
-8. Switch to another file (e.g., previous contest): >
+8. Switch to another file (e.g. previous contest): >
     :e ~/contests/abc323/a.cpp
     :CP
 <   Automatically restores abc323 contest context
@@ -421,9 +421,9 @@ The run panel uses the following table layout: >
     └─────┴────────┴──────────────┴───────────┴──────────┴─────────────┘
     ┌──────────────────────────────────────────────────────────────────┐
     │Expected vs Actual                                                │
-    │4[-2-]{+3+}                                                       │
+    │423                                                               │
     │100                                                               │
-    │hello w[-o-]r{+o+}ld                                              │
+    │hello world                                                       │
     └──────────────────────────────────────────────────────────────────┘
 
 Status Indicators ~
@@ -434,101 +434,6 @@ Test cases use competitive programming terminology with color highlighting:
     WA      Wrong Answer (output mismatch) - Red
     TLE     Time Limit Exceeded (timeout) - Orange
     RTE     Runtime Error (non-zero exit) - Purple
-
-Highlight Groups ~
-                                                            *cp-highlights*
-cp.nvim defines comprehensive highlight groups for test status, ANSI colors,
-and diff visualization.
-
-Test Status Groups ~
-
-    CpTestAC        Green foreground for AC status
-    CpTestWA        Red foreground for WA status
-    CpTestTLE       Orange foreground for TLE status
-    CpTestRTE       Purple foreground for RTE status
-    CpTestPending   Gray foreground for pending tests
-
-ANSI Color Support ~
-                                                        *cp-ansi-colors*
-cp.nvim preserves ANSI colors from compiler output and program stderr using
-a sophisticated parsing system. Colors are automatically mapped to your
-terminal colorscheme via vim.g.terminal_color_* variables.
-
-ANSI Highlight Groups:
-
-    CpAnsiBold              Bold text formatting
-    CpAnsiItalic            Italic text formatting
-    CpAnsiBoldItalic        Combined bold and italic formatting
-
-Color combinations (16 standard terminal colors):
-    CpAnsiRed               Standard red (terminal_color_1)
-    CpAnsiBoldRed           Bold red combination
-    CpAnsiItalicRed         Italic red combination
-    CpAnsiBoldItalicRed     Bold italic red combination
-
-    CpAnsiGreen             Standard green (terminal_color_2)
-    CpAnsiYellow            Standard yellow (terminal_color_3)
-    CpAnsiBlue              Standard blue (terminal_color_4)
-    CpAnsiMagenta           Standard magenta (terminal_color_5)
-    CpAnsiCyan              Standard cyan (terminal_color_6)
-    CpAnsiWhite             Standard white (terminal_color_7)
-    CpAnsiBlack             Standard black (terminal_color_0)
-
-Bright color variants:
-    CpAnsiBrightRed         Bright red (terminal_color_9)
-    CpAnsiBrightGreen       Bright green (terminal_color_10)
-    CpAnsiBrightYellow      Bright yellow (terminal_color_11)
-    CpAnsiBrightBlue        Bright blue (terminal_color_12)
-    CpAnsiBrightMagenta     Bright magenta (terminal_color_13)
-    CpAnsiBrightCyan        Bright cyan (terminal_color_14)
-    CpAnsiBrightWhite       Bright white (terminal_color_15)
-    CpAnsiBrightBlack       Bright black (terminal_color_8)
-
-Each color supports Bold, Italic, and BoldItalic variants automatically.
-
-Diff Highlight Groups ~
-
-    CpDiffAdded             Green background for added text in diffs
-    CpDiffRemoved           Red background for removed text in diffs
-
-Terminal Color Integration ~
-                                                    *cp-terminal-colors*
-ANSI colors automatically use your terminal's color palette through Neovim's
-vim.g.terminal_color_* variables. This ensures compiler colors match your
-colorscheme without manual configuration.
-
-If your colorscheme doesn't set terminal colors, cp.nvim falls back to
-sensible defaults. You can override terminal colors in your configuration: >vim
-    let g:terminal_color_1 = '#ff6b6b'    " Custom red
-    let g:terminal_color_2 = '#51cf66'    " Custom green
-<
-
-Highlight Customization ~
-                                                    *cp-highlight-custom*
-You can customize any highlight group by linking to existing groups or
-defining custom colors: >lua
-    -- Link to existing colorscheme groups
-    vim.api.nvim_set_hl(0, 'CpTestAC', { link = 'DiffAdd' })
-    vim.api.nvim_set_hl(0, 'CpTestWA', { link = 'DiagnosticError' })
-
-    -- Define custom colors
-    vim.api.nvim_set_hl(0, 'CpTestTLE', { fg = '#ffa500', bold = true })
-    vim.api.nvim_set_hl(0, 'CpDiffAdded', { fg = '#10b981', bg = '#1e293b' })
-
-    -- Customize ANSI colors while preserving terminal integration
-    vim.api.nvim_set_hl(0, 'CpAnsiRed', {
-        fg = vim.g.terminal_color_1 or '#ef4444'
-    })
-<
-
-Place customizations in your init.lua or after the colorscheme loads to
-prevent them from being overridden: >lua
-    vim.api.nvim_create_autocmd('ColorScheme', {
-        callback = function()
-            -- Your cp.nvim highlight customizations here
-            vim.api.nvim_set_hl(0, 'CpTestAC', { link = 'String' })
-        end
-    })
 <
 
 ==============================================================================
@@ -586,10 +491,16 @@ Example combinations:
     CpAnsiItalicGreen       Italic green combination
     CpAnsiBoldItalicYellow  Bold italic yellow combination
 
-Diff Highlight Groups ~
+Diff Highlighting ~
 
-    CpDiffAdded             Green background for added text in diffs
-    CpDiffRemoved           Red background for removed text in diffs
+Diff visualization uses Neovim's built-in highlight groups that automatically
+adapt to your colorscheme:
+
+    DiffAdd                 Highlights added text in git diffs
+    DiffDelete              Highlights removed text in git diffs
+
+These groups are automatically used by the git diff backend for character-level
+difference visualization with optimal colorscheme integration.
 
 ==============================================================================
 TERMINAL COLOR INTEGRATION                                 *cp-terminal-colors*
@@ -615,7 +526,7 @@ defining custom colors: >lua
 
     -- Define custom colors
     vim.api.nvim_set_hl(0, 'CpTestTLE', { fg = '#ffa500', bold = true })
-    vim.api.nvim_set_hl(0, 'CpDiffAdded', { fg = '#10b981', bg = '#1e293b' })
+    vim.api.nvim_set_hl(0, 'DiffAdd', { fg = '#10b981', bg = '#1e293b' })
 
     -- Customize ANSI colors while preserving terminal integration
     vim.api.nvim_set_hl(0, 'CpAnsiRed', {
