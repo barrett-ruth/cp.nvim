@@ -88,7 +88,7 @@ describe('cp.config', function()
 
         assert.has_error(function()
           config.setup(invalid_config)
-        end, 'ansi color parsing must be enabled xor disabled')
+        end, 'ansi: expected ansi color parsing must be enabled xor disabled, got string')
       end)
 
       it('validates diff_mode values', function()
