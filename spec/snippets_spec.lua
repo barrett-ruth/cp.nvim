@@ -3,6 +3,8 @@ describe('cp.snippets', function()
   local mock_luasnip
 
   before_each(function()
+    spec_helper.setup()
+    package.loaded['cp.snippets'] = nil
     snippets = require('cp.snippets')
     mock_luasnip = {
       snippet = function(trigger, body)
@@ -32,6 +34,7 @@ describe('cp.snippets', function()
 
   after_each(function()
     spec_helper.teardown()
+    package.loaded['cp.snippets'] = nil
     package.loaded['luasnip'] = nil
     package.loaded['luasnip.extras.fmt'] = nil
   end)

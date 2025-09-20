@@ -312,28 +312,19 @@ Activation ~
 
 Interface ~
 
-The run panel uses a professional table layout with precise column alignment:
-(observe that the diff is indeed highlighted, not the weird amalgamation of
-characters below) >
+The run panel uses a professional table layout with precise column alignment: >
 
-    ┌─────┬────────┬──────────────┬───────────┬──────────┬─────────────┐
-    │  #  │ Status │ Runtime (ms) │ Time (ms) │ Mem (MB) │  Exit Code  │
-    ├─────┼────────┼──────────────┼───────────┼──────────┼─────────────┤
-    │ 1   │     AC │         12.0 │      2000 │      256 │           0 │
-    │> 2  │     WA │        45.70 │      2000 │      256 │           1 │
-    ├─────┴────────┴──────────────┴───────────┴──────────┴─────────────┤
-    │Input:                                                            │
-    │5 3                                                               │
-    ├─────┬────────┬──────────────┬───────────┬──────────┬─────────────┤
-    │ 3   │     AC │          9.0 │      2000 │      256 │           0 │
-    │ 4   │    RTE │          0.0 │      2000 │      256 │139 (SIGUSR2)│
-    └─────┴────────┴──────────────┴───────────┴──────────┴─────────────┘
-    ┌──────────────────────────────────────────────────────────────────┐
-    │Expected vs Actual                                                │
-    │4[-2-]{+3+}                                                       │
-    │100                                                               │
-    │hello w[-o-]r{+o+}ld                                              │
-    └──────────────────────────────────────────────────────────────────┘
+    ┌──┬────────┬────────┬───────────┐ ┌─ Expected vs Actual ─────────┐
+    │# │ Status │  Time  │ Exit Code │ │ 45.70ms │ Exit: 0           │
+    ├──┼────────┼────────┼───────────┤ ├───────────────────────────────┤
+    │1 │   AC   │12.00ms │     0     │ │                               │
+    │>2│   WA   │45.70ms │     1     │ │ 4[-2-]{+3+}                  │
+    ├──┴────────┴────────┴───────────┤ │ 100                          │
+    │5 3                             │ │ hello w[-o-]r{+o+}ld         │
+    ├──┬────────┬────────┬───────────┤ │                               │
+    │3 │   AC   │ 9.00ms │     0     │ └───────────────────────────────┘
+    │4 │   RTE  │ 0.00ms │139 (SIGUSR2)│
+    └──┴────────┴────────┴───────────┘
 <
 
 Status Indicators ~
@@ -346,7 +337,7 @@ Test cases use competitive programming terminology with color highlighting:
     RTE     Runtime Error (non-zero exit) - Purple
 
 Highlight Groups ~
-                                                *cp-highlights*
+                                                            *cp-highlights*
 cp.nvim defines the following highlight groups for status indicators:
 
     CpTestAC        Green foreground for AC status
@@ -356,16 +347,20 @@ cp.nvim defines the following highlight groups for status indicators:
     CpTestPending   Gray foreground for pending tests
 
 You can customize these colors by linking to other highlight groups in your
-colorscheme or by redefining them: >
+colorscheme or by redefining them: >lua
     vim.api.nvim_set_hl(0, 'CpTestAC', { link = 'DiffAdd' })
     vim.api.nvim_set_hl(0, 'CpTestWA', { fg = '#ff0000' })
 <
+
 Keymaps ~
-                                                *cp-test-keys*
-<c-n>                           Navigate to next test case (configurable via run_panel.next_test_key)
-<c-p>                           Navigate to previous test case (configurable via run_panel.prev_test_key)
-t                           Toggle diff mode between vim and git (configurable via run_panel.toggle_diff_key)
-q                           Exit test panel and restore layout
+                                                            *cp-test-keys*
+<c-n>                           Navigate to next test case (configurable via
+                                run_panel.next_test_key)
+<c-p>                           Navigate to previous test case (configurable via
+                                run_panel.prev_test_key)
+t                               Toggle diff mode between vim and git (configurable
+                                via run_panel.toggle_diff_key)
+q                               Exit test panel and restore layout
 
 Diff Modes ~
 
@@ -384,9 +379,10 @@ execution pipeline, but with isolated input/output for
 precise failure analysis. All tests are automatically run when the
 panel opens.
 
-FILE STRUCTURE                                  *cp-files*
+==============================================================================
+FILE STRUCTURE                                                  *cp-files*
 
-cp.nvim creates the following file structure upon problem setup:
+cp.nvim creates the following file structure upon problem setup: >
 
     {problem_id}.{ext}              " Source file (e.g. a.cc, b.py)
     build/
@@ -395,22 +391,26 @@ cp.nvim creates the following file structure upon problem setup:
       {problem_id}.n.cpin           " nth test input
       {problem_id}.n.cpout          " nth program output
       {problem_id}.expected         " Expected output
+<
 
 The plugin automatically manages this structure and navigation between problems
 maintains proper file associations.
 
-SNIPPETS                                        *cp-snippets*
+==============================================================================
+SNIPPETS                                                        *cp-snippets*
 
 cp.nvim integrates with LuaSnip for automatic template expansion. Built-in
 snippets include basic C++ and Python templates for each contest type.
 
-Snippet trigger names must match the following format exactly:
+Snippet trigger names must match the following format exactly: >
 
     cp.nvim/{platform}
+<
 
 Custom snippets can be added via the `snippets` configuration field.
 
-HEALTH CHECK                                    *cp-health*
+==============================================================================
+HEALTH CHECK                                                    *cp-health*
 
 Run |:checkhealth| cp to verify your setup.
 
