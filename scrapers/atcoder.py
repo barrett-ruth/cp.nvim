@@ -3,12 +3,20 @@
 import json
 import re
 import sys
+import time
 from dataclasses import asdict
 
 import requests
 from bs4 import BeautifulSoup, Tag
 
-from .models import MetadataResult, ProblemSummary, TestCase, TestsResult
+from .models import (
+    ContestListResult,
+    ContestSummary,
+    MetadataResult,
+    ProblemSummary,
+    TestCase,
+    TestsResult,
+)
 
 
 def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, float]:
