@@ -417,16 +417,16 @@ describe('cp.execute', function()
       end
 
       local execute_command = require('cp.execute').execute_command
-        or function(cmd, input_data, timeout_ms)
-          local redirected_cmd = vim.deepcopy(cmd)
+        or function(command, stdin_data, timeout)
+          local redirected_cmd = vim.deepcopy(command)
           if #redirected_cmd > 0 then
             redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
           end
 
           local result = vim
             .system({ 'sh', '-c', table.concat(redirected_cmd, ' ') }, {
-              stdin = input_data,
-              timeout = timeout_ms,
+              stdin = stdin_data,
+              timeout = timeout,
               text = true,
             })
             :wait()
