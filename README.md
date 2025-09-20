@@ -62,3 +62,7 @@ See [my config](https://github.com/barrett-ruth/dots/blob/main/nvim/lua/plugins/
 
 - [competitest.nvim](https://github.com/xeluxee/competitest.nvim)
 - [assistant.nvim](https://github.com/A7Lavinraj/assistant.nvim)
+
+## TODO
+
+- Windows support

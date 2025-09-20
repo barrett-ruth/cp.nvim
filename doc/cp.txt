@@ -16,10 +16,10 @@ Supported languages: C++, Python
 REQUIREMENTS                                                *cp-requirements*
 
 - Neovim 0.10.0+
-- uv package manager (https://docs.astral.sh/uv/)
-- Language runtime/compiler (g++, python3)
+- Unix-like operating system
 
 Optional:
+- uv package manager (https://docs.astral.sh/uv/)
 - LuaSnip for template expansion (https://github.com/L3MON4D3/LuaSnip)
 
 ==============================================================================
@@ -507,10 +507,6 @@ Cache Location ~
 Cache is stored at: >
     vim.fn.stdpath('data') .. '/cp-nvim.json'
 <
-Typically resolves to:
-• Linux/macOS: `~/.local/share/nvim/cp-nvim.json`
-• Windows: `%LOCALAPPDATA%\nvim-data\cp-nvim.json`
-
 Cache Structure ~
                                                          *cp-cache-structure*
 The cache contains four main sections:
