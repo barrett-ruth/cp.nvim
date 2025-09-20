@@ -3,8 +3,10 @@ describe('cp.scrape', function()
   local mock_cache
   local mock_system_calls
   local temp_files
+  local spec_helper = require('spec.spec_helper')
 
   before_each(function()
+    spec_helper.setup()
     temp_files = {}
 
     mock_cache = {
@@ -85,6 +87,7 @@ describe('cp.scrape', function()
   after_each(function()
     package.loaded['cp.cache'] = nil
     vim.system = vim.system_original or vim.system
+    spec_helper.teardown()
     temp_files = {}
   end)
 

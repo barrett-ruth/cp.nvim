@@ -1,5 +1,14 @@
-describe('cp.test_render', function()
+describe('cp.run_render', function()
   local run_render = require('cp.run_render')
+  local spec_helper = require('spec.spec_helper')
+
+  before_each(function()
+    spec_helper.setup()
+  end)
+
+  after_each(function()
+    spec_helper.teardown()
+  end)
 
   describe('get_status_info', function()
     it('returns AC for pass status', function()

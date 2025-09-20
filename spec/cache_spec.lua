@@ -1,12 +1,15 @@
 describe('cp.cache', function()
   local cache
+  local spec_helper = require('spec.spec_helper')
 
   before_each(function()
+    spec_helper.setup()
     cache = require('cp.cache')
     cache.load()
   end)
 
   after_each(function()
+    spec_helper.teardown()
     cache.clear_contest_data('atcoder', 'test_contest')
     cache.clear_contest_data('codeforces', 'test_contest')
     cache.clear_contest_data('cses', 'test_contest')

@@ -1,8 +1,14 @@
 describe('cp.problem', function()
   local problem
+  local spec_helper = require('spec.spec_helper')
 
   before_each(function()
+    spec_helper.setup()
     problem = require('cp.problem')
+  end)
+
+  after_each(function()
+    spec_helper.teardown()
   end)
 
   describe('create_context', function()
