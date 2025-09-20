@@ -4,7 +4,7 @@
 ---@field debug? string[] Debug command template
 ---@field executable? string Executable name
 ---@field version? number Language version
----@field extension string File extension
+---@field extension? string File extension
 
 ---@class PartialLanguageConfig
 ---@field compile? string[] Compile command template
@@ -17,7 +17,7 @@
 ---@class ContestConfig
 ---@field cpp LanguageConfig
 ---@field python LanguageConfig
----@field default_language string
+---@field default_language? string
 
 ---@class PartialContestConfig
 ---@field cpp? PartialLanguageConfig
