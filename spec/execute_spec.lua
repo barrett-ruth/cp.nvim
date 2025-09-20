@@ -186,18 +186,15 @@ describe('cp.execute', function()
         }
       end
 
-      -- Test the internal execute_command function indirectly
       local language_config = {
         run = { '{binary_file}' },
       }
 
-      -- This would be called by a higher-level function that uses execute_command
       execute.compile_generic(language_config, { binary_file = './test.run' })
     end)
 
     it('handles command execution', function()
       vim.system = function(_, opts)
-        -- Compilation doesn't set timeout, only text=true
         if opts then
           assert.equals(true, opts.text)
         end
@@ -259,8 +256,6 @@ describe('cp.execute', function()
 
   describe('directory creation', function()
     it('creates build and io directories', function()
-      -- This tests the ensure_directories function indirectly
-      -- since it's called by other functions
       local language_config = {
         compile = { 'mkdir', '-p', 'build', 'io' },
       }
@@ -276,15 +271,10 @@ describe('cp.execute', function()
 
   describe('language detection', function()
     it('detects cpp from extension', function()
-      -- This tests get_language_from_file indirectly
-
-      -- Mock the file extension detection
       vim.fn.fnamemodify = function()
         return 'cpp'
       end
 
-      -- The actual function is local, but we can test it indirectly
-      -- through functions that use it
       assert.has_no_errors(function()
         execute.compile_generic({}, {})
       end)

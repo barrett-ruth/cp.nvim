@@ -4,7 +4,7 @@
 ---@field debug? string[] Debug command template
 ---@field executable? string Executable name
 ---@field version? number Language version
----@field extension string File extension
+---@field extension? string File extension
 
 ---@class PartialLanguageConfig
 ---@field compile? string[] Compile command template
@@ -17,7 +17,7 @@
 ---@class ContestConfig
 ---@field cpp LanguageConfig
 ---@field python LanguageConfig
----@field default_language string
+---@field default_language? string
 
 ---@class PartialContestConfig
 ---@field cpp? PartialLanguageConfig
@@ -37,8 +37,7 @@
 ---@field max_output_lines number Maximum lines of test output to display
 
 ---@class DiffGitConfig
----@field command string Git executable name
----@field args string[] Additional git diff arguments
+---@field args string[] Git diff arguments
 
 ---@class DiffConfig
 ---@field git DiffGitConfig
@@ -68,7 +67,26 @@ local constants = require('cp.constants')
 
 ---@type cp.Config
 M.defaults = {
-  contests = {},
+  contests = {
+    default = {
+      cpp = {
+        compile = { 'g++', '{source}', '-o', '{binary}', '-std=c++17' },
+        test = { '{binary}' },
+        debug = {
+          'g++',
+          '{source}',
+          '-o',
+          '{binary}',
+          '-std=c++17',
+          '-g',
+          '-fsanitize=address,undefined',
+        },
+      },
+      python = {
+        test = { 'python3', '{source}' },
+      },
+    },
+  },
   snippets = {},
   hooks = {
     before_run = nil,
@@ -87,7 +105,6 @@ M.defaults = {
   },
   diff = {
     git = {
-      command = 'git',
       args = { 'diff', '--no-index', '--word-diff=plain', '--word-diff-regex=.', '--no-prefix' },
     },
   },
@@ -114,25 +131,21 @@ function M.setup(user_config)
 
     if user_config.contests then
       for contest_name, contest_config in pairs(user_config.contests) do
-        for lang_name, lang_config in pairs(contest_config) do
-          if type(lang_config) == 'table' and lang_config.extension then
-            if
-              not vim.tbl_contains(
-                vim.tbl_keys(constants.filetype_to_language),
-                lang_config.extension
-              )
-            then
-              error(
-                ("Invalid extension '%s' for language '%s' in contest '%s'. Valid extensions: %s"):format(
-                  lang_config.extension,
-                  lang_name,
-                  contest_name,
-                  table.concat(vim.tbl_keys(constants.filetype_to_language), ', ')
-                )
-              )
-            end
-          end
-        end
+        vim.validate({
+          [contest_name] = {
+            contest_config,
+            function(config)
+              if type(config) ~= 'table' then
+                return false
+              end
+
+              -- Allow any language and extension configurations
+
+              return true
+            end,
+            'contest configuration',
+          },
+        })
       end
     end
 
@@ -224,6 +237,26 @@ function M.setup(user_config)
         elseif lang_name == 'python' then
           lang_config.extension = 'py'
         end
+      end
+    end
+
+    if not contest_config.default_language then
+      local available_langs = {}
+      for lang_name, lang_config in pairs(contest_config) do
+        if type(lang_config) == 'table' and lang_name ~= 'default_language' then
+          table.insert(available_langs, lang_name)
+        end
+      end
+
+      if #available_langs == 0 then
+        error('No language configurations found')
+      end
+
+      if vim.tbl_contains(available_langs, 'cpp') then
+        contest_config.default_language = 'cpp'
+      else
+        table.sort(available_langs)
+        contest_config.default_language = available_langs[1]
       end
     end
   end

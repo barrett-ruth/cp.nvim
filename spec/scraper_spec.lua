@@ -111,7 +111,6 @@ describe('cp.scrape', function()
         stored_data = { platform = platform, contest_id = contest_id, problems = problems }
       end
 
-      -- Reload the scraper module to pick up the updated mock
       package.loaded['cp.scrape'] = nil
       scrape = require('cp.scrape')
 

@@ -72,7 +72,18 @@ Here's an example configuration with lazy.nvim: >
         'barrett-ruth/cp.nvim',
         cmd = 'CP',
         opts = {
-          contests = {},
+          contests = {
+            default = {
+              cpp = {
+                compile = { 'g++', '{source}', '-o', '{binary}', '-std=c++17' },
+                test = { '{binary}' },
+                debug = { 'g++', '{source}', '-o', '{binary}', '-std=c++17', '-g', '-fsanitize=address,undefined' },
+              },
+              python = {
+                test = { 'python3', '{source}' },
+              },
+            },
+          },
           snippets = {},
           hooks = {
             before_run = nil,
@@ -80,8 +91,8 @@ Here's an example configuration with lazy.nvim: >
             setup_code = nil,
           },
           debug = false,
-          scrapers = { atcoder = true, codeforces = true, cses = true },
-          filename = nil,
+          scrapers = { ... }, -- all scrapers enabled by default
+          filename = default_filename,
           run_panel = {
             diff_mode = 'vim',
             next_test_key = '<c-n>',
@@ -91,7 +102,6 @@ Here's an example configuration with lazy.nvim: >
           },
           diff = {
             git = {
-              command = 'git',
               args = { 'diff', '--no-index', '--word-diff=plain', '--word-diff-regex=.', '--no-prefix' },
             },
           },
@@ -107,14 +117,14 @@ Here's an example configuration with lazy.nvim: >
       - {snippets}      (`table[]`) LuaSnip snippet definitions.
       - {debug}         (`boolean`, default: `false`) Show info messages
                         during operation.
-      - {scrapers}      (`table<string,boolean>`) Per-platform scraper control.
-                         Default enables all platforms.
+      - {scrapers}      (`table<string>`) List of enabled scrapers.
+                         Default: all scrapers enabled
       - {run_panel}     (`RunPanelConfig`) Test panel behavior configuration.
       - {diff}          (`DiffConfig`) Diff backend configuration.
       - {filename}?     (`function`) Custom filename generation function.
                         `function(contest, contest_id, problem_id, config, language)`
                         Should return full filename with extension.
-                        (default: concats contest_id and problem id)
+                        (default: `default_filename` - concatenates contest_id and problem_id, lowercased)
 
 *cp.ContestConfig*
 
@@ -236,7 +246,7 @@ Example: Setting up and solving AtCoder contest ABC324
 1. Browse to https://atcoder.jp/contests/abc324
 2. Set up contest and load metadata: >
     :CP atcoder abc324
-<   This caches all problems (A, B, C, D, E, F, G) for navigation
+<   This caches all problems (A, B, ...) for navigation
 
 3. Start with problem A: >
     :CP a
@@ -298,8 +308,8 @@ characters below) >
     ┌──────────────────────────────────────────────────────────────────┐
     │Expected vs Actual                                                │
     │4[-2-]{+3+}                                                       │
-    │ 100                                                              │
-    │ hello w[-o-]r{+o+}ld                                             │
+    │100                                                               │
+    │hello w[-o-]r{+o+}ld                                              │
     └──────────────────────────────────────────────────────────────────┘
 <
 
