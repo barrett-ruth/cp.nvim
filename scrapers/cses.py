@@ -143,7 +143,7 @@ def extract_example_test_case(soup) -> tuple[str, str] | None:
     return (input_text, output_text)
 
 
-def scrape(url: str) -> list[tuple[str, str]]:
+def scrape(url: str) -> list[TestCase]:
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -158,7 +158,8 @@ def scrape(url: str) -> list[tuple[str, str]]:
         if not test_case:
             return []
 
-        return [test_case]
+        input_text, output_text = test_case
+        return [TestCase(input=input_text, expected=output_text)]
 
     except Exception as e:
         print(f"Error scraping CSES: {e}", file=sys.stderr)
@@ -228,7 +229,7 @@ def main() -> None:
             print(json.dumps(asdict(tests_result)))
             sys.exit(1)
 
-        tests: list[tuple[str, str]] = scrape(url)
+        tests: list[TestCase] = scrape(url)
 
         problem_id: str = (
             problem_input if problem_input.isdigit() else problem_input.split("/")[-1]
@@ -268,7 +269,7 @@ def main() -> None:
             print(json.dumps(asdict(tests_result)))
             sys.exit(1)
 
-        test_cases = [TestCase(input=i, expected=o) for i, o in tests]
+        test_cases = tests
         tests_result = TestsResult(
             success=True,
             error="",
