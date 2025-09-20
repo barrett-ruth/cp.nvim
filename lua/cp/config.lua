@@ -82,7 +82,7 @@ M.defaults = {
     diff_mode = 'vim',
     next_test_key = '<c-n>',
     prev_test_key = '<c-p>',
-    toggle_diff_key = 't',
+    toggle_diff_key = '<c-t>',
     max_output_lines = 50,
   },
   diff = {

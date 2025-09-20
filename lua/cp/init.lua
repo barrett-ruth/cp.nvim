@@ -259,6 +259,8 @@ local function toggle_run_panel(is_debug)
 
     vim.api.nvim_set_option_value('filetype', 'cptest', { buf = expected_buf })
     vim.api.nvim_set_option_value('filetype', 'cptest', { buf = actual_buf })
+    vim.api.nvim_set_option_value('winbar', 'Expected', { win = expected_win })
+    vim.api.nvim_set_option_value('winbar', 'Actual', { win = actual_win })
 
     local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
     local actual_lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
@@ -296,6 +298,7 @@ local function toggle_run_panel(is_debug)
     vim.api.nvim_win_set_buf(diff_win, diff_buf)
 
     vim.api.nvim_set_option_value('filetype', 'cptest', { buf = diff_buf })
+    vim.api.nvim_set_option_value('winbar', 'Expected vs Actual', { win = diff_win })
 
     local diff_backend = require('cp.diff')
     local backend = diff_backend.get_best_backend('git')
@@ -441,7 +444,7 @@ local function toggle_run_panel(is_debug)
   end
 
   setup_keybindings_for_buffer = function(buf)
-    vim.keymap.set('n', 'q', function()
+    vim.keymap.set('n', '<c-q>', function()
       toggle_run_panel()
     end, { buffer = buf, silent = true })
     vim.keymap.set('n', config.run_panel.toggle_diff_key, function()
