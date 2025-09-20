@@ -196,7 +196,7 @@ describe('cp.execute', function()
     it('handles command execution', function()
       vim.system = function(_, opts)
         if opts then
-          assert.equals(true, opts.text)
+          assert.equals(false, opts.text)
         end
         return {
           wait = function()

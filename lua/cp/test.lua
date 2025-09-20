@@ -7,6 +7,7 @@
 ---@field actual_highlights table[]?
 ---@field time_ms number?
 ---@field error string?
+---@field stderr string?
 ---@field selected boolean
 ---@field code number?
 ---@field ok boolean?
