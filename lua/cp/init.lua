@@ -238,7 +238,6 @@ local function toggle_run_panel(is_debug)
     vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
     vim.api.nvim_set_option_value('readonly', was_readonly, { buf = bufnr })
 
-    local highlight = require('cp.highlight')
     highlight.apply_highlights(bufnr, highlights, namespace or test_list_namespace)
   end
 
