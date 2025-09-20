@@ -4,6 +4,11 @@ describe('cp.execute', function()
   local temp_files
 
   before_each(function()
+    package.loaded['cp.log'] = {
+      log = function() end,
+      set_config = function() end,
+    }
+
     execute = require('cp.execute')
     mock_system_calls = {}
     temp_files = {}
@@ -60,6 +65,7 @@ describe('cp.execute', function()
 
   after_each(function()
     vim.system = vim.system_original or vim.system
+    package.loaded['cp.log'] = nil
     temp_files = {}
   end)
 
