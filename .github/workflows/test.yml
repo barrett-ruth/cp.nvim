@@ -61,4 +61,4 @@ jobs:
       - name: Install dependencies with pytest
         run: uv sync --dev
       - name: Run Python tests
-        run: cd scrapers && PYTHONPATH=.. uv run pytest ../tests/scrapers/ -v
+        run: uv run pytest tests/scrapers/ -v

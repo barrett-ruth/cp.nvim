@@ -88,7 +88,6 @@ function M.scrape_contest_metadata(platform, contest_id)
   end
 
   local plugin_path = get_plugin_path()
-  local scraper_path = plugin_path .. '/scrapers/' .. platform .. '.py'
 
   local args
   if platform == 'cses' then
@@ -97,7 +96,8 @@ function M.scrape_contest_metadata(platform, contest_id)
       'run',
       '--directory',
       plugin_path,
-      scraper_path,
+      '-m',
+      'scrapers.' .. platform,
       'metadata',
     }
   else
@@ -211,7 +211,6 @@ function M.scrape_problem(ctx)
   end
 
   local plugin_path = get_plugin_path()
-  local scraper_path = plugin_path .. '/scrapers/' .. ctx.contest .. '.py'
 
   local args
   if ctx.contest == 'cses' then
@@ -220,7 +219,8 @@ function M.scrape_problem(ctx)
       'run',
       '--directory',
       plugin_path,
-      scraper_path,
+      '-m',
+      'scrapers.' .. ctx.contest,
       'tests',
       ctx.contest_id,
     }
@@ -230,7 +230,8 @@ function M.scrape_problem(ctx)
       'run',
       '--directory',
       plugin_path,
-      scraper_path,
+      '-m',
+      'scrapers.' .. ctx.contest,
       'tests',
       ctx.contest_id,
       ctx.problem_id,

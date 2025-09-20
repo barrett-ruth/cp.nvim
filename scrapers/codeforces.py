@@ -7,7 +7,7 @@ from dataclasses import asdict
 import cloudscraper
 from bs4 import BeautifulSoup, Tag
 
-from models import MetadataResult, ProblemSummary, TestCase, TestsResult
+from .models import MetadataResult, ProblemSummary, TestCase, TestsResult
 
 
 def scrape(url: str) -> list[TestCase]:

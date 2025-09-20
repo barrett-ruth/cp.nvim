@@ -8,7 +8,7 @@ from dataclasses import asdict
 import requests
 from bs4 import BeautifulSoup, Tag
 
-from models import MetadataResult, ProblemSummary, TestCase, TestsResult
+from .models import MetadataResult, ProblemSummary, TestCase, TestsResult
 
 
 def parse_problem_url(problem_input: str) -> str | None:
