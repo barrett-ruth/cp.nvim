@@ -32,7 +32,7 @@ describe('cp command parsing', function()
   end)
 
   describe('empty arguments', function()
-    it('logs error for no arguments', function()
+    it('attempts file state restoration for no arguments', function()
       local opts = { fargs = {} }
 
       cp.handle_command(opts)
@@ -40,7 +40,10 @@ describe('cp command parsing', function()
       assert.is_true(#logged_messages > 0)
       local error_logged = false
       for _, log_entry in ipairs(logged_messages) do
-        if log_entry.level == vim.log.levels.ERROR and log_entry.msg:match('Usage:') then
+        if
+          log_entry.level == vim.log.levels.ERROR
+          and log_entry.msg:match('No file is currently open')
+        then
           error_logged = true
           break
         end
@@ -182,6 +185,23 @@ describe('cp command parsing', function()
       assert.has_no_errors(function()
         cp.handle_command(opts)
       end)
+    end)
+  end)
+
+  describe('restore from file', function()
+    it('returns restore_from_file type for empty args', function()
+      local opts = { fargs = {} }
+      local logged_error = false
+
+      cp.handle_command(opts)
+
+      for _, log in ipairs(logged_messages) do
+        if log.level == vim.log.levels.ERROR and log.msg:match('No file is currently open') then
+          logged_error = true
+        end
+      end
+
+      assert.is_true(logged_error)
     end)
   end)
 

@@ -75,10 +75,11 @@ function M.restore_layout(state, tile_fn)
     local source_file
     if source_files ~= '' then
       local files = vim.split(source_files, '\n')
-      local valid_extensions = vim.tbl_keys(constants.filetype_to_language)
+      -- Prefer known extensions first, but accept any extension
+      local known_extensions = vim.tbl_keys(constants.filetype_to_language)
       for _, file in ipairs(files) do
         local ext = vim.fn.fnamemodify(file, ':e')
-        if vim.tbl_contains(valid_extensions, ext) then
+        if vim.tbl_contains(known_extensions, ext) then
           source_file = file
           break
         end

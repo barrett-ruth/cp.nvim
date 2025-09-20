@@ -100,7 +100,7 @@ M.defaults = {
     diff_mode = 'vim',
     next_test_key = '<c-n>',
     prev_test_key = '<c-p>',
-    toggle_diff_key = '<c-t>',
+    toggle_diff_key = 't',
     max_output_lines = 50,
   },
   diff = {
@@ -138,8 +138,6 @@ function M.setup(user_config)
               if type(config) ~= 'table' then
                 return false
               end
-
-              -- Allow any language and extension configurations
 
               return true
             end,

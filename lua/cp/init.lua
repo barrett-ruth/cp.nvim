@@ -140,6 +140,8 @@ local function setup_problem(contest_id, problem_id, language)
     config.hooks.setup_code(ctx)
   end
 
+  cache.set_file_state(vim.fn.expand('%:p'), state.platform, contest_id, problem_id, language)
+
   logger.log(('switched to problem %s'):format(ctx.problem_name))
 end
 
@@ -276,6 +278,9 @@ local function toggle_run_panel(is_debug)
     vim.api.nvim_win_call(actual_win, function()
       vim.cmd.diffthis()
     end)
+    -- NOTE: diffthis() sets foldcolumn, so override it after
+    vim.api.nvim_set_option_value('foldcolumn', '0', { win = expected_win })
+    vim.api.nvim_set_option_value('foldcolumn', '0', { win = actual_win })
 
     return {
       buffers = { expected_buf, actual_buf },
@@ -346,7 +351,7 @@ local function toggle_run_panel(is_debug)
       actual_content = actual_content
     end
 
-    local desired_mode = should_show_diff and config.run_panel.diff_mode or 'vim'
+    local desired_mode = config.run_panel.diff_mode
 
     if current_diff_layout and current_mode ~= desired_mode then
       local saved_pos = vim.api.nvim_win_get_cursor(0)
@@ -444,7 +449,7 @@ local function toggle_run_panel(is_debug)
   end
 
   setup_keybindings_for_buffer = function(buf)
-    vim.keymap.set('n', '<c-q>', function()
+    vim.keymap.set('n', 'q', function()
       toggle_run_panel()
     end, { buffer = buf, silent = true })
     vim.keymap.set('n', config.run_panel.toggle_diff_key, function()
@@ -549,11 +554,51 @@ local function navigate_problem(delta, language)
   end
 end
 
+local function restore_from_current_file()
+  local current_file = vim.fn.expand('%:p')
+  if current_file == '' then
+    logger.log('No file is currently open', vim.log.levels.ERROR)
+    return false
+  end
+
+  cache.load()
+  local file_state = cache.get_file_state(current_file)
+  if not file_state then
+    logger.log(
+      'No cached state found for current file. Use :CP <platform> <contest> <problem> first.',
+      vim.log.levels.ERROR
+    )
+    return false
+  end
+
+  logger.log(
+    ('Restoring from cached state: %s %s %s'):format(
+      file_state.platform,
+      file_state.contest_id,
+      file_state.problem_id or 'CSES'
+    )
+  )
+
+  if not set_platform(file_state.platform) then
+    return false
+  end
+
+  state.contest_id = file_state.contest_id
+  state.problem_id = file_state.problem_id
+
+  if file_state.platform == 'cses' then
+    setup_problem(file_state.contest_id, nil, file_state.language)
+  else
+    setup_problem(file_state.contest_id, file_state.problem_id, file_state.language)
+  end
+
+  return true
+end
+
 local function parse_command(args)
   if #args == 0 then
     return {
-      type = 'error',
-      message = 'Usage: :CP <platform> <contest> [problem] [--lang=<language>] | :CP <action> | :CP <problem>',
+      type = 'restore_from_file',
     }
   end
 
@@ -646,6 +691,11 @@ function M.handle_command(opts)
 
   if cmd.type == 'error' then
     logger.log(cmd.message, vim.log.levels.ERROR)
+    return
+  end
+
+  if cmd.type == 'restore_from_file' then
+    restore_from_current_file()
     return
   end
 

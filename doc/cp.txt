@@ -25,6 +25,14 @@ COMMANDS                                            *cp-commands*
                                                             *:CP*
 cp.nvim uses a single :CP command with intelligent argument parsing:
 
+State Restoration ~
+
+:CP                             Restore contest context from current file.
+                                Automatically detects platform, contest, problem,
+                                and language from cached state. Use this after
+                                switching files to restore your CP environment.
+                                Requires previous setup with full :CP command.
+
 Setup Commands ~
 
 :CP {platform} {contest_id} {problem_id} [--lang={language}]
@@ -92,12 +100,12 @@ Here's an example configuration with lazy.nvim: >
           },
           debug = false,
           scrapers = { ... }, -- all scrapers enabled by default
-          filename = default_filename,
+          filename = default_filename,  -- <contest id> + <problem id>
           run_panel = {
             diff_mode = 'vim',
             next_test_key = '<c-n>',
             prev_test_key = '<c-p>',
-            toggle_diff_key = '<c-t>',
+            toggle_diff_key = 't',
             max_output_lines = 50,
           },
           diff = {
@@ -152,7 +160,7 @@ Here's an example configuration with lazy.nvim: >
                         Git provides character-level precision, vim uses built-in diff.
       - {next_test_key} (`string`, default: `"<c-n>"`) Key to navigate to next test case.
       - {prev_test_key} (`string`, default: `"<c-p>"`) Key to navigate to previous test case.
-      - {toggle_diff_key} (`string`, default: `"<c-t>"`) Key to toggle diff mode between vim and git.
+      - {toggle_diff_key} (`string`, default: `"t"`) Key to toggle diff mode between vim and git.
       - {max_output_lines} (`number`, default: `50`) Maximum lines of test output to display.
 
 *cp.DiffConfig*
@@ -269,7 +277,12 @@ Example: Setting up and solving AtCoder contest ABC324
 <   This automatically sets up problem B
 
 6. Continue solving problems with :CP next/:CP prev navigation
-7. Submit solutions on AtCoder website
+7. Switch to another file (e.g., previous contest): >
+    :e ~/contests/abc323/a.cpp
+    :CP
+<   Automatically restores abc323 contest context
+
+8. Submit solutions on AtCoder website
 <
 
 RUN PANEL                                          *cp-run*
@@ -341,8 +354,8 @@ Keymaps ~
                                                 *cp-test-keys*
 <c-n>                           Navigate to next test case (configurable via run_panel.next_test_key)
 <c-p>                           Navigate to previous test case (configurable via run_panel.prev_test_key)
-<c-t>                           Toggle diff mode between vim and git (configurable via run_panel.toggle_diff_key)
-<c-q>                           Exit test panel and restore layout
+t                           Toggle diff mode between vim and git (configurable via run_panel.toggle_diff_key)
+q                           Exit test panel and restore layout
 
 Diff Modes ~
 
