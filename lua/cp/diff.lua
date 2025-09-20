@@ -58,10 +58,95 @@ local git_backend = {
         highlights = {},
       }
     else
+      -- Parse git diff output to extract content and highlights
+      local diff_content = result.stdout or ''
+      local lines = {}
+      local highlights = {}
+      local line_num = 0
+
+      -- Extract content lines that start with space, +, or -
+      for line in diff_content:gmatch('[^\n]*') do
+        if
+          line:match('^[%s%+%-]')
+          or (not line:match('^[@%-+]') and not line:match('^index') and not line:match('^diff'))
+        then
+          -- This is content, not metadata
+          local clean_line = line
+          if line:match('^[%+%-]') then
+            clean_line = line:sub(2) -- Remove +/- prefix
+          end
+
+          -- Parse diff markers in the line
+          local col_pos = 0
+          local processed_line = ''
+          local i = 1
+
+          while i <= #clean_line do
+            local removed_start, removed_end = clean_line:find('%[%-[^%-]*%-]', i)
+            local added_start, added_end = clean_line:find('{%+[^%+]*%+}', i)
+
+            local next_marker_start = nil
+            local marker_type = nil
+
+            if removed_start and (not added_start or removed_start < added_start) then
+              next_marker_start = removed_start
+              marker_type = 'removed'
+            elseif added_start then
+              next_marker_start = added_start
+              marker_type = 'added'
+            end
+
+            if next_marker_start then
+              -- Add text before marker
+              if next_marker_start > i then
+                local before_text = clean_line:sub(i, next_marker_start - 1)
+                processed_line = processed_line .. before_text
+                col_pos = col_pos + #before_text
+              end
+
+              -- Extract and add marker content with highlighting
+              local marker_end = (marker_type == 'removed') and removed_end or added_end
+              local marker_text = clean_line:sub(next_marker_start, marker_end)
+              local content_text
+
+              if marker_type == 'removed' then
+                content_text = marker_text:sub(3, -3) -- Remove [- and -]
+                table.insert(highlights, {
+                  line = line_num,
+                  col_start = col_pos,
+                  col_end = col_pos + #content_text,
+                  highlight_group = 'DiffDelete',
+                })
+              else -- added
+                content_text = marker_text:sub(3, -3) -- Remove {+ and +}
+                table.insert(highlights, {
+                  line = line_num,
+                  col_start = col_pos,
+                  col_end = col_pos + #content_text,
+                  highlight_group = 'DiffAdd',
+                })
+              end
+
+              processed_line = processed_line .. content_text
+              col_pos = col_pos + #content_text
+              i = marker_end + 1
+            else
+              -- No more markers, add rest of line
+              local rest = clean_line:sub(i)
+              processed_line = processed_line .. rest
+              break
+            end
+          end
+
+          table.insert(lines, processed_line)
+          line_num = line_num + 1
+        end
+      end
+
       return {
-        content = {},
-        highlights = {},
-        raw_diff = result.stdout or '',
+        content = lines,
+        highlights = highlights,
+        raw_diff = diff_content,
       }
     end
   end,

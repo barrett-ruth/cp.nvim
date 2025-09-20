@@ -82,10 +82,10 @@ describe('cp.execute', function()
       assert.is_true(#mock_system_calls > 0)
 
       local compile_call = mock_system_calls[1]
-      assert.equals('g++', compile_call.cmd[1])
-      assert.equals('test.cpp', compile_call.cmd[2])
-      assert.equals('-o', compile_call.cmd[3])
-      assert.equals('test.run', compile_call.cmd[4])
+      assert.equals('sh', compile_call.cmd[1])
+      assert.equals('-c', compile_call.cmd[2])
+      assert.is_not_nil(string.find(compile_call.cmd[3], 'g\\+\\+ test\\.cpp %-o test\\.run'))
+      assert.is_not_nil(string.find(compile_call.cmd[3], '2>&1'))
     end)
 
     it('handles multiple substitutions in single argument', function()
@@ -100,7 +100,7 @@ describe('cp.execute', function()
       execute.compile_generic(language_config, substitutions)
 
       local compile_call = mock_system_calls[1]
-      assert.equals('-omain.out', compile_call.cmd[3])
+      assert.is_not_nil(string.find(compile_call.cmd[3], '%-omain\\.out'))
     end)
   end)
 
@@ -131,8 +131,8 @@ describe('cp.execute', function()
       assert.is_true(#mock_system_calls > 0)
 
       local compile_call = mock_system_calls[1]
-      assert.equals('g++', compile_call.cmd[1])
-      assert.is_true(vim.tbl_contains(compile_call.cmd, '-std=c++17'))
+      assert.equals('sh', compile_call.cmd[1])
+      assert.is_not_nil(string.find(compile_call.cmd[3], '%-std=c\\+\\+17'))
     end)
 
     it('handles compilation errors gracefully', function()
@@ -199,7 +199,7 @@ describe('cp.execute', function()
     it('handles command execution', function()
       vim.system = function(_, opts)
         if opts then
-          assert.equals(true, opts.text)
+          assert.equals(false, opts.text)
         end
         return {
           wait = function()
@@ -266,9 +266,10 @@ describe('cp.execute', function()
       execute.compile_generic(language_config, {})
 
       local mkdir_call = mock_system_calls[1]
-      assert.equals('mkdir', mkdir_call.cmd[1])
-      assert.is_true(vim.tbl_contains(mkdir_call.cmd, 'build'))
-      assert.is_true(vim.tbl_contains(mkdir_call.cmd, 'io'))
+      assert.equals('sh', mkdir_call.cmd[1])
+      assert.is_not_nil(string.find(mkdir_call.cmd[3], 'mkdir'))
+      assert.is_not_nil(string.find(mkdir_call.cmd[3], 'build'))
+      assert.is_not_nil(string.find(mkdir_call.cmd[3], 'io'))
     end)
   end)
 
@@ -316,8 +317,8 @@ describe('cp.execute', function()
       assert.equals(0, result.code)
 
       local echo_call = mock_system_calls[1]
-      assert.equals('echo', echo_call.cmd[1])
-      assert.equals('hello', echo_call.cmd[2])
+      assert.equals('sh', echo_call.cmd[1])
+      assert.is_not_nil(string.find(echo_call.cmd[3], 'echo hello'))
     end)
 
     it('handles multiple consecutive substitutions', function()
@@ -332,8 +333,129 @@ describe('cp.execute', function()
       execute.compile_generic(language_config, substitutions)
 
       local call = mock_system_calls[1]
-      assert.equals('g++g++', call.cmd[1])
-      assert.equals('test.cpptest.cpp', call.cmd[2])
+      assert.equals('sh', call.cmd[1])
+      assert.is_not_nil(string.find(call.cmd[3], 'g\\+\\+g\\+\\+ test\\.cpptest\\.cpp'))
+    end)
+  end)
+
+  describe('stderr/stdout redirection', function()
+    it('should use stderr redirection (2>&1)', function()
+      local original_system = vim.system
+      local captured_command = nil
+
+      vim.system = function(cmd, _)
+        captured_command = cmd
+        return {
+          wait = function()
+            return { code = 0, stdout = '', stderr = '' }
+          end,
+        }
+      end
+
+      local language_config = {
+        compile = { 'g++', '-std=c++17', '-o', '{binary}', '{source}' },
+      }
+      local substitutions = { source = 'test.cpp', binary = 'build/test', version = '17' }
+      execute.compile_generic(language_config, substitutions)
+
+      assert.is_not_nil(captured_command)
+      assert.equals('sh', captured_command[1])
+      assert.equals('-c', captured_command[2])
+      assert.is_not_nil(
+        string.find(captured_command[3], '2>&1'),
+        'Command should contain 2>&1 redirection'
+      )
+
+      vim.system = original_system
+    end)
+
+    it('should return combined stdout+stderr in result', function()
+      local original_system = vim.system
+      local test_output = 'STDOUT: Hello\nSTDERR: Error message\n'
+
+      vim.system = function(_, _)
+        return {
+          wait = function()
+            return { code = 1, stdout = test_output, stderr = '' }
+          end,
+        }
+      end
+
+      local language_config = {
+        compile = { 'g++', '-std=c++17', '-o', '{binary}', '{source}' },
+      }
+      local substitutions = { source = 'test.cpp', binary = 'build/test', version = '17' }
+      local result = execute.compile_generic(language_config, substitutions)
+
+      assert.equals(1, result.code)
+      assert.equals(test_output, result.stdout)
+
+      vim.system = original_system
+    end)
+  end)
+
+  describe('integration tests', function()
+    it('captures interleaved stderr/stdout with ANSI colors', function()
+      local python_cmd = {
+        'sh',
+        '-c',
+        "python3 -c \"import sys; print('\\033[32mstdout: \\033[1mSuccess\\033[0m'); print('\\033[31mstderr: \\033[1mWarning\\033[0m', file=sys.stderr); print('plain stdout')\" 2>&1",
+      }
+      local result = vim.system(python_cmd, { timeout = 2000, text = false }):wait()
+
+      local ansi = require('cp.ansi')
+      local combined_output = ansi.bytes_to_string(result.stdout or '')
+
+      assert.equals(0, result.code)
+      assert.is_not_nil(string.find(combined_output, 'stdout:'))
+      assert.is_not_nil(string.find(combined_output, 'stderr:'))
+      assert.is_not_nil(string.find(combined_output, 'plain stdout'))
+
+      local parsed = ansi.parse_ansi_text(combined_output)
+      local clean_text = table.concat(parsed.lines, '\n')
+
+      assert.is_not_nil(string.find(clean_text, 'Success'))
+      assert.is_not_nil(string.find(clean_text, 'Warning'))
+
+      local has_green = false
+      local has_red = false
+      local has_bold = false
+
+      for _, highlight in ipairs(parsed.highlights) do
+        if string.find(highlight.highlight_group, 'Green') then
+          has_green = true
+        end
+        if string.find(highlight.highlight_group, 'Red') then
+          has_red = true
+        end
+        if string.find(highlight.highlight_group, 'Bold') then
+          has_bold = true
+        end
+      end
+
+      assert.is_true(has_green, 'Should have green highlights')
+      assert.is_true(has_red, 'Should have red highlights')
+      assert.is_true(has_bold, 'Should have bold highlights')
+    end)
+
+    it('handles script failures with combined output', function()
+      local python_cmd = {
+        'sh',
+        '-c',
+        "python3 -c \"import sys; print('Starting...'); print('ERROR: Something failed', file=sys.stderr); sys.exit(1)\" 2>&1",
+      }
+      local result = vim.system(python_cmd, { timeout = 2000, text = false }):wait()
+
+      assert.is_not_equals(0, result.code)
+
+      local ansi = require('cp.ansi')
+      local combined_output = ansi.bytes_to_string(result.stdout or '')
+      assert.is_not_nil(string.find(combined_output, 'Starting'))
+      assert.is_not_nil(string.find(combined_output, 'ERROR'))
+
+      local parsed = ansi.parse_ansi_text(combined_output)
+      local clean_text = table.concat(parsed.lines, '\n')
+      assert.is_not_nil(string.find(clean_text, 'Something failed'))
     end)
   end)
 end)
