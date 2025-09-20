@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 from scrapers.cses import scrape, scrape_all_problems
+from scrapers.models import ProblemSummary
 
 
 def test_scrape_success(mocker, mock_cses_html):
@@ -32,10 +33,10 @@ def test_scrape_all_problems(mocker):
     assert "Introductory Problems" in result
     assert "Sorting and Searching" in result
     assert len(result["Introductory Problems"]) == 2
-    assert result["Introductory Problems"][0] == {
-        "id": "1068",
-        "name": "Weird Algorithm",
-    }
+    assert result["Introductory Problems"][0] == ProblemSummary(
+        id="1068",
+        name="Weird Algorithm",
+    )
 
 
 def test_scrape_network_error(mocker):
