@@ -224,7 +224,7 @@ describe('ansi parser', function()
       ansi.setup_highlight_groups()
 
       local highlight = vim.api.nvim_get_hl(0, { name = 'CpAnsiRed' })
-      assert.equals(nil, highlight.fg)
+      assert.equals('NONE', highlight.fg)
 
       for i = 0, 15 do
         vim.g['terminal_color_' .. i] = original_colors[i]
