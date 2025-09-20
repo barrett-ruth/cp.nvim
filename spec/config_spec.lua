@@ -81,6 +81,16 @@ describe('cp.config', function()
     end)
 
     describe('run_panel config validation', function()
+      it('validates ansi is boolean', function()
+        local invalid_config = {
+          run_panel = { ansi = 'invalid' },
+        }
+
+        assert.has_error(function()
+          config.setup(invalid_config)
+        end, 'ansi: expected ansi color parsing must be enabled xor disabled, got string')
+      end)
+
       it('validates diff_mode values', function()
         local invalid_config = {
           run_panel = { diff_mode = 'invalid' },
@@ -114,6 +124,7 @@ describe('cp.config', function()
       it('accepts valid run_panel config', function()
         local valid_config = {
           run_panel = {
+            ansi = false,
             diff_mode = 'git',
             next_test_key = 'j',
             prev_test_key = 'k',

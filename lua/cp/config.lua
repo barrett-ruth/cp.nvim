@@ -30,6 +30,7 @@
 ---@field setup_code? fun(ctx: ProblemContext)
 
 ---@class RunPanelConfig
+---@field ansi boolean Enable ANSI color parsing and highlighting
 ---@field diff_mode "vim"|"git" Diff backend to use
 ---@field next_test_key string Key to navigate to next test case
 ---@field prev_test_key string Key to navigate to previous test case
@@ -97,6 +98,7 @@ M.defaults = {
   scrapers = constants.PLATFORMS,
   filename = nil,
   run_panel = {
+    ansi = true,
     diff_mode = 'vim',
     next_test_key = '<c-n>',
     prev_test_key = '<c-p>',
@@ -186,6 +188,11 @@ function M.setup(user_config)
   })
 
   vim.validate({
+    ansi = {
+      config.run_panel.ansi,
+      'boolean',
+      'ansi color parsing must be enabled xor disabled',
+    },
     diff_mode = {
       config.run_panel.diff_mode,
       function(value)

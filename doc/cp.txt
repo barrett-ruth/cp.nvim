@@ -148,6 +148,7 @@ Here's an example configuration with lazy.nvim: >lua
             scrapers = { 'atcoder', 'codeforces', 'cses' },
             filename = default_filename,  -- <contest id> + <problem id>
             run_panel = {
+                ansi = true,
                 diff_mode = 'vim',
                 next_test_key = '<c-n>',
                 prev_test_key = '<c-p>',
@@ -199,6 +200,12 @@ Here's an example configuration with lazy.nvim: >lua
 
                                                         *cp.RunPanelConfig*
     Fields: ~
+        {ansi}            (boolean, default: true) Enable ANSI color parsing and
+                          highlighting. When true, compiler output and test results
+                          display with colored syntax highlighting. When false,
+                          ANSI escape codes are stripped for plain text display.
+                          Requires vim.g.terminal_color_* to be configured for
+                          proper color display.
         {diff_mode}       (string, default: "vim") Diff backend: "vim" or "git".
                           Git provides character-level precision, vim uses
                           built-in diff.

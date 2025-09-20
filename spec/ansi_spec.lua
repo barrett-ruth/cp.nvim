@@ -212,4 +212,33 @@ describe('ansi parser', function()
       assert.is_nil(state.foreground)
     end)
   end)
+
+  describe('setup_highlight_groups', function()
+    it('creates highlight groups with fallback colors when terminal colors are nil', function()
+      local original_colors = {}
+      for i = 0, 15 do
+        original_colors[i] = vim.g['terminal_color_' .. i]
+        vim.g['terminal_color_' .. i] = nil
+      end
+
+      ansi.setup_highlight_groups()
+
+      local highlight = vim.api.nvim_get_hl(0, { name = 'CpAnsiRed' })
+      -- When 'NONE' is set, nvim_get_hl returns nil for that field
+      assert.is_nil(highlight.fg)
+
+      for i = 0, 15 do
+        vim.g['terminal_color_' .. i] = original_colors[i]
+      end
+    end)
+
+    it('creates highlight groups with proper colors when terminal colors are set', function()
+      vim.g.terminal_color_1 = '#ff0000'
+
+      ansi.setup_highlight_groups()
+
+      local highlight = vim.api.nvim_get_hl(0, { name = 'CpAnsiRed' })
+      assert.equals(0xff0000, highlight.fg)
+    end)
+  end)
 end)

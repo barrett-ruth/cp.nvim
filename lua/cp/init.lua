@@ -8,7 +8,7 @@ local scrape = require('cp.scrape')
 local snippets = require('cp.snippets')
 
 if not vim.fn.has('nvim-0.10.0') then
-  vim.notify('[cp.nvim]: requires nvim-0.10.0+', vim.log.levels.ERROR)
+  logger.log('[cp.nvim]: requires nvim-0.10.0+', vim.log.levels.ERROR)
   return {}
 end
 
@@ -537,8 +537,10 @@ local function toggle_run_panel(is_debug)
   refresh_run_panel()
 
   vim.schedule(function()
-    local ansi = require('cp.ansi')
-    ansi.setup_highlight_groups()
+    if config.run_panel.ansi then
+      local ansi = require('cp.ansi')
+      ansi.setup_highlight_groups()
+    end
     if current_diff_layout then
       update_diff_panes()
     end
