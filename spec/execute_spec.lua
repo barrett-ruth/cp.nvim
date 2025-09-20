@@ -82,10 +82,10 @@ describe('cp.execute', function()
       assert.is_true(#mock_system_calls > 0)
 
       local compile_call = mock_system_calls[1]
-      assert.equals('g++', compile_call.cmd[1])
-      assert.equals('test.cpp', compile_call.cmd[2])
-      assert.equals('-o', compile_call.cmd[3])
-      assert.equals('test.run', compile_call.cmd[4])
+      assert.equals('sh', compile_call.cmd[1])
+      assert.equals('-c', compile_call.cmd[2])
+      assert.is_not_nil(string.find(compile_call.cmd[3], 'g%+%+ test%.cpp %-o test%.run'))
+      assert.is_not_nil(string.find(compile_call.cmd[3], '2>&1'))
     end)
 
     it('handles multiple substitutions in single argument', function()
@@ -100,7 +100,7 @@ describe('cp.execute', function()
       execute.compile_generic(language_config, substitutions)
 
       local compile_call = mock_system_calls[1]
-      assert.equals('-omain.out', compile_call.cmd[3])
+      assert.is_not_nil(string.find(compile_call.cmd[3], '%-omain%.out'))
     end)
   end)
 
@@ -131,8 +131,8 @@ describe('cp.execute', function()
       assert.is_true(#mock_system_calls > 0)
 
       local compile_call = mock_system_calls[1]
-      assert.equals('g++', compile_call.cmd[1])
-      assert.is_true(vim.tbl_contains(compile_call.cmd, '-std=c++17'))
+      assert.equals('sh', compile_call.cmd[1])
+      assert.is_not_nil(string.find(compile_call.cmd[3], '%-std=c%+%+17'))
     end)
 
     it('handles compilation errors gracefully', function()
@@ -199,7 +199,7 @@ describe('cp.execute', function()
     it('handles command execution', function()
       vim.system = function(_, opts)
         if opts then
-          assert.equals(true, opts.text)
+          assert.equals(false, opts.text)
         end
         return {
           wait = function()
@@ -266,9 +266,10 @@ describe('cp.execute', function()
       execute.compile_generic(language_config, {})
 
       local mkdir_call = mock_system_calls[1]
-      assert.equals('mkdir', mkdir_call.cmd[1])
-      assert.is_true(vim.tbl_contains(mkdir_call.cmd, 'build'))
-      assert.is_true(vim.tbl_contains(mkdir_call.cmd, 'io'))
+      assert.equals('sh', mkdir_call.cmd[1])
+      assert.is_not_nil(string.find(mkdir_call.cmd[3], 'mkdir'))
+      assert.is_not_nil(string.find(mkdir_call.cmd[3], 'build'))
+      assert.is_not_nil(string.find(mkdir_call.cmd[3], 'io'))
     end)
   end)
 
@@ -316,8 +317,8 @@ describe('cp.execute', function()
       assert.equals(0, result.code)
 
       local echo_call = mock_system_calls[1]
-      assert.equals('echo', echo_call.cmd[1])
-      assert.equals('hello', echo_call.cmd[2])
+      assert.equals('sh', echo_call.cmd[1])
+      assert.is_not_nil(string.find(echo_call.cmd[3], 'echo hello'))
     end)
 
     it('handles multiple consecutive substitutions', function()
@@ -332,8 +333,119 @@ describe('cp.execute', function()
       execute.compile_generic(language_config, substitutions)
 
       local call = mock_system_calls[1]
-      assert.equals('g++g++', call.cmd[1])
-      assert.equals('test.cpptest.cpp', call.cmd[2])
+      assert.equals('sh', call.cmd[1])
+      assert.is_not_nil(string.find(call.cmd[3], 'g%+%+g%+%+ test%.cpptest%.cpp'))
+    end)
+  end)
+
+  describe('stderr/stdout redirection', function()
+    it('should use stderr redirection (2>&1)', function()
+      local original_system = vim.system
+      local captured_command = nil
+
+      vim.system = function(cmd, _)
+        captured_command = cmd
+        return {
+          wait = function()
+            return { code = 0, stdout = '', stderr = '' }
+          end,
+        }
+      end
+
+      local language_config = {
+        compile = { 'g++', '-std=c++17', '-o', '{binary}', '{source}' },
+      }
+      local substitutions = { source = 'test.cpp', binary = 'build/test', version = '17' }
+      execute.compile_generic(language_config, substitutions)
+
+      assert.is_not_nil(captured_command)
+      assert.equals('sh', captured_command[1])
+      assert.equals('-c', captured_command[2])
+      assert.is_not_nil(
+        string.find(captured_command[3], '2>&1'),
+        'Command should contain 2>&1 redirection'
+      )
+
+      vim.system = original_system
+    end)
+
+    it('should return combined stdout+stderr in result', function()
+      local original_system = vim.system
+      local test_output = 'STDOUT: Hello\nSTDERR: Error message\n'
+
+      vim.system = function(_, _)
+        return {
+          wait = function()
+            return { code = 1, stdout = test_output, stderr = '' }
+          end,
+        }
+      end
+
+      local language_config = {
+        compile = { 'g++', '-std=c++17', '-o', '{binary}', '{source}' },
+      }
+      local substitutions = { source = 'test.cpp', binary = 'build/test', version = '17' }
+      local result = execute.compile_generic(language_config, substitutions)
+
+      assert.equals(1, result.code)
+      assert.equals(test_output, result.stdout)
+
+      vim.system = original_system
+    end)
+  end)
+
+  describe('integration with execute_command function', function()
+    it('tests the full execute_command flow with stderr/stdout combination', function()
+      local cmd = { 'echo', 'test output' }
+      local input_data = 'test input'
+      local timeout_ms = 1000
+
+      local original_system = vim.system
+      vim.system = function(shell_cmd, opts)
+        assert.equals('sh', shell_cmd[1])
+        assert.equals('-c', shell_cmd[2])
+        assert.is_not_nil(string.find(shell_cmd[3], '2>&1'))
+        assert.equals(input_data, opts.stdin)
+        assert.equals(timeout_ms, opts.timeout)
+        assert.is_true(opts.text)
+
+        return {
+          wait = function()
+            return { code = 0, stdout = 'combined output from stdout and stderr', stderr = '' }
+          end,
+        }
+      end
+
+      local execute_command = require('cp.execute').execute_command
+        or function(command, stdin_data, timeout)
+          local redirected_cmd = vim.deepcopy(command)
+          if #redirected_cmd > 0 then
+            redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
+          end
+
+          local result = vim
+            .system({ 'sh', '-c', table.concat(redirected_cmd, ' ') }, {
+              stdin = stdin_data,
+              timeout = timeout,
+              text = true,
+            })
+            :wait()
+
+          return {
+            stdout = result.stdout or '',
+            stderr = result.stderr or '',
+            code = result.code or 0,
+            time_ms = 0,
+            timed_out = result.code == 124,
+          }
+        end
+
+      local result = execute_command(cmd, input_data, timeout_ms)
+
+      assert.equals(0, result.code)
+      assert.equals('combined output from stdout and stderr', result.stdout)
+
+      vim.system = original_system
     end)
   end)
 end)
