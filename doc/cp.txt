@@ -100,7 +100,7 @@ Here's an example configuration with lazy.nvim: >
           },
           debug = false,
           scrapers = { ... }, -- all scrapers enabled by default
-          filename = default_filename,
+          filename = default_filename,  -- <contest id> + <problem id>
           run_panel = {
             diff_mode = 'vim',
             next_test_key = '<c-n>',
