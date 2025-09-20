@@ -110,16 +110,11 @@ end
 
 local function format_num_column(prefix, idx, width)
   local num_str = tostring(idx)
-  if #num_str == 1 then
-    local content = prefix .. num_str .. ' '
-    local pad = width - #content
-    if pad <= 0 then
-      return content
-    end
-    return string.rep(' ', pad) .. content
-  else
-    return center(prefix .. idx, width)
-  end
+  local content = prefix .. num_str
+  local total_pad = width - #content
+  local left_pad = (#num_str == 1) and 0 or math.floor(total_pad / 2)
+  local right_pad = total_pad - left_pad
+  return string.rep(' ', left_pad) .. content .. string.rep(' ', right_pad)
 end
 
 local function top_border(c)
@@ -246,7 +241,7 @@ local function data_row(c, idx, tc, is_current, test_state)
   end
 
   local line = '│'
-    .. center(prefix .. idx, w.num)
+    .. format_num_column(prefix, idx, w.num)
     .. '│'
     .. right_align(status.text, w.status)
     .. '│'
