@@ -54,7 +54,7 @@ local function format_exit_code(code)
 end
 
 local function compute_cols(test_state)
-  local w = { num = 4, status = 8, time = 6, timeout = 8, memory = 8, exit = 11 }
+  local w = { num = 5, status = 8, time = 6, timeout = 8, memory = 8, exit = 11 }
 
   local timeout_str = ''
   local memory_str = ''
@@ -110,9 +110,17 @@ end
 
 local function format_num_column(prefix, idx, width)
   local num_str = tostring(idx)
-  local content = prefix .. num_str
+  local content
+  if #num_str == 1 then
+    content = ' ' .. prefix .. ' ' .. num_str .. ' '
+  else
+    content = ' ' .. prefix .. num_str .. ' '
+  end
   local total_pad = width - #content
-  local left_pad = (#num_str == 1) and 0 or math.floor(total_pad / 2)
+  if total_pad <= 0 then
+    return content
+  end
+  local left_pad = math.floor(total_pad / 2)
   local right_pad = total_pad - left_pad
   return string.rep(' ', left_pad) .. content .. string.rep(' ', right_pad)
 end
