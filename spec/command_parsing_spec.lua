@@ -185,6 +185,23 @@ describe('cp command parsing', function()
     end)
   end)
 
+  describe('restore from file', function()
+    it('returns restore_from_file type for empty args', function()
+      local opts = { fargs = {} }
+      local logged_error = false
+
+      cp.handle_command(opts)
+
+      for _, log in ipairs(logged_messages) do
+        if log.level == vim.log.levels.ERROR and log.msg:match('No file is currently open') then
+          logged_error = true
+        end
+      end
+
+      assert.is_true(logged_error)
+    end)
+  end)
+
   describe('invalid commands', function()
     it('logs error for invalid platform', function()
       local opts = { fargs = { 'invalid_platform' } }

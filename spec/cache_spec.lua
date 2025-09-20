@@ -105,4 +105,52 @@ describe('cp.cache', function()
       assert.is_nil(result)
     end)
   end)
+
+  describe('file state', function()
+    it('stores and retrieves file state', function()
+      local file_path = '/tmp/test.cpp'
+
+      cache.set_file_state(file_path, 'atcoder', 'abc123', 'a', 'cpp')
+      local result = cache.get_file_state(file_path)
+
+      assert.is_not_nil(result)
+      assert.equals('atcoder', result.platform)
+      assert.equals('abc123', result.contest_id)
+      assert.equals('a', result.problem_id)
+      assert.equals('cpp', result.language)
+    end)
+
+    it('handles cses file state without problem_id', function()
+      local file_path = '/tmp/cses.py'
+
+      cache.set_file_state(file_path, 'cses', '1068', nil, 'python')
+      local result = cache.get_file_state(file_path)
+
+      assert.is_not_nil(result)
+      assert.equals('cses', result.platform)
+      assert.equals('1068', result.contest_id)
+      assert.is_nil(result.problem_id)
+      assert.equals('python', result.language)
+    end)
+
+    it('returns nil for missing file state', function()
+      local result = cache.get_file_state('/nonexistent/file.cpp')
+      assert.is_nil(result)
+    end)
+
+    it('overwrites existing file state', function()
+      local file_path = '/tmp/overwrite.cpp'
+
+      cache.set_file_state(file_path, 'atcoder', 'abc123', 'a', 'cpp')
+      cache.set_file_state(file_path, 'codeforces', '1934', 'b', 'python')
+
+      local result = cache.get_file_state(file_path)
+
+      assert.is_not_nil(result)
+      assert.equals('codeforces', result.platform)
+      assert.equals('1934', result.contest_id)
+      assert.equals('b', result.problem_id)
+      assert.equals('python', result.language)
+    end)
+  end)
 end)
