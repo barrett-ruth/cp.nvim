@@ -1,27 +1,53 @@
 # cp.nvim
 
-neovim plugin for competitive programming.
+**Fast, minimal competitive programming environment for Neovim**
+
+Scrape problems, run tests, and debug solutions across multiple platforms with zero configuration.
+
+> **Disclaimer**: This plugin scrapes data from competitive programming websites. Use at your own risk.
 
 https://github.com/user-attachments/assets/cb142535-fba0-4280-8f11-66ad1ca50ca9
 
-[video config](https://github.com/barrett-ruth/dots/blob/main/nvim/lua/plugins/cp.lua)
-
-> Sample test data from [codeforces](https://codeforces.com) is scraped via [cloudscraper](https://github.com/VeNoMouS/cloudscraper). Use at your own risk.
-
 ## Features
 
-- Support for multiple online judges ([AtCoder](https://atcoder.jp/), [Codeforces](https://codeforces.com/), [CSES](https://cses.fi))
-- Language-agnostic features
-- Automatic problem scraping and test case management
-- Integrated running and debugging
-- Enhanced test viewer
-- Templates via LuaSnip
+- **Multi-platform support**: AtCoder, Codeforces, CSES with consistent interface
+- **Automatic problem setup**: Scrape test cases and metadata in seconds
+- **Rich test output**: ANSI color support for compiler errors and program output
+- **Language agnostic**: Works with any compiled language
+- **Template integration**: Contest-specific snippets via LuaSnip
+- **Diff viewer**: Compare expected vs actual output with precision
 
-## Requirements
+## Optional Dependencies
 
-- Neovim 0.10.0+
-- [uv](https://docs.astral.sh/uv/): problem scraping (optional)
-- [LuaSnip](https://github.com/L3MON4D3/LuaSnip): contest-specific snippets (optional)
+- [uv](https://docs.astral.sh/uv/) for problem scraping
+- [LuaSnip](https://github.com/L3MON4D3/LuaSnip) for templates
+
+## Quick Start
+
+Set up a Codeforces problem with contest ID 1848:
+```
+:CP codeforces 1848 A
+```
+
+Navigate between problems:
+```
+:CP next
+:CP prev
+```
+
+Run tests:
+```
+:CP run
+```
+
+## Workflow
+
+cp.nvim follows a simple principle: **solve locally, submit remotely**.
+
+1. **Find a problem** on the judge website
+2. **Set up locally** with `:CP <platform> <contest> <problem>`
+3. **Code and test** with instant feedback and rich diffs
+4. **Submit** on the original website
 
 ## Documentation
 
@@ -29,35 +55,7 @@ https://github.com/user-attachments/assets/cb142535-fba0-4280-8f11-66ad1ca50ca9
 :help cp.nvim
 ```
 
-## Philosophy
-
-This plugin is highly tuned to my workflow and may not fit for you. Personally,
-I believe there are two aspects of a cp workflow:
-
-- local work (i.e. coding, running test cases)
-- site work (i.e. problem reading, submitting)
-
-Namely, I do not like the idea of submitting problems locally - the experience
-will never quite offer what the remote does. Therefore, cp.nvim works as
-follows:
-
-1. Find a problem
-
-- Browse the remote and find it
-- Read it on the remote
-
-2. Set up your local environment with `:CP ...`
-
-- test cases and expected output automatically scraped
-- templates automatically configured
-
-3. Solve the problem locally
-
-- easy to run/debug
-- easy to diff actual vs. expected output
-
-4. Submit the problem (on the remote!)
-
+See [my config](https://github.com/barrett-ruth/dots/blob/main/nvim/lua/plugins/cp.lua) for a relatively advanced setup.
 
 ## Similar Projects
 
