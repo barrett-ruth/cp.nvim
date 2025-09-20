@@ -61,14 +61,20 @@ local function is_cache_valid(contest_data, platform)
 end
 
 function M.load()
+  if loaded then
+    return
+  end
+
   if vim.fn.filereadable(cache_file) == 0 then
     cache_data = {}
+    loaded = true
     return
   end
 
   local content = vim.fn.readfile(cache_file)
   if #content == 0 then
     cache_data = {}
+    loaded = true
     return
   end
 
@@ -78,6 +84,7 @@ function M.load()
   else
     cache_data = {}
   end
+  loaded = true
 end
 
 function M.save()
