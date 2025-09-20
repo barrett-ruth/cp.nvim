@@ -14,14 +14,6 @@ class ProblemSummary:
 
 
 @dataclass
-class Problem:
-    id: str
-    name: str
-    timeout_ms: int
-    memory_mb: int
-
-
-@dataclass
 class ScrapingResult:
     success: bool
     error: str
@@ -40,4 +32,4 @@ class TestsResult(ScrapingResult):
     url: str
     tests: list[TestCase]
     timeout_ms: int
-    memory_mb: int
+    memory_mb: float

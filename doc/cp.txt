@@ -100,7 +100,6 @@ Here's an example configuration with lazy.nvim: >
                 extension = "py",
               },
               default_language = "cpp",
-              timeout_ms = 2000,
             },
           },
           hooks = {
@@ -156,8 +155,6 @@ Here's an example configuration with lazy.nvim: >
       • {python}            (`LanguageConfig`) Python language configuration.
       • {default_language}  (`string`, default: `"cpp"`) Default language when
                             `--lang` not specified.
-      • {timeout_ms}        (`number`, default: `2000`) Execution timeout in
-                            milliseconds.
 
 *cp.LanguageConfig*
 

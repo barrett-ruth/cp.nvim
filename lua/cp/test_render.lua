@@ -55,24 +55,34 @@ end
 
 -- Compute column widths + aggregates
 local function compute_cols(test_state)
-  local w = { num = 3, status = 8, time = 6, exit = 11 }
+  local w = { num = 3, status = 8, time = 6, exit = 11, limits = 12 }
+
+  local limits_str = ''
+  if test_state.constraints then
+    limits_str =
+      string.format('%d/%.0f', test_state.constraints.timeout_ms, test_state.constraints.memory_mb)
+  else
+    limits_str = '—'
+  end
 
   for i, tc in ipairs(test_state.test_cases) do
     local prefix = (i == test_state.current_index) and '>' or ' '
     w.num = math.max(w.num, #(prefix .. i))
     w.status = math.max(w.status, #(' ' .. M.get_status_info(tc).text))
-    local time_str = tc.time_ms and (string.format('%.2f', tc.time_ms) .. 'ms') or '—'
+    local time_str = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
     w.time = math.max(w.time, #time_str)
     w.exit = math.max(w.exit, #(' ' .. format_exit_code(tc.code)))
+    w.limits = math.max(w.limits, #limits_str)
   end
 
   w.num = math.max(w.num, #' #')
   w.status = math.max(w.status, #' Status')
-  w.time = math.max(w.time, #' Time')
+  w.time = math.max(w.time, #' Runtime (ms)')
   w.exit = math.max(w.exit, #' Exit Code')
+  w.limits = math.max(w.limits, #' Time (ms)/Mem (MB)')
 
-  local sum = w.num + w.status + w.time + w.exit
-  local inner = sum + 3 -- three inner vertical dividers
+  local sum = w.num + w.status + w.time + w.exit + w.limits
+  local inner = sum + 4 -- four inner vertical dividers
   local total = inner + 2 -- two outer borders
   return { w = w, sum = sum, inner = inner, total = total }
 end
@@ -86,6 +96,14 @@ local function center(text, width)
   return string.rep(' ', left) .. text .. string.rep(' ', pad - left)
 end
 
+local function right_align(text, width)
+  local pad = width - #text
+  if pad <= 0 then
+    return text
+  end
+  return string.rep(' ', pad) .. text
+end
+
 local function top_border(c)
   local w = c.w
   return '┌'
@@ -96,6 +114,8 @@ local function top_border(c)
     .. string.rep('─', w.time)
     .. '┬'
     .. string.rep('─', w.exit)
+    .. '┬'
+    .. string.rep('─', w.limits)
     .. '┐'
 end
 
@@ -109,6 +129,8 @@ local function row_sep(c)
     .. string.rep('─', w.time)
     .. '┼'
     .. string.rep('─', w.exit)
+    .. '┼'
+    .. string.rep('─', w.limits)
     .. '┤'
 end
 
@@ -122,6 +144,8 @@ local function bottom_border(c)
     .. string.rep('─', w.time)
     .. '┴'
     .. string.rep('─', w.exit)
+    .. '┴'
+    .. string.rep('─', w.limits)
     .. '┘'
 end
 
@@ -135,6 +159,8 @@ local function flat_fence_above(c)
     .. string.rep('─', w.time)
     .. '┴'
     .. string.rep('─', w.exit)
+    .. '┴'
+    .. string.rep('─', w.limits)
     .. '┤'
 end
 
@@ -148,6 +174,8 @@ local function flat_fence_below(c)
     .. string.rep('─', w.time)
     .. '┬'
     .. string.rep('─', w.exit)
+    .. '┬'
+    .. string.rep('─', w.limits)
     .. '┤'
 end
 
@@ -162,34 +190,45 @@ local function header_line(c)
     .. '│'
     .. center('Status', w.status)
     .. '│'
-    .. center('Time', w.time)
+    .. center('Runtime (ms)', w.time)
     .. '│'
     .. center('Exit Code', w.exit)
     .. '│'
+    .. center('Time (ms)/Mem (MB)', w.limits)
+    .. '│'
 end
 
-local function data_row(c, idx, tc, is_current)
+local function data_row(c, idx, tc, is_current, test_state)
   local w = c.w
   local prefix = is_current and '>' or ' '
   local status = M.get_status_info(tc)
-  local time = tc.time_ms and (string.format('%.2f', tc.time_ms) .. 'ms') or '—'
+  local time = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
   local exit = format_exit_code(tc.code)
+
+  local limits = ''
+  if test_state.constraints then
+    limits =
+      string.format('%d/%.0f', test_state.constraints.timeout_ms, test_state.constraints.memory_mb)
+  else
+    limits = '—'
+  end
 
   local line = '│'
     .. center(prefix .. idx, w.num)
     .. '│'
-    .. center(status.text, w.status)
+    .. right_align(status.text, w.status)
     .. '│'
-    .. center(time, w.time)
+    .. right_align(time, w.time)
     .. '│'
-    .. center(exit, w.exit)
+    .. right_align(exit, w.exit)
+    .. '│'
+    .. right_align(limits, w.limits)
     .. '│'
 
   local hi
   if status.text ~= '' then
     local pad = w.status - #status.text
-    local left = math.floor(pad / 2)
-    local status_start_col = 1 + w.num + 1 + left
+    local status_start_col = 1 + w.num + 1 + pad
     local status_end_col = status_start_col + #status.text
     hi = {
       col_start = status_start_col,
@@ -213,7 +252,7 @@ function M.render_test_list(test_state)
 
   for i, tc in ipairs(test_state.test_cases) do
     local is_current = (i == test_state.current_index)
-    local row, hi = data_row(c, i, tc, is_current)
+    local row, hi = data_row(c, i, tc, is_current, test_state)
     table.insert(lines, row)
     if hi then
       hi.line = #lines - 1

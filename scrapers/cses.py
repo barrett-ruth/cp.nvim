@@ -19,7 +19,7 @@ def parse_problem_url(problem_input: str) -> str | None:
     return None
 
 
-def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, int]:
+def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, float]:
     timeout_ms = None
     memory_mb = None
 
@@ -39,7 +39,7 @@ def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, int]:
         if "Memory limit:" in text:
             match = re.search(r"Memory limit:\s*(\d+)\s*MB", text)
             if match:
-                memory_mb = int(match.group(1))
+                memory_mb = float(match.group(1))
 
     if timeout_ms is None:
         raise ValueError("Could not find valid timeout in task-constraints section")

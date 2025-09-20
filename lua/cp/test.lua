@@ -12,6 +12,10 @@
 ---@field signal string?
 ---@field timed_out boolean?
 
+---@class ProblemConstraints
+---@field timeout_ms number
+---@field memory_mb number
+
 ---@class RunPanelState
 ---@field test_cases TestCase[]
 ---@field current_index number
@@ -19,6 +23,7 @@
 ---@field namespace number?
 ---@field is_active boolean
 ---@field saved_layout table?
+---@field constraints ProblemConstraints?
 
 local M = {}
 local constants = require('cp.constants')
@@ -32,6 +37,7 @@ local run_panel_state = {
   namespace = nil,
   is_active = false,
   saved_layout = nil,
+  constraints = nil,
 }
 
 ---@param index number
@@ -114,6 +120,25 @@ local function parse_test_cases_from_files(input_file, expected_file)
   return test_cases
 end
 
+---@param platform string
+---@param contest_id string
+---@param problem_id string?
+---@return ProblemConstraints?
+local function load_constraints_from_cache(platform, contest_id, problem_id)
+  local cache = require('cp.cache')
+  cache.load()
+  local timeout_ms, memory_mb = cache.get_constraints(platform, contest_id, problem_id)
+
+  if timeout_ms and memory_mb then
+    return {
+      timeout_ms = timeout_ms,
+      memory_mb = memory_mb,
+    }
+  end
+
+  return nil
+end
+
 ---@param ctx ProblemContext
 ---@param contest_config ContestConfig
 ---@param test_case TestCase
@@ -177,10 +202,15 @@ local function run_single_test_case(ctx, contest_config, cp_config, test_case)
   local stdin_content = test_case.input .. '\n'
 
   local start_time = vim.uv.hrtime()
+  local timeout_ms = run_panel_state.constraints and run_panel_state.constraints.timeout_ms or 2000
+
+  if not run_panel_state.constraints then
+    logger.log('no problem constraints available, using default 2000ms timeout')
+  end
   local result = vim
     .system(run_cmd, {
       stdin = stdin_content,
-      timeout = contest_config.timeout_ms or 2000,
+      timeout = timeout_ms,
       text = true,
     })
     :wait()
@@ -241,8 +271,17 @@ function M.load_test_cases(ctx, state)
 
   run_panel_state.test_cases = test_cases
   run_panel_state.current_index = 1
+  run_panel_state.constraints =
+    load_constraints_from_cache(state.platform, state.contest_id, state.problem_id)
 
-  logger.log(('loaded %d test case(s)'):format(#test_cases))
+  local constraint_info = run_panel_state.constraints
+      and string.format(
+        ' with %dms/%dMB limits',
+        run_panel_state.constraints.timeout_ms,
+        run_panel_state.constraints.memory_mb
+      )
+    or ''
+  logger.log(('loaded %d test case(s)%s'):format(#test_cases, constraint_info))
   return #test_cases > 0
 end
 

@@ -140,7 +140,7 @@ def parse_problem_url(contest_id: str, problem_letter: str) -> str:
     )
 
 
-def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, int]:
+def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, float]:
     import re
 
     timeout_ms = None
@@ -162,7 +162,7 @@ def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, int]:
         text = memory_limit_div.get_text().strip()
         match = re.search(r"(\d+) megabytes", text)
         if match:
-            memory_mb = int(match.group(1))
+            memory_mb = float(match.group(1))
 
     if memory_mb is None:
         raise ValueError("Could not find valid memory limit in memory-limit section")

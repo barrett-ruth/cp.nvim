@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup, Tag
 from .models import MetadataResult, ProblemSummary, TestCase, TestsResult
 
 
-def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, int]:
+def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, float]:
     timeout_ms = None
     memory_mb = None
 
@@ -26,7 +26,8 @@ def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, int]:
 
             memory_match = re.search(r"Memory Limit:\s*(\d+)\s*MiB", text)
             if memory_match:
-                memory_mb = int(memory_match.group(1))
+                memory_mib = int(memory_match.group(1))
+                memory_mb = round(memory_mib * 1.048576, 2)
             break
 
     if timeout_ms is None:

@@ -18,13 +18,11 @@
 ---@field cpp LanguageConfig
 ---@field python LanguageConfig
 ---@field default_language string
----@field timeout_ms number
 
 ---@class PartialContestConfig
 ---@field cpp? PartialLanguageConfig
 ---@field python? PartialLanguageConfig
 ---@field default_language? string
----@field timeout_ms? number
 
 ---@class Hooks
 ---@field before_run? fun(ctx: ProblemContext)
