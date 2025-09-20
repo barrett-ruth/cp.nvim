@@ -106,7 +106,8 @@ function M.scrape_contest_metadata(platform, contest_id)
       'run',
       '--directory',
       plugin_path,
-      scraper_path,
+      '-m',
+      'scrapers.' .. platform,
       'metadata',
       contest_id,
     }
