@@ -343,7 +343,7 @@ describe('cp.execute', function()
       local original_system = vim.system
       local captured_command = nil
 
-      vim.system = function(cmd, opts)
+      vim.system = function(cmd, _)
         captured_command = cmd
         return {
           wait = function()
@@ -373,7 +373,7 @@ describe('cp.execute', function()
       local original_system = vim.system
       local test_output = 'STDOUT: Hello\nSTDERR: Error message\n'
 
-      vim.system = function(cmd, opts)
+      vim.system = function(_, _)
         return {
           wait = function()
             return { code = 1, stdout = test_output, stderr = '' }
