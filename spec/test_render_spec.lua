@@ -78,7 +78,7 @@ describe('cp.test_render', function()
       local result = test_render.render_test_list(test_state)
       local found_current = false
       for _, line in ipairs(result) do
-        if line:match('│.*>2.*│') then
+        if line:match('│.*> 2.*│') then
           found_current = true
           break
         end

@@ -7,6 +7,8 @@
 ---@field expires_at? number
 ---@field test_cases? CachedTestCase[]
 ---@field test_cases_cached_at? number
+---@field timeout_ms? number
+---@field memory_mb? number
 
 ---@class Problem
 ---@field id string
@@ -22,6 +24,7 @@ local M = {}
 
 local cache_file = vim.fn.stdpath('data') .. '/cp-nvim.json'
 local cache_data = {}
+local loaded = false
 
 ---@param platform string
 ---@return number?
@@ -58,14 +61,20 @@ local function is_cache_valid(contest_data, platform)
 end
 
 function M.load()
+  if loaded then
+    return
+  end
+
   if vim.fn.filereadable(cache_file) == 0 then
     cache_data = {}
+    loaded = true
     return
   end
 
   local content = vim.fn.readfile(cache_file)
   if #content == 0 then
     cache_data = {}
+    loaded = true
     return
   end
 
@@ -75,6 +84,7 @@ function M.load()
   else
     cache_data = {}
   end
+  loaded = true
 end
 
 function M.save()
@@ -167,12 +177,16 @@ end
 ---@param contest_id string
 ---@param problem_id? string
 ---@param test_cases CachedTestCase[]
-function M.set_test_cases(platform, contest_id, problem_id, test_cases)
+---@param timeout_ms? number
+---@param memory_mb? number
+function M.set_test_cases(platform, contest_id, problem_id, test_cases, timeout_ms, memory_mb)
   vim.validate({
     platform = { platform, 'string' },
     contest_id = { contest_id, 'string' },
     problem_id = { problem_id, { 'string', 'nil' }, true },
     test_cases = { test_cases, 'table' },
+    timeout_ms = { timeout_ms, { 'number', 'nil' }, true },
+    memory_mb = { memory_mb, { 'number', 'nil' }, true },
   })
 
   local problem_key = problem_id and (contest_id .. '_' .. problem_id) or contest_id
@@ -185,7 +199,33 @@ function M.set_test_cases(platform, contest_id, problem_id, test_cases)
 
   cache_data[platform][problem_key].test_cases = test_cases
   cache_data[platform][problem_key].test_cases_cached_at = os.time()
+  if timeout_ms then
+    cache_data[platform][problem_key].timeout_ms = timeout_ms
+  end
+  if memory_mb then
+    cache_data[platform][problem_key].memory_mb = memory_mb
+  end
   M.save()
+end
+
+---@param platform string
+---@param contest_id string
+---@param problem_id? string
+---@return number?, number?
+function M.get_constraints(platform, contest_id, problem_id)
+  vim.validate({
+    platform = { platform, 'string' },
+    contest_id = { contest_id, 'string' },
+    problem_id = { problem_id, { 'string', 'nil' }, true },
+  })
+
+  local problem_key = problem_id and (contest_id .. '_' .. problem_id) or contest_id
+  if not cache_data[platform] or not cache_data[platform][problem_key] then
+    return nil, nil
+  end
+
+  local problem_data = cache_data[platform][problem_key]
+  return problem_data.timeout_ms, problem_data.memory_mb
 end
 
 return M

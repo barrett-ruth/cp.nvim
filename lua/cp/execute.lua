@@ -103,7 +103,7 @@ end
 
 ---@param cmd string[]
 ---@param input_data string
----@param timeout_ms integer
+---@param timeout_ms number
 ---@return ExecuteResult
 local function execute_command(cmd, input_data, timeout_ms)
   vim.validate({
@@ -278,8 +278,13 @@ function M.run_problem(ctx, contest_config, is_debug)
     input_data = table.concat(vim.fn.readfile(ctx.input_file), '\n') .. '\n'
   end
 
+  local cache = require('cp.cache')
+  cache.load()
+  local timeout_ms, _ = cache.get_constraints(ctx.contest, ctx.contest_id, ctx.problem_id)
+  timeout_ms = timeout_ms or 2000
+
   local run_cmd = build_command(language_config.test, language_config.executable, substitutions)
-  local exec_result = execute_command(run_cmd, input_data, contest_config.timeout_ms)
+  local exec_result = execute_command(run_cmd, input_data, timeout_ms)
   local formatted_output = format_output(exec_result, ctx.expected_file, is_debug)
 
   local output_buf = vim.fn.bufnr(ctx.output_file)

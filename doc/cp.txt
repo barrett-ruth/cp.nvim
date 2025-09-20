@@ -100,7 +100,6 @@ Here's an example configuration with lazy.nvim: >
                 extension = "py",
               },
               default_language = "cpp",
-              timeout_ms = 2000,
             },
           },
           hooks = {
@@ -156,8 +155,6 @@ Here's an example configuration with lazy.nvim: >
       • {python}            (`LanguageConfig`) Python language configuration.
       • {default_language}  (`string`, default: `"cpp"`) Default language when
                             `--lang` not specified.
-      • {timeout_ms}        (`number`, default: `2000`) Execution timeout in
-                            milliseconds.
 
 *cp.LanguageConfig*
 
@@ -315,20 +312,27 @@ Activation ~
 Interface ~
 
 The run panel uses a professional table layout with precise column alignment:
-(note that the diff is indeed highlighted, not the weird amalgamation of
+(observe that the diff is indeed highlighted, not the weird amalgamation of
 characters below) >
 
-    ┌──────┬────────┬────────┬───────────┐ ┌─ Expected vs Actual ──────────────────┐
-    │  #   │ Status │  Time  │ Exit Code │ │ 45.70ms │ Exit: 0                    │
-    ├──────┼────────┼────────┼───────────┤ ├────────────────────────────────────────┤
-    │  1   │   AC   │12.00ms │     0     │ │                                        │
-    │ >2   │   WA   │45.70ms │     1     │ │ 4[-2-]{+3+}                           │
-    ├──────┴────────┴────────┴───────────┤ │ 100                                    │
-    │5 3                                 │ │ hello w[-o-]r{+o+}ld                   │
-    ├──────┬────────┬────────┬───────────┤ │                                        │
-    │  3   │   AC   │ 9.00ms │     0     │ └────────────────────────────────────────┘
-    │  4   │   RTE  │ 0.00ms │139 (SIGUSR2)│
-    └──────┴────────┴────────┴───────────┘
+    ┌─────┬────────┬──────────────┬───────────┬──────────┬─────────────┐
+    │  #  │ Status │ Runtime (ms) │ Time (ms) │ Mem (MB) │  Exit Code  │
+    ├─────┼────────┼──────────────┼───────────┼──────────┼─────────────┤
+    │ 1   │     AC │         12.0 │      2000 │      256 │           0 │
+    │> 2  │     WA │        45.70 │      2000 │      256 │           1 │
+    ├─────┴────────┴──────────────┴───────────┴──────────┴─────────────┤
+    │Input:                                                            │
+    │5 3                                                               │
+    ├─────┬────────┬──────────────┬───────────┬──────────┬─────────────┤
+    │ 3   │     AC │          9.0 │      2000 │      256 │           0 │
+    │ 4   │    RTE │          0.0 │      2000 │      256 │139 (SIGUSR2)│
+    └─────┴────────┴──────────────┴───────────┴──────────┴─────────────┘
+    ┌──────────────────────────────────────────────────────────────────┐
+    │Expected vs Actual                                                │
+    │4[-2-]{+3+}                                                       │
+    │ 100                                                              │
+    │ hello w[-o-]r{+o+}ld                                             │
+    └──────────────────────────────────────────────────────────────────┘
 <
 
 Status Indicators ~
@@ -344,8 +348,8 @@ Keymaps ~
                                                 *cp-test-keys*
 <c-n>                           Navigate to next test case (configurable via run_panel.next_test_key)
 <c-p>                           Navigate to previous test case (configurable via run_panel.prev_test_key)
-t                               Toggle diff mode between vim and git (configurable via run_panel.toggle_diff_key)
-q                               Exit test panel and restore layout
+<c-t>                           Toggle diff mode between vim and git (configurable via run_panel.toggle_diff_key)
+<c-q>                           Exit test panel and restore layout
 
 Diff Modes ~
 

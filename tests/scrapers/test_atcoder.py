@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 from scrapers.atcoder import scrape, scrape_contest_problems
+from scrapers.models import ProblemSummary
 
 
 def test_scrape_success(mocker, mock_atcoder_html):
@@ -11,8 +12,8 @@ def test_scrape_success(mocker, mock_atcoder_html):
     result = scrape("https://atcoder.jp/contests/abc350/tasks/abc350_a")
 
     assert len(result) == 1
-    assert result[0][0] == "3\n1 2 3"
-    assert result[0][1] == "6"
+    assert result[0].input == "3\n1 2 3"
+    assert result[0].expected == "6"
 
 
 def test_scrape_contest_problems(mocker):
@@ -36,8 +37,8 @@ def test_scrape_contest_problems(mocker):
     result = scrape_contest_problems("abc350")
 
     assert len(result) == 2
-    assert result[0] == {"id": "a", "name": "A - Water Tank"}
-    assert result[1] == {"id": "b", "name": "B - Dentist Aoki"}
+    assert result[0] == ProblemSummary(id="a", name="A - Water Tank")
+    assert result[1] == ProblemSummary(id="b", name="B - Dentist Aoki")
 
 
 def test_scrape_network_error(mocker):

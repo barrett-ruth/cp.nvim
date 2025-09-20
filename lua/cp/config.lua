@@ -18,13 +18,11 @@
 ---@field cpp LanguageConfig
 ---@field python LanguageConfig
 ---@field default_language string
----@field timeout_ms number
 
 ---@class PartialContestConfig
 ---@field cpp? PartialLanguageConfig
 ---@field python? PartialLanguageConfig
 ---@field default_language? string
----@field timeout_ms? number
 
 ---@class Hooks
 ---@field before_run? fun(ctx: ProblemContext)
@@ -84,7 +82,7 @@ M.defaults = {
     diff_mode = 'vim',
     next_test_key = '<c-n>',
     prev_test_key = '<c-p>',
-    toggle_diff_key = 't',
+    toggle_diff_key = '<c-t>',
     max_output_lines = 50,
   },
   diff = {

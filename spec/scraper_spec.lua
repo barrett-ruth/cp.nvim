@@ -13,6 +13,7 @@ describe('cp.scrape', function()
         return nil
       end,
       set_contest_data = function() end,
+      set_test_cases = function() end,
     }
 
     mock_system_calls = {}
@@ -31,7 +32,7 @@ describe('cp.scrape', function()
           result.stdout = '{"success": true, "problems": [{"id": "a", "name": "Test Problem"}]}'
         elseif vim.tbl_contains(cmd, 'tests') then
           result.stdout =
-            '{"success": true, "tests": [{"input": "1 2", "expected": "3"}], "url": "https://example.com"}'
+            '{"success": true, "tests": [{"input": "1 2", "expected": "3"}], "url": "https://example.com", "timeout_ms": 2000, "memory_mb": 256.0}'
         end
       end
 

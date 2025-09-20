@@ -7,7 +7,7 @@ from dataclasses import asdict
 import cloudscraper
 from bs4 import BeautifulSoup, Tag
 
-from .models import MetadataResult, Problem, TestCase, TestsResult
+from .models import MetadataResult, ProblemSummary, TestCase, TestsResult
 
 
 def scrape(url: str) -> list[TestCase]:
@@ -140,7 +140,37 @@ def parse_problem_url(contest_id: str, problem_letter: str) -> str:
     )
 
 
-def scrape_contest_problems(contest_id: str) -> list[Problem]:
+def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, float]:
+    import re
+
+    timeout_ms = None
+    memory_mb = None
+
+    time_limit_div = soup.find("div", class_="time-limit")
+    if time_limit_div:
+        text = time_limit_div.get_text().strip()
+        match = re.search(r"(\d+) seconds?", text)
+        if match:
+            seconds = int(match.group(1))
+            timeout_ms = seconds * 1000
+
+    if timeout_ms is None:
+        raise ValueError("Could not find valid timeout in time-limit section")
+
+    memory_limit_div = soup.find("div", class_="memory-limit")
+    if memory_limit_div:
+        text = memory_limit_div.get_text().strip()
+        match = re.search(r"(\d+) megabytes", text)
+        if match:
+            memory_mb = float(match.group(1))
+
+    if memory_mb is None:
+        raise ValueError("Could not find valid memory limit in memory-limit section")
+
+    return timeout_ms, memory_mb
+
+
+def scrape_contest_problems(contest_id: str) -> list[ProblemSummary]:
     try:
         contest_url: str = f"https://codeforces.com/contest/{contest_id}"
         scraper = cloudscraper.create_scraper()
@@ -148,7 +178,7 @@ def scrape_contest_problems(contest_id: str) -> list[Problem]:
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
-        problems: list[Problem] = []
+        problems: list[ProblemSummary] = []
 
         problem_links = soup.find_all(
             "a", href=lambda x: x and f"/contest/{contest_id}/problem/" in x
@@ -163,12 +193,14 @@ def scrape_contest_problems(contest_id: str) -> list[Problem]:
                 problem_name: str = link.get_text(strip=True)
 
                 if problem_letter and problem_name:
-                    problems.append(Problem(id=problem_letter, name=problem_name))
+                    problems.append(
+                        ProblemSummary(id=problem_letter, name=problem_name)
+                    )
 
         problems.sort(key=lambda x: x.id)
 
         seen: set[str] = set()
-        unique_problems: list[Problem] = []
+        unique_problems: list[ProblemSummary] = []
         for p in problems:
             if p.id not in seen:
                 seen.add(p.id)
@@ -206,7 +238,7 @@ def main() -> None:
             sys.exit(1)
 
         contest_id: str = sys.argv[2]
-        problems: list[Problem] = scrape_contest_problems(contest_id)
+        problems: list[ProblemSummary] = scrape_contest_problems(contest_id)
 
         if not problems:
             result = MetadataResult(
@@ -215,7 +247,9 @@ def main() -> None:
             print(json.dumps(asdict(result)))
             sys.exit(1)
 
-        result = MetadataResult(success=True, contest_id=contest_id, problems=problems)
+        result = MetadataResult(
+            success=True, error="", contest_id=contest_id, problems=problems
+        )
         print(json.dumps(asdict(result)))
 
     elif mode == "tests":
@@ -223,6 +257,11 @@ def main() -> None:
             tests_result = TestsResult(
                 success=False,
                 error="Usage: codeforces.py tests <contest_id> <problem_letter>",
+                problem_id="",
+                url="",
+                tests=[],
+                timeout_ms=0,
+                memory_mb=0,
             )
             print(json.dumps(asdict(tests_result)))
             sys.exit(1)
@@ -234,18 +273,46 @@ def main() -> None:
         url: str = parse_problem_url(tests_contest_id, problem_letter)
         tests: list[TestCase] = scrape_sample_tests(url)
 
+        try:
+            scraper = cloudscraper.create_scraper()
+            response = scraper.get(url, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+            timeout_ms, memory_mb = extract_problem_limits(soup)
+        except Exception as e:
+            tests_result = TestsResult(
+                success=False,
+                error=f"Failed to extract constraints: {e}",
+                problem_id=problem_id,
+                url=url,
+                tests=[],
+                timeout_ms=0,
+                memory_mb=0,
+            )
+            print(json.dumps(asdict(tests_result)))
+            sys.exit(1)
+
         if not tests:
             tests_result = TestsResult(
                 success=False,
                 error=f"No tests found for {tests_contest_id} {problem_letter}",
                 problem_id=problem_id,
                 url=url,
+                tests=[],
+                timeout_ms=timeout_ms,
+                memory_mb=memory_mb,
             )
             print(json.dumps(asdict(tests_result)))
             sys.exit(1)
 
         tests_result = TestsResult(
-            success=True, problem_id=problem_id, url=url, tests=tests
+            success=True,
+            error="",
+            problem_id=problem_id,
+            url=url,
+            tests=tests,
+            timeout_ms=timeout_ms,
+            memory_mb=memory_mb,
         )
         print(json.dumps(asdict(tests_result)))
 

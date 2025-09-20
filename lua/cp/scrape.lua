@@ -7,6 +7,8 @@
 ---@field problem_id string
 ---@field url? string
 ---@field tests? ScraperTestCase[]
+---@field timeout_ms? number
+---@field memory_mb? number
 ---@field error? string
 
 local M = {}
@@ -86,7 +88,6 @@ function M.scrape_contest_metadata(platform, contest_id)
   end
 
   local plugin_path = get_plugin_path()
-  local scraper_path = plugin_path .. '/scrapers/' .. platform .. '.py'
 
   local args
   if platform == 'cses' then
@@ -95,7 +96,8 @@ function M.scrape_contest_metadata(platform, contest_id)
       'run',
       '--directory',
       plugin_path,
-      scraper_path,
+      '-m',
+      'scrapers.' .. platform,
       'metadata',
     }
   else
@@ -104,7 +106,8 @@ function M.scrape_contest_metadata(platform, contest_id)
       'run',
       '--directory',
       plugin_path,
-      scraper_path,
+      '-m',
+      'scrapers.' .. platform,
       'metadata',
       contest_id,
     }
@@ -152,7 +155,7 @@ function M.scrape_contest_metadata(platform, contest_id)
 end
 
 ---@param ctx ProblemContext
----@return {success: boolean, problem_id: string, test_count?: number, test_cases?: ScraperTestCase[], url?: string, error?: string}
+---@return {success: boolean, problem_id: string, test_count?: number, test_cases?: ScraperTestCase[], timeout_ms?: number, memory_mb?: number, url?: string, error?: string}
 function M.scrape_problem(ctx)
   vim.validate({
     ctx = { ctx, 'table' },
@@ -209,7 +212,6 @@ function M.scrape_problem(ctx)
   end
 
   local plugin_path = get_plugin_path()
-  local scraper_path = plugin_path .. '/scrapers/' .. ctx.contest .. '.py'
 
   local args
   if ctx.contest == 'cses' then
@@ -218,7 +220,8 @@ function M.scrape_problem(ctx)
       'run',
       '--directory',
       plugin_path,
-      scraper_path,
+      '-m',
+      'scrapers.' .. ctx.contest,
       'tests',
       ctx.contest_id,
     }
@@ -228,7 +231,8 @@ function M.scrape_problem(ctx)
       'run',
       '--directory',
       plugin_path,
-      scraper_path,
+      '-m',
+      'scrapers.' .. ctx.contest,
       'tests',
       ctx.contest_id,
       ctx.problem_id,
@@ -277,6 +281,24 @@ function M.scrape_problem(ctx)
       vim.fn.writefile(vim.split(input_content, '\n', true), input_file)
       vim.fn.writefile(vim.split(expected_content, '\n', true), expected_file)
     end
+
+    local cached_test_cases = {}
+    for i, test_case in ipairs(data.tests) do
+      table.insert(cached_test_cases, {
+        index = i,
+        input = test_case.input,
+        expected = test_case.expected,
+      })
+    end
+
+    cache.set_test_cases(
+      ctx.contest,
+      ctx.contest_id,
+      ctx.problem_id,
+      cached_test_cases,
+      data.timeout_ms,
+      data.memory_mb
+    )
   end
 
   return {
@@ -284,6 +306,8 @@ function M.scrape_problem(ctx)
     problem_id = ctx.problem_name,
     test_count = data.tests and #data.tests or 0,
     test_cases = data.tests,
+    timeout_ms = data.timeout_ms,
+    memory_mb = data.memory_mb,
     url = data.url,
   }
 end
