@@ -16,6 +16,7 @@ describe('extmarks', function()
       local bufnr = 1
       local namespace = 100
       local mock_clear = stub(vim.api, 'nvim_buf_clear_namespace')
+      local mock_extmark = stub(vim.api, 'nvim_buf_set_extmark')
 
       highlight.apply_highlights(bufnr, {
         {
@@ -28,6 +29,7 @@ describe('extmarks', function()
 
       assert.stub(mock_clear).was_called_with(bufnr, namespace, 0, -1)
       mock_clear:revert()
+      mock_extmark:revert()
     end)
 
     it('handles invalid buffer gracefully', function()
@@ -78,6 +80,7 @@ describe('extmarks', function()
       local ns1 = 100
       local ns2 = 200
       local mock_clear = stub(vim.api, 'nvim_buf_clear_namespace')
+      local mock_extmark = stub(vim.api, 'nvim_buf_set_extmark')
 
       highlight.apply_highlights(bufnr, {
         { line = 0, col_start = 0, col_end = 5, highlight_group = 'CpDiffAdded' },
@@ -92,6 +95,7 @@ describe('extmarks', function()
       assert.stub(mock_clear).was_called(2)
 
       mock_clear:revert()
+      mock_extmark:revert()
     end)
   end)
 
@@ -190,6 +194,7 @@ describe('extmarks', function()
       local bufnr = 1
       local namespace = 100
       local mock_clear = stub(vim.api, 'nvim_buf_clear_namespace')
+      local mock_extmark = stub(vim.api, 'nvim_buf_set_extmark')
       local mock_set_lines = stub(vim.api, 'nvim_buf_set_lines')
       local mock_get_option = stub(vim.api, 'nvim_get_option_value')
       local mock_set_option = stub(vim.api, 'nvim_set_option_value')
@@ -201,6 +206,7 @@ describe('extmarks', function()
       assert.stub(mock_clear).was_called_with(bufnr, namespace, 0, -1)
 
       mock_clear:revert()
+      mock_extmark:revert()
       mock_set_lines:revert()
       mock_get_option:revert()
       mock_set_option:revert()
