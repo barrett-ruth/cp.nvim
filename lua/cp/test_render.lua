@@ -53,37 +53,40 @@ local function format_exit_code(code)
   return signal_name and string.format('%d (%s)', code, signal_name) or tostring(code)
 end
 
--- Compute column widths + aggregates
 local function compute_cols(test_state)
-  local w = { num = 3, status = 8, time = 6, exit = 11, limits = 12 }
+  local w = { num = 3, status = 8, time = 6, exit = 11, timeout = 8, memory = 8 }
 
-  local limits_str = ''
+  local timeout_str = ''
+  local memory_str = ''
   if test_state.constraints then
-    limits_str =
-      string.format('%d/%.0f', test_state.constraints.timeout_ms, test_state.constraints.memory_mb)
+    timeout_str = tostring(test_state.constraints.timeout_ms)
+    memory_str = string.format('%.0f', test_state.constraints.memory_mb)
   else
-    limits_str = '—'
+    timeout_str = '—'
+    memory_str = '—'
   end
 
   for i, tc in ipairs(test_state.test_cases) do
     local prefix = (i == test_state.current_index) and '>' or ' '
-    w.num = math.max(w.num, #(prefix .. i))
-    w.status = math.max(w.status, #(' ' .. M.get_status_info(tc).text))
+    w.num = math.max(w.num, #(' ' .. prefix .. i .. ' '))
+    w.status = math.max(w.status, #(' ' .. M.get_status_info(tc).text .. ' '))
     local time_str = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
-    w.time = math.max(w.time, #time_str)
-    w.exit = math.max(w.exit, #(' ' .. format_exit_code(tc.code)))
-    w.limits = math.max(w.limits, #limits_str)
+    w.time = math.max(w.time, #(' ' .. time_str .. ' '))
+    w.exit = math.max(w.exit, #(' ' .. format_exit_code(tc.code) .. ' '))
+    w.timeout = math.max(w.timeout, #(' ' .. timeout_str .. ' '))
+    w.memory = math.max(w.memory, #(' ' .. memory_str .. ' '))
   end
 
-  w.num = math.max(w.num, #' #')
-  w.status = math.max(w.status, #' Status')
-  w.time = math.max(w.time, #' Runtime (ms)')
-  w.exit = math.max(w.exit, #' Exit Code')
-  w.limits = math.max(w.limits, #' Time (ms)/Mem (MB)')
+  w.num = math.max(w.num, #' # ')
+  w.status = math.max(w.status, #' Status ')
+  w.time = math.max(w.time, #' Runtime (ms) ')
+  w.exit = math.max(w.exit, #' Exit Code ')
+  w.timeout = math.max(w.timeout, #' Time (ms) ')
+  w.memory = math.max(w.memory, #' Mem (MB) ')
 
-  local sum = w.num + w.status + w.time + w.exit + w.limits
-  local inner = sum + 4 -- four inner vertical dividers
-  local total = inner + 2 -- two outer borders
+  local sum = w.num + w.status + w.time + w.exit + w.timeout + w.memory
+  local inner = sum + 5
+  local total = inner + 2
   return { w = w, sum = sum, inner = inner, total = total }
 end
 
@@ -97,11 +100,12 @@ local function center(text, width)
 end
 
 local function right_align(text, width)
-  local pad = width - #text
+  local content = (' %s '):format(text)
+  local pad = width - #content
   if pad <= 0 then
-    return text
+    return content
   end
-  return string.rep(' ', pad) .. text
+  return string.rep(' ', pad) .. content
 end
 
 local function top_border(c)
@@ -115,7 +119,9 @@ local function top_border(c)
     .. '┬'
     .. string.rep('─', w.exit)
     .. '┬'
-    .. string.rep('─', w.limits)
+    .. string.rep('─', w.timeout)
+    .. '┬'
+    .. string.rep('─', w.memory)
     .. '┐'
 end
 
@@ -130,7 +136,9 @@ local function row_sep(c)
     .. '┼'
     .. string.rep('─', w.exit)
     .. '┼'
-    .. string.rep('─', w.limits)
+    .. string.rep('─', w.timeout)
+    .. '┼'
+    .. string.rep('─', w.memory)
     .. '┤'
 end
 
@@ -145,7 +153,9 @@ local function bottom_border(c)
     .. '┴'
     .. string.rep('─', w.exit)
     .. '┴'
-    .. string.rep('─', w.limits)
+    .. string.rep('─', w.timeout)
+    .. '┴'
+    .. string.rep('─', w.memory)
     .. '┘'
 end
 
@@ -160,7 +170,9 @@ local function flat_fence_above(c)
     .. '┴'
     .. string.rep('─', w.exit)
     .. '┴'
-    .. string.rep('─', w.limits)
+    .. string.rep('─', w.timeout)
+    .. '┴'
+    .. string.rep('─', w.memory)
     .. '┤'
 end
 
@@ -175,7 +187,9 @@ local function flat_fence_below(c)
     .. '┬'
     .. string.rep('─', w.exit)
     .. '┬'
-    .. string.rep('─', w.limits)
+    .. string.rep('─', w.timeout)
+    .. '┬'
+    .. string.rep('─', w.memory)
     .. '┤'
 end
 
@@ -194,7 +208,9 @@ local function header_line(c)
     .. '│'
     .. center('Exit Code', w.exit)
     .. '│'
-    .. center('Time (ms)/Mem (MB)', w.limits)
+    .. center('Time (ms)', w.timeout)
+    .. '│'
+    .. center('Mem (MB)', w.memory)
     .. '│'
 end
 
@@ -205,12 +221,14 @@ local function data_row(c, idx, tc, is_current, test_state)
   local time = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
   local exit = format_exit_code(tc.code)
 
-  local limits = ''
+  local timeout = ''
+  local memory = ''
   if test_state.constraints then
-    limits =
-      string.format('%d/%.0f', test_state.constraints.timeout_ms, test_state.constraints.memory_mb)
+    timeout = tostring(test_state.constraints.timeout_ms)
+    memory = string.format('%.0f', test_state.constraints.memory_mb)
   else
-    limits = '—'
+    timeout = '—'
+    memory = '—'
   end
 
   local line = '│'
@@ -222,13 +240,16 @@ local function data_row(c, idx, tc, is_current, test_state)
     .. '│'
     .. right_align(exit, w.exit)
     .. '│'
-    .. right_align(limits, w.limits)
+    .. right_align(timeout, w.timeout)
+    .. '│'
+    .. right_align(memory, w.memory)
     .. '│'
 
   local hi
   if status.text ~= '' then
-    local pad = w.status - #status.text
-    local status_start_col = 1 + w.num + 1 + pad
+    local content = ' ' .. status.text .. ' '
+    local pad = w.status - #content
+    local status_start_col = 1 + w.num + 1 + pad + 1
     local status_end_col = status_start_col + #status.text
     hi = {
       col_start = status_start_col,
