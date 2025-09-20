@@ -4,7 +4,7 @@
 ---@field debug? string[] Debug command template
 ---@field executable? string Executable name
 ---@field version? number Language version
----@field extension string File extension
+---@field extension? string File extension
 
 ---@class PartialLanguageConfig
 ---@field compile? string[] Compile command template
@@ -17,7 +17,7 @@
 ---@class ContestConfig
 ---@field cpp LanguageConfig
 ---@field python LanguageConfig
----@field default_language string
+---@field default_language? string
 
 ---@class PartialContestConfig
 ---@field cpp? PartialLanguageConfig
@@ -139,48 +139,7 @@ function M.setup(user_config)
                 return false
               end
 
-              for lang_name, lang_config in pairs(config) do
-                if type(lang_config) == 'table' then
-                  if
-                    lang_name ~= 'default_language'
-                    and not vim.tbl_contains(vim.tbl_keys(constants.canonical_filetypes), lang_name)
-                  then
-                    return false,
-                      ("Invalid language '%s'. Valid languages: %s"):format(
-                        lang_name,
-                        table.concat(vim.tbl_keys(constants.canonical_filetypes), ', ')
-                      )
-                  end
-
-                  if
-                    lang_config.extension
-                    and not vim.tbl_contains(
-                      vim.tbl_keys(constants.filetype_to_language),
-                      lang_config.extension
-                    )
-                  then
-                    return false,
-                      ("Invalid extension '%s'. Valid extensions: %s"):format(
-                        lang_config.extension,
-                        table.concat(vim.tbl_keys(constants.filetype_to_language), ', ')
-                      )
-                  end
-                end
-              end
-
-              if
-                config.default_language
-                and not vim.tbl_contains(
-                  vim.tbl_keys(constants.canonical_filetypes),
-                  config.default_language
-                )
-              then
-                return false,
-                  ("Invalid default_language '%s'. Valid languages: %s"):format(
-                    config.default_language,
-                    table.concat(vim.tbl_keys(constants.canonical_filetypes), ', ')
-                  )
-              end
+              -- Allow any language and extension configurations
 
               return true
             end,
