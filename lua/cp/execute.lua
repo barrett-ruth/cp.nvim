@@ -69,7 +69,7 @@ end
 
 ---@param language_config table
 ---@param substitutions table<string, string>
----@return {code: integer, stderr: string}
+---@return {code: integer, stdout: string, stderr: string}
 function M.compile_generic(language_config, substitutions)
   vim.validate({
     language_config = { language_config, 'table' },

@@ -396,14 +396,12 @@ describe('cp.execute', function()
 
   describe('integration tests', function()
     it('captures interleaved stderr/stdout with ANSI colors', function()
-      local start_time = vim.uv.hrtime()
       local python_cmd = {
         'sh',
         '-c',
         "python3 -c \"import sys; print('\\033[32mstdout: \\033[1mSuccess\\033[0m'); print('\\033[31mstderr: \\033[1mWarning\\033[0m', file=sys.stderr); print('plain stdout')\" 2>&1",
       }
       local result = vim.system(python_cmd, { timeout = 2000, text = false }):wait()
-      local execution_time = (vim.uv.hrtime() - start_time) / 1000000
 
       local ansi = require('cp.ansi')
       local combined_output = ansi.bytes_to_string(result.stdout or '')
