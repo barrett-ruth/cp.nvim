@@ -5,9 +5,10 @@ from scrapers.cses import (
     normalize_category_name,
     scrape,
     scrape_all_problems,
+    scrape_categories,
     scrape_category_problems,
 )
-from scrapers.models import ProblemSummary
+from scrapers.models import ContestSummary, ProblemSummary
 
 
 def test_scrape_success(mocker, mock_cses_html):
@@ -128,5 +129,57 @@ def test_scrape_category_problems_network_error(mocker):
     mocker.patch("scrapers.cses.requests.get", side_effect=Exception("Network error"))
 
     result = scrape_category_problems("sorting_and_searching")
+
+    assert result == []
+
+
+def test_scrape_categories_success(mocker):
+    mock_response = Mock()
+    mock_response.text = """
+    <html>
+        <body>
+            <h2>General</h2>
+            <ul class="task-list">
+                <li class="link"><a href="/register">Register</a></li>
+            </ul>
+
+            <h2>Introductory Problems</h2>
+            <ul class="task-list">
+                <li class="task"><a href="/problemset/task/1068">Weird Algorithm</a></li>
+                <li class="task"><a href="/problemset/task/1083">Missing Number</a></li>
+            </ul>
+
+            <h2>Sorting and Searching</h2>
+            <ul class="task-list">
+                <li class="task"><a href="/problemset/task/1621">Distinct Numbers</a></li>
+                <li class="task"><a href="/problemset/task/1084">Apartments</a></li>
+                <li class="task"><a href="/problemset/task/1090">Ferris Wheel</a></li>
+            </ul>
+        </body>
+    </html>
+    """
+    mock_response.raise_for_status = Mock()
+
+    mocker.patch("scrapers.cses.requests.get", return_value=mock_response)
+
+    result = scrape_categories()
+
+    assert len(result) == 2
+    assert result[0] == ContestSummary(
+        id="introductory_problems",
+        name="Introductory Problems",
+        display_name="Introductory Problems (2 problems)",
+    )
+    assert result[1] == ContestSummary(
+        id="sorting_and_searching",
+        name="Sorting and Searching",
+        display_name="Sorting and Searching (3 problems)",
+    )
+
+
+def test_scrape_categories_network_error(mocker):
+    mocker.patch("scrapers.cses.requests.get", side_effect=Exception("Network error"))
+
+    result = scrape_categories()
 
     assert result == []
