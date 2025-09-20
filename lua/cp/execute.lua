@@ -22,7 +22,6 @@ local function get_language_from_file(source_file, contest_config)
 
   local extension = vim.fn.fnamemodify(source_file, ':e')
   local language = filetype_to_language[extension] or contest_config.default_language
-  logger.log(('detected language: %s (extension: %s)'):format(language, extension))
   return language
 end
 
@@ -83,10 +82,13 @@ function M.compile_generic(language_config, substitutions)
   end
 
   local compile_cmd = substitute_template(language_config.compile, substitutions)
-  logger.log(('compiling: %s'):format(table.concat(compile_cmd, ' ')))
+  local redirected_cmd = vim.deepcopy(compile_cmd)
+  redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
 
   local start_time = vim.uv.hrtime()
-  local result = vim.system(compile_cmd, { text = false }):wait()
+  local result = vim
+    .system({ 'sh', '-c', table.concat(redirected_cmd, ' ') }, { text = false })
+    :wait()
   local compile_time = (vim.uv.hrtime() - start_time) / 1000000
 
   local ansi = require('cp.ansi')
@@ -113,12 +115,13 @@ local function execute_command(cmd, input_data, timeout_ms)
     timeout_ms = { timeout_ms, 'number' },
   })
 
-  logger.log(('executing: %s'):format(table.concat(cmd, ' ')))
+  local redirected_cmd = vim.deepcopy(cmd)
+  redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
 
   local start_time = vim.uv.hrtime()
 
   local result = vim
-    .system(cmd, {
+    .system({ 'sh', '-c', table.concat(redirected_cmd, ' ') }, {
       stdin = input_data,
       timeout = timeout_ms,
       text = true,
@@ -203,7 +206,7 @@ end
 ---@param ctx ProblemContext
 ---@param contest_config ContestConfig
 ---@param is_debug? boolean
----@return {success: boolean, stderr: string?}
+---@return {success: boolean, output: string?}
 function M.compile_problem(ctx, contest_config, is_debug)
   vim.validate({
     ctx = { ctx, 'table' },
@@ -215,7 +218,7 @@ function M.compile_problem(ctx, contest_config, is_debug)
 
   if not language_config then
     logger.log('No configuration for language: ' .. language, vim.log.levels.ERROR)
-    return { success = false, stderr = 'No configuration for language: ' .. language }
+    return { success = false, output = 'No configuration for language: ' .. language }
   end
 
   local substitutions = {
@@ -230,12 +233,12 @@ function M.compile_problem(ctx, contest_config, is_debug)
     language_config.compile = compile_cmd
     local compile_result = M.compile_generic(language_config, substitutions)
     if compile_result.code ~= 0 then
-      return { success = false, stderr = compile_result.stderr or 'unknown error' }
+      return { success = false, output = compile_result.stdout or 'unknown error' }
     end
     logger.log(('compilation successful (%s)'):format(is_debug and 'debug mode' or 'test mode'))
   end
 
-  return { success = true, stderr = nil }
+  return { success = true, output = nil }
 end
 
 function M.run_problem(ctx, contest_config, is_debug)

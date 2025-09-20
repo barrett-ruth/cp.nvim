@@ -227,8 +227,9 @@ local function toggle_run_panel(is_debug)
   local diff_namespace = highlight.create_namespace()
 
   local test_list_namespace = vim.api.nvim_create_namespace('cp_test_list')
+  local ansi_namespace = vim.api.nvim_create_namespace('cp_ansi_highlights')
 
-  local function update_buffer_content(bufnr, lines, highlights)
+  local function update_buffer_content(bufnr, lines, highlights, namespace)
     local was_readonly = vim.api.nvim_get_option_value('readonly', { buf = bufnr })
 
     vim.api.nvim_set_option_value('readonly', false, { buf = bufnr })
@@ -237,30 +238,8 @@ local function toggle_run_panel(is_debug)
     vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
     vim.api.nvim_set_option_value('readonly', was_readonly, { buf = bufnr })
 
-    local ansi = require('cp.ansi')
-    ansi.setup_highlight_groups()
-
-    vim.api.nvim_buf_clear_namespace(bufnr, test_list_namespace, 0, -1)
-    for _, hl in ipairs(highlights) do
-      logger.log(
-        'Applying extmark: buf='
-          .. bufnr
-          .. ' line='
-          .. hl.line
-          .. ' col='
-          .. hl.col_start
-          .. '-'
-          .. hl.col_end
-          .. ' group='
-          .. (hl.highlight_group or 'nil')
-      )
-
-      vim.api.nvim_buf_set_extmark(bufnr, test_list_namespace, hl.line, hl.col_start, {
-        end_col = hl.col_end,
-        hl_group = hl.highlight_group,
-        priority = 200,
-      })
-    end
+    local highlight = require('cp.highlight')
+    highlight.apply_highlights(bufnr, highlights, namespace or test_list_namespace)
   end
 
   local function create_vim_diff_layout(parent_win, expected_content, actual_content)
@@ -427,7 +406,12 @@ local function toggle_run_panel(is_debug)
     else
       if desired_mode == 'single' then
         local lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
-        update_buffer_content(current_diff_layout.buffers[1], lines, actual_highlights)
+        update_buffer_content(
+          current_diff_layout.buffers[1],
+          lines,
+          actual_highlights,
+          ansi_namespace
+        )
       elseif desired_mode == 'git' then
         local diff_backend = require('cp.diff')
         local backend = diff_backend.get_best_backend('git')
@@ -441,13 +425,23 @@ local function toggle_run_panel(is_debug)
           )
         else
           local lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
-          update_buffer_content(current_diff_layout.buffers[1], lines, actual_highlights)
+          update_buffer_content(
+            current_diff_layout.buffers[1],
+            lines,
+            actual_highlights,
+            ansi_namespace
+          )
         end
       else
         local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
         local actual_lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
         update_buffer_content(current_diff_layout.buffers[1], expected_lines, {})
-        update_buffer_content(current_diff_layout.buffers[2], actual_lines, actual_highlights)
+        update_buffer_content(
+          current_diff_layout.buffers[2],
+          actual_lines,
+          actual_highlights,
+          ansi_namespace
+        )
 
         if should_show_diff then
           vim.api.nvim_set_option_value('diff', true, { win = current_diff_layout.windows[1] })
@@ -476,8 +470,6 @@ local function toggle_run_panel(is_debug)
     local run_render = require('cp.run_render')
     run_render.setup_highlights()
 
-    local ansi = require('cp.ansi')
-    ansi.setup_highlight_groups()
     local test_state = run.get_run_panel_state()
     local tab_lines, tab_highlights = run_render.render_test_list(test_state)
     update_buffer_content(test_buffers.tab_buf, tab_lines, tab_highlights)
@@ -540,10 +532,18 @@ local function toggle_run_panel(is_debug)
   if compile_result.success then
     run.run_all_test_cases(ctx, contest_config, config)
   else
-    run.handle_compilation_failure(compile_result.stderr)
+    run.handle_compilation_failure(compile_result.output)
   end
 
   refresh_run_panel()
+
+  vim.schedule(function()
+    local ansi = require('cp.ansi')
+    ansi.setup_highlight_groups()
+    if current_diff_layout then
+      update_diff_panes()
+    end
+  end)
 
   vim.api.nvim_set_current_win(test_windows.tab_win)
 

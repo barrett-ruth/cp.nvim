@@ -188,13 +188,22 @@ local function run_single_test_case(ctx, contest_config, cp_config, test_case)
   if language_config.compile and vim.fn.filereadable(ctx.binary_file) == 0 then
     logger.log('binary not found, compiling first...')
     local compile_cmd = substitute_template(language_config.compile, substitutions)
-    local compile_result = vim.system(compile_cmd, { text = true }):wait()
+    local redirected_cmd = vim.deepcopy(compile_cmd)
+    redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
+    local compile_result = vim
+      .system({ 'sh', '-c', table.concat(redirected_cmd, ' ') }, { text = false })
+      :wait()
+
+    local ansi = require('cp.ansi')
+    compile_result.stdout = ansi.bytes_to_string(compile_result.stdout or '')
+    compile_result.stderr = ansi.bytes_to_string(compile_result.stderr or '')
+
     if compile_result.code ~= 0 then
       return {
         status = 'fail',
         actual = '',
-        error = 'Compilation failed: ' .. (compile_result.stderr or 'Unknown error'),
-        stderr = compile_result.stderr or '',
+        error = 'Compilation failed: ' .. (compile_result.stdout or 'Unknown error'),
+        stderr = compile_result.stdout or '',
         time_ms = 0,
         code = compile_result.code,
         ok = false,
@@ -214,8 +223,10 @@ local function run_single_test_case(ctx, contest_config, cp_config, test_case)
   if not run_panel_state.constraints then
     logger.log('no problem constraints available, using default 2000ms timeout')
   end
+  local redirected_run_cmd = vim.deepcopy(run_cmd)
+  redirected_run_cmd[#redirected_run_cmd] = redirected_run_cmd[#redirected_run_cmd] .. ' 2>&1'
   local result = vim
-    .system(run_cmd, {
+    .system({ 'sh', '-c', table.concat(redirected_run_cmd, ' ') }, {
       stdin = stdin_content,
       timeout = timeout_ms,
       text = false,
@@ -225,35 +236,14 @@ local function run_single_test_case(ctx, contest_config, cp_config, test_case)
 
   local ansi = require('cp.ansi')
   local stdout_str = ansi.bytes_to_string(result.stdout or '')
-  local stderr_str = ansi.bytes_to_string(result.stderr or '')
-
   local actual_output = stdout_str:gsub('\n$', '')
-  local stderr_output = stderr_str:gsub('\n$', '')
 
   local actual_highlights = {}
 
-  if stderr_output ~= '' then
-    local stderr_parsed = ansi.parse_ansi_text(stderr_output)
-    local clean_stderr = table.concat(stderr_parsed.lines, '\n')
-
-    local line_offset
-    if actual_output ~= '' then
-      local stdout_lines = vim.split(actual_output, '\n')
-      line_offset = #stdout_lines + 2 -- +1 for empty line, +1 for "--- stderr ---"
-      actual_output = actual_output .. '\n\n--- stderr ---\n' .. clean_stderr
-    else
-      line_offset = 1 -- +1 for "--- stderr ---"
-      actual_output = '--- stderr ---\n' .. clean_stderr
-    end
-
-    for _, highlight in ipairs(stderr_parsed.highlights) do
-      table.insert(actual_highlights, {
-        line = highlight.line + line_offset,
-        col_start = highlight.col_start,
-        col_end = highlight.col_end,
-        highlight_group = highlight.highlight_group,
-      })
-    end
+  if actual_output ~= '' then
+    local parsed = ansi.parse_ansi_text(actual_output)
+    actual_output = table.concat(parsed.lines, '\n')
+    actual_highlights = parsed.highlights
   end
 
   local max_lines = cp_config.run_panel.max_output_lines
@@ -289,8 +279,8 @@ local function run_single_test_case(ctx, contest_config, cp_config, test_case)
     status = status,
     actual = actual_output,
     actual_highlights = actual_highlights,
-    error = result.code ~= 0 and result.stderr or nil,
-    stderr = result.stderr or '',
+    error = result.code ~= 0 and actual_output or nil,
+    stderr = '',
     time_ms = execution_time,
     code = result.code,
     ok = ok,
@@ -335,7 +325,6 @@ function M.run_test_case(ctx, contest_config, cp_config, index)
     return false
   end
 
-  logger.log(('running test case %d'):format(index))
   test_case.status = 'running'
 
   local result = run_single_test_case(ctx, contest_config, cp_config, test_case)
@@ -371,39 +360,13 @@ function M.get_run_panel_state()
   return run_panel_state
 end
 
-function M.handle_compilation_failure(compilation_stderr)
+function M.handle_compilation_failure(compilation_output)
   local ansi = require('cp.ansi')
-  local clean_text = 'Compilation failed'
-  local highlights = {}
 
-  if compilation_stderr and compilation_stderr ~= '' then
-    logger.log('Raw compilation stderr length: ' .. #compilation_stderr)
-    logger.log('Has ANSI codes: ' .. tostring(compilation_stderr:find('\027%[[%d;]*m') ~= nil))
-
-    -- Show first 200 chars to see actual ANSI sequences
-    local sample = compilation_stderr:sub(1, 200):gsub('\027', '\\027')
-    logger.log('Stderr sample: ' .. sample)
-
-    local parsed = ansi.parse_ansi_text(compilation_stderr)
-    clean_text = table.concat(parsed.lines, '\n')
-    highlights = parsed.highlights
-
-    logger.log('Parsed highlights count: ' .. #highlights)
-    for i, hl in ipairs(highlights) do
-      logger.log(
-        'Highlight '
-          .. i
-          .. ': line='
-          .. hl.line
-          .. ' col='
-          .. hl.col_start
-          .. '-'
-          .. hl.col_end
-          .. ' group='
-          .. (hl.highlight_group or 'nil')
-      )
-    end
-  end
+  -- Always parse the compilation output - it contains everything now
+  local parsed = ansi.parse_ansi_text(compilation_output or '')
+  local clean_text = table.concat(parsed.lines, '\n')
+  local highlights = parsed.highlights
 
   for _, test_case in ipairs(run_panel_state.test_cases) do
     test_case.status = 'fail'
