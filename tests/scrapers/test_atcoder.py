@@ -94,7 +94,6 @@ def test_scrape_contests_success(mocker):
             return mock_response
 
     mocker.patch("scrapers.atcoder.requests.get", side_effect=mock_get_side_effect)
-    mocker.patch("scrapers.atcoder.time.sleep")
 
     result = scrape_contests()
 
@@ -116,7 +115,6 @@ def test_scrape_contests_no_table(mocker):
     mock_response.text = "<html><body>No table found</body></html>"
 
     mocker.patch("scrapers.atcoder.requests.get", return_value=mock_response)
-    mocker.patch("scrapers.atcoder.time.sleep")
 
     result = scrape_contests()
 
@@ -127,7 +125,6 @@ def test_scrape_contests_network_error(mocker):
     mocker.patch(
         "scrapers.atcoder.requests.get", side_effect=Exception("Network error")
     )
-    mocker.patch("scrapers.atcoder.time.sleep")
 
     result = scrape_contests()
 

@@ -9,8 +9,7 @@ INTRODUCTION                                                    *cp* *cp.nvim*
 cp.nvim is a competitive programming plugin that automates problem setup,
 compilation, and testing workflow for online judges.
 
-Supported platforms: AtCoder, Codeforces, CSES
-Supported languages: C++, Python
+Supported platforms (for now!): AtCoder, Codeforces, CSES
 
 ==============================================================================
 REQUIREMENTS                                                *cp-requirements*
@@ -72,6 +71,9 @@ COMMANDS                                                        *cp-commands*
                                 Use --debug flag to compile with debug flags.
                                 Requires contest setup first.
 
+            :CP pick            Launch configured picker for interactive
+                                platform/contest/problem selection.
+
         Navigation Commands ~
             :CP next            Navigate to next problem in current contest.
                                 Stops at last problem (no wrapping).
@@ -131,10 +133,11 @@ Here's an example configuration with lazy.nvim: >lua
                 default = {
                     cpp = {
                         compile = { 'g++', '{source}', '-o', '{binary}',
-                                   '-std=c++17' },
+                                   '-std=c++17', '-fdiagnostic-colors=always' },
                         test = { '{binary}' },
                         debug = { 'g++', '{source}', '-o', '{binary}',
                                  '-std=c++17', '-g',
+                                 '-fdiagnostic-colors=always'
                                  '-fsanitize=address,undefined' },
                     },
                     python = {
@@ -143,14 +146,8 @@ Here's an example configuration with lazy.nvim: >lua
                 },
             },
             snippets = {},
-            hooks = {
-                before_run = nil,
-                before_debug = nil,
-                setup_code = nil,
-            },
             debug = false,
             scrapers = { 'atcoder', 'codeforces', 'cses' },
-            filename = default_filename,  -- <contest id> + <problem id>
             run_panel = {
                 ansi = true,
                 diff_mode = 'vim',
@@ -165,6 +162,7 @@ Here's an example configuration with lazy.nvim: >lua
                             '--word-diff-regex=.', '--no-prefix' },
                 },
             },
+            picker = 'telescope',  -- 'telescope', 'fzf-lua', or nil (disabled)
         }
     }
 <
@@ -180,6 +178,9 @@ Here's an example configuration with lazy.nvim: >lua
                         Default: all scrapers enabled
         {run_panel}     (|RunPanelConfig|) Test panel behavior configuration.
         {diff}          (|DiffConfig|) Diff backend configuration.
+        {picker}        (string, optional) Picker integration: "telescope",
+                        "fzf-lua", or nil to disable. When enabled, provides
+                        :CP pick for interactive platform/contest/problem selection.
         {filename}      (function, optional) Custom filename generation.
                         function(contest, contest_id, problem_id, config, language)
                         Should return full filename with extension.
@@ -279,21 +280,6 @@ AtCoder ~
                                                              *cp-atcoder*
 URL format: https://atcoder.jp/contests/abc123/tasks/abc123_a
 
-AtCoder contests use consistent naming patterns where contest ID and problem
-ID are combined to form the task name.
-
-Platform characteristics:
-• Contest types: ABC (Beginner), ARC (Regular), AGC (Grand), etc.
-• Problem naming: Contest ID + problem letter (e.g. "abc324_a")
-• Multi-test problems: Handled with conditional compilation directives
-• Template features: Includes fast I/O and common competitive programming
-  headers
-
-In terms of cp.nvim, this corresponds to:
-- Platform: atcoder
-- Contest ID: abc123 (from URL path segment)
-- Problem ID: a (single letter, extracted from task name)
-
 Usage examples: >
     :CP atcoder abc324 a        " Full setup: problem A from contest ABC324
     :CP atcoder abc324          " Contest setup: load contest metadata only
@@ -308,21 +294,6 @@ Codeforces ~
                                                           *cp-codeforces*
 URL format: https://codeforces.com/contest/1234/problem/A
 
-Codeforces uses numeric contest IDs with letter-based problem identifiers.
-Educational rounds, gym contests, and regular contests all follow this pattern.
-
-Platform characteristics:
-• Contest types: Regular, Educational, Div. 1/2/3, Global rounds
-• Problem naming: Numeric contest + problem letter
-• Multi-test support: Template includes test case loop structure
-• Interactive problems: Supported with flush handling
-• Time/memory limits: Typically 1-2 seconds, 256 MB
-
-In terms of cp.nvim, this corresponds to:
-- Platform: codeforces
-- Contest ID: 1234 (numeric, from URL)
-- Problem ID: a (lowercase letter, normalized from URL)
-
 Usage examples: >
     :CP codeforces 1934 a       " Full setup: problem A from contest 1934
     :CP codeforces 1934         " Contest setup: load contest metadata only
@@ -336,21 +307,6 @@ CSES ~
                                                                 *cp-cses*
 URL format: https://cses.fi/problemset/task/1068
 
-CSES (Code Submission Evaluation System) is organized by problem categories
-rather than traditional contests. Problems are grouped by topic and difficulty.
-
-Platform characteristics:
-• Organization: Category-based (Introductory, Sorting, Dynamic Programming)
-• Problem numbering: Sequential numeric IDs (1001, 1068, etc.)
-• Difficulty progression: Problems increase in complexity within categories
-• No time pressure: Educational focus rather than contest environment
-• Cache expiry: 30 days (problems may be updated periodically)
-
-In terms of cp.nvim, this corresponds to:
-- Platform: cses
-- Contest ID: Category name (introductory_problems, sorting_and_searching)
-- Problem ID: Problem number (1068, 1640)
-
 Usage examples: >
     :CP cses dynamic_programming 1633      " Set up problem 1633 from DP category
     :CP cses dynamic_programming           " Set up ALL problems from DP category
@@ -361,7 +317,7 @@ Usage examples: >
 
 ==============================================================================
 
-COMPLETE WORKFLOW EXAMPLE                                        *cp-example*
+COMPLETE WORKFLOW EXAMPLE                                       *cp-example*
 
 Example: Setting up and solving AtCoder contest ABC324
 
@@ -397,6 +353,39 @@ Example: Setting up and solving AtCoder contest ABC324
 <   Automatically restores abc323 contest context
 
 9. Submit solutions on AtCoder website
+
+==============================================================================
+PICKER INTEGRATION                                              *cp-picker*
+
+When picker integration is enabled in configuration, cp.nvim provides interactive
+platform, contest, and problem selection using telescope.nvim or fzf-lua.
+
+:CP pick                                                        *:CP-pick*
+        Launch configured picker for interactive problem selection.
+        Control Flow: Select Platform → Contest → Problem → Code!
+
+        Requires picker = 'telescope' or picker = 'fzf-lua' in configuration.
+        Requires corresponding plugin (telescope.nvim or fzf-lua) to be installed.
+
+Picker Controls ~
+                                                       *cp-picker-controls*
+    The picker interface provides several keyboard shortcuts for enhanced control:
+
+    <c-r>                   Force refresh contest list, bypassing cache
+                            Useful when contest lists are outdated or incomplete
+                            Shows loading indicator during refresh operation
+
+    Standard picker controls (telescope.nvim/fzf-lua):
+    <cr>                    Select current item and proceed to next step
+    <c-c> / <esc>          Cancel picker and return to editor
+    <c-n> / <down>         Navigate to next item
+    <c-p> / <up>           Navigate to previous item
+    /                      Start filtering/searching items
+
+Notes ~
+    • Contest lists are fetched dynamically using scrapers with a TTL of 1 day
+    • Use <c-r> to force refresh
+    • Large contest lists may take time to load
 
 ==============================================================================
 RUN PANEL                                                           *cp-run*
@@ -448,13 +437,13 @@ Test cases use competitive programming terminology with color highlighting:
 <
 
 ==============================================================================
-ANSI COLORS AND HIGHLIGHTING                               *cp-ansi*
+ANSI COLORS AND HIGHLIGHTING                                    *cp-ansi*
 
 cp.nvim provides comprehensive ANSI color support and highlighting for
 compiler output, program stderr, and diff visualization.
 
 ==============================================================================
-HIGHLIGHT GROUPS                                           *cp-highlights*
+HIGHLIGHT GROUPS                                            *cp-highlights*
 
 Test Status Groups ~
 
@@ -514,20 +503,19 @@ These groups are automatically used by the git diff backend for character-level
 difference visualization with optimal colorscheme integration.
 
 ==============================================================================
-TERMINAL COLOR INTEGRATION                                 *cp-terminal-colors*
+TERMINAL COLOR INTEGRATION                          *cp-terminal-colors*
 
 ANSI colors automatically use your terminal's color palette through Neovim's
 vim.g.terminal_color_* variables. This ensures compiler colors match your
 colorscheme without manual configuration.
 
-If your colorscheme doesn't set terminal colors, cp.nvim falls back to
-sensible defaults. You can override terminal colors in your configuration: >vim
-    let g:terminal_color_1 = '#ff6b6b'    " Custom red
-    let g:terminal_color_2 = '#51cf66'    " Custom green
-<
+If your colorscheme doesn't set terminal colors, cp.nvim will warn you and
+ANSI colors won't display properly - set them like so: >vim
+    let g:terminal_color_1 = '#ff6b6b'
+    ...
 
 ==============================================================================
-HIGHLIGHT CUSTOMIZATION                                    *cp-highlight-custom*
+HIGHLIGHT CUSTOMIZATION                             *cp-highlight-custom*
 
 You can customize any highlight group by linking to existing groups or
 defining custom colors: >lua
@@ -552,7 +540,7 @@ prevent them from being overridden: >lua
 <
 
 ==============================================================================
-RUN PANEL KEYMAPS                                          *cp-test-keys*
+RUN PANEL KEYMAPS                                           *cp-test-keys*
 <c-n>                           Navigate to next test case (configurable via
                                 run_panel.next_test_key)
 <c-p>                           Navigate to previous test case (configurable via
@@ -591,97 +579,6 @@ cp.nvim creates the following file structure upon problem setup: >
       {problem_id}.n.cpout          " nth program output
       {problem_id}.expected         " Expected output
 <
-
-The plugin automatically manages this structure and navigation between problems
-maintains proper file associations.
-
-==============================================================================
-CACHING SYSTEM                                                  *cp-caching*
-
-cp.nvim maintains a persistent cache to improve performance and enable offline
-functionality. The cache stores contest metadata, problem lists, test cases,
-and file-to-context mappings.
-
-Cache Location ~
-                                                          *cp-cache-location*
-Cache is stored at: >
-    vim.fn.stdpath('data') .. '/cp-nvim.json'
-<
-Cache Structure ~
-                                                         *cp-cache-structure*
-The cache contains four main sections:
-
-contest_data                    Contest metadata and problem lists
-• Indexed by: `platform:contest_id`
-• Contains: Problem names, IDs, URLs, constraints
-• Expiry: Platform-dependent (see |cp-cache-expiry|)
-
-test_cases                      Scraped test case input/output pairs
-• Indexed by: `platform:contest_id:problem_id`
-• Contains: Input data, expected output, test case count
-• Expiry: Never (local test data persists)
-
-file_states                     File-to-context mapping
-• Indexed by: Absolute file path
-• Contains: Platform, contest_id, problem_id, language
-• Purpose: Enables context restoration with `:CP`
-
-timestamps                      Last update times for cache validation
-• Tracks: When each cache entry was last refreshed
-• Used for: Expiry checking and incremental updates
-
-Cache Expiry Policy ~
-                                                           *cp-cache-expiry*
-Different data types have different expiry policies:
-
-AtCoder/Codeforces contest data Never expires (contests are immutable)
-CSES problem data              30 days (problems may be updated)
-Test cases                     Never expires (local test data)
-File states                    Never expires (tracks user workspace)
-
-Manual Cache Management ~
-                                                      *cp-cache-management*
-While cache management is automatic, you can manually intervene:
-
-Clear specific contest cache: >
-    :lua require('cp.cache').clear_contest('atcoder', 'abc324')
-<
-Clear all cache data: >
-    :lua require('cp.cache').clear_all()
-<
-Force refresh contest metadata: >
-    :lua require('cp.cache').refresh_contest('codeforces', '1934')
-<
-View cache statistics: >
-    :lua print(vim.inspect(require('cp.cache').get_stats()))
-<
-                                Note: Manual cache operations require Lua
-                                knowledge and are primarily for debugging.
-
-Offline Functionality ~
-                                                         *cp-cache-offline*
-The cache enables limited offline functionality:
-
-✓ Restore context from cached file states
-✓ Navigate between cached problems in a contest
-✓ Access cached test cases for local development
-✓ Use cached templates and configuration
-
-✗ Scrape new problems without internet connection
-✗ Download new contest metadata
-✗ Update problem constraints or test cases
-
-Performance Considerations ~
-                                                      *cp-cache-performance*
-The cache provides several performance benefits:
-
-• Instant context restoration: No network requests needed
-• Fast problem navigation: Problem lists loaded from cache
-• Reduced scraping: Test cases cached after first download
-• Batch operations: Multiple problems can be set up quickly
-
-Cache size typically remains under 1MB even with extensive usage.
-
 ==============================================================================
 SNIPPETS                                                        *cp-snippets*
 
@@ -690,7 +587,15 @@ snippets include basic C++ and Python templates for each contest type.
 
 Snippet trigger names must match the following format exactly: >
 
-    cp.nvim/{platform}
+    cp.nvim/{platform}.{language}
+<
+Where {platform} is the contest platform (atcoder, codeforces, cses) and
+{language} is the programming language (cpp, python).
+
+Examples: >
+    cp.nvim/atcoder.cpp
+    cp.nvim/codeforces.python
+    cp.nvim/cses.cpp
 <
 
 Custom snippets can be added via the `snippets` configuration field.

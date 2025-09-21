@@ -168,12 +168,12 @@ def test_scrape_categories_success(mocker):
     assert result[0] == ContestSummary(
         id="introductory_problems",
         name="Introductory Problems",
-        display_name="Introductory Problems (2 problems)",
+        display_name="Introductory Problems",
     )
     assert result[1] == ContestSummary(
         id="sorting_and_searching",
         name="Sorting and Searching",
-        display_name="Sorting and Searching (3 problems)",
+        display_name="Sorting and Searching",
     )
 
 

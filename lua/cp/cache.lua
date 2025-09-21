@@ -7,6 +7,12 @@
 ---@class CacheData
 ---@field [string] table<string, ContestData>
 ---@field file_states? table<string, FileState>
+---@field contest_lists? table<string, ContestListData>
+
+---@class ContestListData
+---@field contests table[]
+---@field cached_at number
+---@field expires_at number
 
 ---@class ContestData
 ---@field problems Problem[]
@@ -32,6 +38,12 @@ local M = {}
 local cache_file = vim.fn.stdpath('data') .. '/cp-nvim.json'
 local cache_data = {}
 local loaded = false
+
+local CONTEST_LIST_TTL = {
+  cses = 7 * 24 * 60 * 60, -- 1 week
+  codeforces = 24 * 60 * 60, -- 1 day
+  atcoder = 24 * 60 * 60, -- 1 day
+}
 
 ---@param platform string
 ---@return number?
@@ -275,6 +287,59 @@ function M.set_file_state(file_path, platform, contest_id, problem_id, language)
   }
 
   M.save()
+end
+
+---@param platform string
+---@return table[]?
+function M.get_contest_list(platform)
+  vim.validate({
+    platform = { platform, 'string' },
+  })
+
+  if not cache_data.contest_lists or not cache_data.contest_lists[platform] then
+    return nil
+  end
+
+  local contest_list_data = cache_data.contest_lists[platform]
+  if os.time() >= contest_list_data.expires_at then
+    return nil
+  end
+
+  return contest_list_data.contests
+end
+
+---@param platform string
+---@param contests table[]
+function M.set_contest_list(platform, contests)
+  vim.validate({
+    platform = { platform, 'string' },
+    contests = { contests, 'table' },
+  })
+
+  if not cache_data.contest_lists then
+    cache_data.contest_lists = {}
+  end
+
+  local ttl = CONTEST_LIST_TTL[platform] or (24 * 60 * 60) -- Default 1 day
+  cache_data.contest_lists[platform] = {
+    contests = contests,
+    cached_at = os.time(),
+    expires_at = os.time() + ttl,
+  }
+
+  M.save()
+end
+
+---@param platform string
+function M.clear_contest_list(platform)
+  vim.validate({
+    platform = { platform, 'string' },
+  })
+
+  if cache_data.contest_lists and cache_data.contest_lists[platform] then
+    cache_data.contest_lists[platform] = nil
+    M.save()
+  end
 end
 
 return M

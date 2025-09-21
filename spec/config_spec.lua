@@ -231,6 +231,39 @@ describe('cp.config', function()
         end)
       end)
     end)
+
+    describe('picker validation', function()
+      it('validates picker is valid value', function()
+        local invalid_config = {
+          picker = 'invalid_picker',
+        }
+
+        assert.has_error(function()
+          config.setup(invalid_config)
+        end, "Invalid picker 'invalid_picker'. Must be 'telescope' or 'fzf-lua'")
+      end)
+
+      it('allows nil picker', function()
+        assert.has_no.errors(function()
+          local result = config.setup({ picker = nil })
+          assert.is_nil(result.picker)
+        end)
+      end)
+
+      it('allows telescope picker without checking availability', function()
+        assert.has_no.errors(function()
+          local result = config.setup({ picker = 'telescope' })
+          assert.equals('telescope', result.picker)
+        end)
+      end)
+
+      it('allows fzf-lua picker without checking availability', function()
+        assert.has_no.errors(function()
+          local result = config.setup({ picker = 'fzf-lua' })
+          assert.equals('fzf-lua', result.picker)
+        end)
+      end)
+    end)
   end)
 
   describe('default_filename', function()

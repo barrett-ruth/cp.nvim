@@ -203,8 +203,6 @@ def scrape_contest_problems(contest_id: str) -> list[ProblemSummary]:
                         ProblemSummary(id=problem_letter, name=problem_name)
                     )
 
-        problems.sort(key=lambda x: x.id)
-
         seen: set[str] = set()
         unique_problems: list[ProblemSummary] = []
         for p in problems:

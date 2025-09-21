@@ -83,6 +83,17 @@ local function setup_problem(contest_id, problem_id, language)
     state.test_cases = cached_test_cases
     logger.log(('using cached test cases (%d)'):format(#cached_test_cases))
   elseif vim.tbl_contains(config.scrapers, state.platform) then
+    local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[state.platform] or state.platform
+    logger.log(
+      ('Scraping %s %s %s for test cases, this may take a few seconds...'):format(
+        platform_display_name,
+        contest_id,
+        problem_id
+      ),
+      vim.log.levels.INFO,
+      true
+    )
+
     local scrape_result = scrape.scrape_problem(ctx)
 
     if not scrape_result.success then
@@ -562,9 +573,9 @@ local function toggle_run_panel(is_debug)
     config.hooks.before_debug(ctx)
   end
 
-  local execute_module = require('cp.execute')
+  local execute = require('cp.execute')
   local contest_config = config.contests[state.platform]
-  local compile_result = execute_module.compile_problem(ctx, contest_config, is_debug)
+  local compile_result = execute.compile_problem(ctx, contest_config, is_debug)
   if compile_result.success then
     run.run_all_test_cases(ctx, contest_config, config)
   else
@@ -696,6 +707,48 @@ local function navigate_problem(delta, language)
   local new_problem = problems[new_index]
 
   setup_problem(state.contest_id, new_problem.id, language)
+end
+
+local function handle_pick_action()
+  if not config.picker then
+    logger.log(
+      'No picker configured. Set picker = "telescope" or picker = "fzf-lua" in config',
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
+  if config.picker == 'telescope' then
+    local ok = pcall(require, 'telescope')
+    if not ok then
+      logger.log(
+        'Telescope not available. Install telescope.nvim or change picker config',
+        vim.log.levels.ERROR
+      )
+      return
+    end
+    local ok_cp, telescope_cp = pcall(require, 'cp.pickers.telescope')
+    if not ok_cp then
+      logger.log('Failed to load telescope integration', vim.log.levels.ERROR)
+      return
+    end
+    telescope_cp.platform_picker()
+  elseif config.picker == 'fzf-lua' then
+    local ok, _ = pcall(require, 'fzf-lua')
+    if not ok then
+      logger.log(
+        'fzf-lua not available. Install fzf-lua or change picker config',
+        vim.log.levels.ERROR
+      )
+      return
+    end
+    local ok_cp, fzf_cp = pcall(require, 'cp.pickers.fzf_lua')
+    if not ok_cp then
+      logger.log('Failed to load fzf-lua integration', vim.log.levels.ERROR)
+      return
+    end
+    fzf_cp.platform_picker()
+  end
 end
 
 local function restore_from_current_file()
@@ -837,6 +890,8 @@ function M.handle_command(opts)
       navigate_problem(1, cmd.language)
     elseif cmd.action == 'prev' then
       navigate_problem(-1, cmd.language)
+    elseif cmd.action == 'pick' then
+      handle_pick_action()
     end
     return
   end

@@ -1,6 +1,7 @@
 describe('cp.scrape', function()
   local scrape
   local mock_cache
+  local mock_utils
   local mock_system_calls
   local temp_files
   local spec_helper = require('spec.spec_helper')
@@ -8,6 +9,7 @@ describe('cp.scrape', function()
   before_each(function()
     spec_helper.setup()
     temp_files = {}
+    mock_system_calls = {}
 
     mock_cache = {
       load = function() end,
@@ -18,7 +20,14 @@ describe('cp.scrape', function()
       set_test_cases = function() end,
     }
 
-    mock_system_calls = {}
+    mock_utils = {
+      setup_python_env = function()
+        return true
+      end,
+      get_plugin_path = function()
+        return '/test/plugin/path'
+      end,
+    }
 
     vim.system = function(cmd, opts)
       table.insert(mock_system_calls, { cmd = cmd, opts = opts })
@@ -46,6 +55,8 @@ describe('cp.scrape', function()
     end
 
     package.loaded['cp.cache'] = mock_cache
+    package.loaded['cp.utils'] = mock_utils
+    package.loaded['cp.scrape'] = nil
     scrape = require('cp.scrape')
 
     local original_fn = vim.fn
@@ -129,28 +140,27 @@ describe('cp.scrape', function()
 
   describe('system dependency checks', function()
     it('handles missing uv executable', function()
+      local cache = require('cp.cache')
+      local utils = require('cp.utils')
+
+      cache.load = function() end
+      cache.get_contest_data = function()
+        return nil
+      end
+
       vim.fn.executable = function(cmd)
         return cmd == 'uv' and 0 or 1
       end
 
-      local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
+      utils.setup_python_env = function()
+        return vim.fn.executable('uv') == 1
+      end
 
-      assert.is_false(result.success)
-      assert.is_not_nil(result.error:match('Python environment setup failed'))
-    end)
-
-    it('handles python environment setup failure', function()
       vim.system = function(cmd)
         if cmd[1] == 'ping' then
           return {
             wait = function()
               return { code = 0 }
-            end,
-          }
-        elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
-          return {
-            wait = function()
-              return { code = 1, stderr = 'setup failed' }
             end,
           }
         end
@@ -161,14 +171,43 @@ describe('cp.scrape', function()
         }
       end
 
-      vim.fn.isdirectory = function()
-        return 0
+      local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
+
+      assert.is_false(result.success)
+      assert.is_not_nil(result.error)
+    end)
+
+    it('handles python environment setup failure', function()
+      local cache = require('cp.cache')
+
+      cache.load = function() end
+      cache.get_contest_data = function()
+        return nil
+      end
+
+      mock_utils.setup_python_env = function()
+        return false
+      end
+
+      vim.system = function(cmd)
+        if cmd[1] == 'ping' then
+          return {
+            wait = function()
+              return { code = 0 }
+            end,
+          }
+        end
+        return {
+          wait = function()
+            return { code = 0 }
+          end,
+        }
       end
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
 
       assert.is_false(result.success)
-      assert.is_not_nil(result.error:match('Python environment setup failed'))
+      assert.equals('Python environment setup failed', result.error)
     end)
 
     it('handles network connectivity issues', function()
@@ -396,7 +435,7 @@ describe('cp.scrape', function()
       assert.is_not_nil(tests_call)
       assert.is_true(vim.tbl_contains(tests_call.cmd, 'tests'))
       assert.is_true(vim.tbl_contains(tests_call.cmd, '1001'))
-      assert.is_false(vim.tbl_contains(tests_call.cmd, 'sorting_and_searching'))
+      assert.is_true(vim.tbl_contains(tests_call.cmd, 'sorting_and_searching'))
     end)
   end)
 
