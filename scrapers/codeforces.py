@@ -269,7 +269,6 @@ def scrape_contests() -> list[ContestSummary]:
                         if single_div_match:
                             display_name = f"Round {single_div_match.group(1)} (Div. 1)"
                         else:
-                            # Fallback: extract just the round number
                             round_match = re.search(r"Codeforces Round (\d+)", name)
                             if round_match:
                                 display_name = f"Round {round_match.group(1)}"
@@ -278,7 +277,7 @@ def scrape_contests() -> list[ContestSummary]:
                 ContestSummary(id=contest_id, name=name, display_name=display_name)
             )
 
-        return contests[:100]  # Limit to recent 100 contests
+        return contests[:100]
 
     except Exception as e:
         print(f"Failed to fetch contests: {e}", file=sys.stderr)

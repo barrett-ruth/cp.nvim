@@ -9,7 +9,6 @@
 
 local M = {}
 
----Vim's built-in diff backend using diffthis
 ---@type DiffBackend
 local vim_backend = {
   name = 'vim',
@@ -18,17 +17,15 @@ local vim_backend = {
 
     return {
       content = actual_lines,
-      highlights = nil, -- diffthis handles highlighting
+      highlights = nil,
     }
   end,
 }
 
----Git word-diff backend for character-level precision
 ---@type DiffBackend
 local git_backend = {
   name = 'git',
   render = function(expected, actual)
-    -- Create temporary files for git diff
     local tmp_expected = vim.fn.tempname()
     local tmp_actual = vim.fn.tempname()
 
@@ -48,7 +45,6 @@ local git_backend = {
 
     local result = vim.system(cmd, { text = true }):wait()
 
-    -- Clean up temp files
     vim.fn.delete(tmp_expected)
     vim.fn.delete(tmp_actual)
 
@@ -58,25 +54,21 @@ local git_backend = {
         highlights = {},
       }
     else
-      -- Parse git diff output to extract content and highlights
       local diff_content = result.stdout or ''
       local lines = {}
       local highlights = {}
       local line_num = 0
 
-      -- Extract content lines that start with space, +, or -
       for line in diff_content:gmatch('[^\n]*') do
         if
           line:match('^[%s%+%-]')
           or (not line:match('^[@%-+]') and not line:match('^index') and not line:match('^diff'))
         then
-          -- This is content, not metadata
           local clean_line = line
           if line:match('^[%+%-]') then
-            clean_line = line:sub(2) -- Remove +/- prefix
+            clean_line = line:sub(2)
           end
 
-          -- Parse diff markers in the line
           local col_pos = 0
           local processed_line = ''
           local i = 1
@@ -97,28 +89,26 @@ local git_backend = {
             end
 
             if next_marker_start then
-              -- Add text before marker
               if next_marker_start > i then
                 local before_text = clean_line:sub(i, next_marker_start - 1)
                 processed_line = processed_line .. before_text
                 col_pos = col_pos + #before_text
               end
 
-              -- Extract and add marker content with highlighting
               local marker_end = (marker_type == 'removed') and removed_end or added_end
               local marker_text = clean_line:sub(next_marker_start, marker_end)
               local content_text
 
               if marker_type == 'removed' then
-                content_text = marker_text:sub(3, -3) -- Remove [- and -]
+                content_text = marker_text:sub(3, -3)
                 table.insert(highlights, {
                   line = line_num,
                   col_start = col_pos,
                   col_end = col_pos + #content_text,
                   highlight_group = 'DiffDelete',
                 })
-              else -- added
-                content_text = marker_text:sub(3, -3) -- Remove {+ and +}
+              else
+                content_text = marker_text:sub(3, -3)
                 table.insert(highlights, {
                   line = line_num,
                   col_start = col_pos,
@@ -131,7 +121,6 @@ local git_backend = {
               col_pos = col_pos + #content_text
               i = marker_end + 1
             else
-              -- No more markers, add rest of line
               local rest = clean_line:sub(i)
               processed_line = processed_line .. rest
               break
@@ -152,34 +141,29 @@ local git_backend = {
   end,
 }
 
----Available diff backends
 ---@type table<string, DiffBackend>
 local backends = {
   vim = vim_backend,
   git = git_backend,
 }
 
----Get available backend names
 ---@return string[]
 function M.get_available_backends()
   return vim.tbl_keys(backends)
 end
 
----Get a diff backend by name
 ---@param name string
 ---@return DiffBackend?
 function M.get_backend(name)
   return backends[name]
 end
 
----Check if git backend is available
 ---@return boolean
 function M.is_git_available()
   local result = vim.system({ 'git', '--version' }, { text = true }):wait()
   return result.code == 0
 end
 
----Get the best available backend based on config and system availability
 ---@param preferred_backend? string
 ---@return DiffBackend
 function M.get_best_backend(preferred_backend)
@@ -193,7 +177,6 @@ function M.get_best_backend(preferred_backend)
   return backends.vim
 end
 
----Render diff using specified backend
 ---@param expected string
 ---@param actual string
 ---@param backend_name? string
