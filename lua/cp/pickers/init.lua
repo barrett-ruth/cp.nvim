@@ -47,6 +47,13 @@ local function get_contests_for_platform(platform)
     return contests
   end
 
+  local constants = require('cp.constants')
+  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
+  logger.log(
+    ('Scraping %s for contests, this may take a few seconds...'):format(platform_display_name),
+    vim.log.levels.INFO
+  )
+
   local plugin_path = utils.get_plugin_path()
   local cmd = {
     'uv',
