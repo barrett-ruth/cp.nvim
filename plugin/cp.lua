@@ -36,6 +36,8 @@ end, {
         end
       else
         vim.list_extend(candidates, platforms)
+        table.insert(candidates, 'cache')
+        table.insert(candidates, 'pick')
       end
       return vim.tbl_filter(function(cmd)
         return cmd:find(ArgLead, 1, true) == 1
