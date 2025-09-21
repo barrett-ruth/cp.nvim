@@ -416,7 +416,7 @@ describe('cp.execute', function()
         }
       end
 
-      local execute_command = require('cp.execute').execute_command
+      local execute_command = require('cp.runner.execute').execute_command
         or function(command, stdin_data, timeout)
           local redirected_cmd = vim.deepcopy(command)
           if #redirected_cmd > 0 then

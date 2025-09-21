@@ -28,11 +28,11 @@ cp.nvim follows a simple principle: **solve locally, submit remotely**.
 
 ### Basic Usage
 
-1. **Find a problem** on the judge website
-2. **Set up locally** with `:CP <platform> <contest> <problem>`
+1. **Find a contest or problem** on the judge website
+2. **Set up locally** with `:CP <platform> <contest> [<problem>]`
 
    ```
-   :CP codeforces 1848 A
+   :CP codeforces 1848
    ```
 
 3. **Code and test** with instant feedback and rich diffs
