@@ -167,17 +167,23 @@ describe('cp.scrape', function()
     end)
 
     it('handles python environment setup failure', function()
+      local cache = require('cp.cache')
+      local utils = require('cp.utils')
+
+      cache.load = function() end
+      cache.get_contest_data = function()
+        return nil
+      end
+
+      utils.setup_python_env = function()
+        return false
+      end
+
       vim.system = function(cmd)
         if cmd[1] == 'ping' then
           return {
             wait = function()
               return { code = 0 }
-            end,
-          }
-        elseif cmd[1] == 'uv' and cmd[2] == 'sync' then
-          return {
-            wait = function()
-              return { code = 1, stderr = 'setup failed' }
             end,
           }
         end
@@ -186,10 +192,6 @@ describe('cp.scrape', function()
             return { code = 0 }
           end,
         }
-      end
-
-      vim.fn.isdirectory = function()
-        return 0
       end
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
