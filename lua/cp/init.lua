@@ -58,16 +58,14 @@ local function setup_problem(contest_id, problem_id, language)
     return
   end
 
-  local problem_name = state.platform == 'cses' and contest_id or (contest_id .. (problem_id or ''))
+  local problem_name = contest_id .. (problem_id or '')
   logger.log(('setting up problem: %s'):format(problem_name))
 
   local ctx = problem.create_context(state.platform, contest_id, problem_id, config, language)
 
   if vim.tbl_contains(config.scrapers, state.platform) then
     cache.load()
-    local existing_contest_data = state.platform == 'cses'
-        and cache.get_contest_data(state.platform, state.contest_id)
-      or cache.get_contest_data(state.platform, contest_id)
+    local existing_contest_data = cache.get_contest_data(state.platform, contest_id)
 
     if not existing_contest_data then
       local metadata_result = scrape.scrape_contest_metadata(state.platform, contest_id)
@@ -80,11 +78,7 @@ local function setup_problem(contest_id, problem_id, language)
     end
   end
 
-  -- NOTE: CSES uses different cache key structure: (platform, category, problem_id)
-  -- vs other platforms: (platform, contest_id, problem_letter)
-  local cache_contest_id = state.platform == 'cses' and state.contest_id or contest_id
-  local cache_problem_id = state.platform == 'cses' and contest_id or problem_id
-  local cached_test_cases = cache.get_test_cases(state.platform, cache_contest_id, cache_problem_id)
+  local cached_test_cases = cache.get_test_cases(state.platform, contest_id, problem_id)
   if cached_test_cases then
     state.test_cases = cached_test_cases
     logger.log(('using cached test cases (%d)'):format(#cached_test_cases))
@@ -671,13 +665,7 @@ local function navigate_problem(delta, language)
   end
 
   local problems = contest_data.problems
-  local current_problem_id
-
-  if state.platform == 'cses' then
-    current_problem_id = state.contest_id
-  else
-    current_problem_id = state.problem_id
-  end
+  local current_problem_id = state.problem_id
 
   if not current_problem_id then
     logger.log('no current problem set', vim.log.levels.ERROR)
@@ -707,11 +695,7 @@ local function navigate_problem(delta, language)
 
   local new_problem = problems[new_index]
 
-  if state.platform == 'cses' then
-    setup_problem(new_problem.id, nil, language)
-  else
-    setup_problem(state.contest_id, new_problem.id, language)
-  end
+  setup_problem(state.contest_id, new_problem.id, language)
 end
 
 local function restore_from_current_file()
@@ -735,7 +719,7 @@ local function restore_from_current_file()
     ('Restoring from cached state: %s %s %s'):format(
       file_state.platform,
       file_state.contest_id,
-      file_state.problem_id or 'CSES'
+      file_state.problem_id or 'N/A'
     )
   )
 
@@ -746,11 +730,7 @@ local function restore_from_current_file()
   state.contest_id = file_state.contest_id
   state.problem_id = file_state.problem_id
 
-  if file_state.platform == 'cses' then
-    setup_problem(file_state.contest_id, nil, file_state.language)
-  else
-    setup_problem(file_state.contest_id, file_state.problem_id, file_state.language)
-  end
+  setup_problem(file_state.contest_id, file_state.problem_id, file_state.language)
 
   return true
 end
@@ -925,11 +905,7 @@ function M.handle_command(opts)
   end
 
   if cmd.type == 'problem_switch' then
-    if state.platform == 'cses' then
-      setup_problem(cmd.problem, nil, cmd.language)
-    else
-      setup_problem(state.contest_id, cmd.problem, cmd.language)
-    end
+    setup_problem(state.contest_id, cmd.problem, cmd.language)
     return
   end
 end
