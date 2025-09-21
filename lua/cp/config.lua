@@ -267,12 +267,7 @@ function M.setup(user_config)
         error('No language configurations found')
       end
 
-      if vim.tbl_contains(available_langs, 'cpp') then
-        contest_config.default_language = 'cpp'
-      else
-        table.sort(available_langs)
-        contest_config.default_language = available_langs[1]
-      end
+      contest_config.default_language = available_langs[1]
     end
   end
 

@@ -159,8 +159,10 @@ end
 ---@param contest_id string Contest identifier
 ---@param problem_id string Problem identifier
 local function setup_problem(platform, contest_id, problem_id)
-  local cp = require('cp')
-  cp.handle_command({ fargs = { platform, contest_id, problem_id } })
+  vim.schedule(function()
+    local cp = require('cp')
+    cp.handle_command({ fargs = { platform, contest_id, problem_id } })
+  end)
 end
 
 M.get_platforms = get_platforms
