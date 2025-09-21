@@ -326,7 +326,7 @@ function M.scrape_problems_parallel(platform, contest_id, problems, config)
         '-m',
         'scrapers.' .. platform,
         'tests',
-        problem.id,
+        prob.id,
       }
     else
       args = {
@@ -338,7 +338,7 @@ function M.scrape_problems_parallel(platform, contest_id, problems, config)
         'scrapers.' .. platform,
         'tests',
         contest_id,
-        problem.id,
+        prob.id,
       }
     end
 
