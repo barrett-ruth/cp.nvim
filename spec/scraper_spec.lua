@@ -1,6 +1,7 @@
 describe('cp.scrape', function()
   local scrape
   local mock_cache
+  local mock_utils
   local mock_system_calls
   local temp_files
   local spec_helper = require('spec.spec_helper')
@@ -45,7 +46,7 @@ describe('cp.scrape', function()
       }
     end
 
-    local mock_utils = {
+    mock_utils = {
       setup_python_env = function()
         return true
       end,
@@ -178,14 +179,13 @@ describe('cp.scrape', function()
 
     it('handles python environment setup failure', function()
       local cache = require('cp.cache')
-      local utils = require('cp.utils')
 
       cache.load = function() end
       cache.get_contest_data = function()
         return nil
       end
 
-      utils.setup_python_env = function()
+      mock_utils.setup_python_env = function()
         return false
       end
 
