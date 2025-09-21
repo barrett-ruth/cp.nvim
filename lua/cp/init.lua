@@ -64,16 +64,25 @@ local function setup_problem(contest_id, problem_id, language)
   local ctx = problem.create_context(state.platform, contest_id, problem_id, config, language)
 
   if vim.tbl_contains(config.scrapers, state.platform) then
-    local metadata_result = scrape.scrape_contest_metadata(state.platform, contest_id)
-    if not metadata_result.success then
-      logger.log(
-        'failed to load contest metadata: ' .. (metadata_result.error or 'unknown error'),
-        vim.log.levels.WARN
-      )
+    cache.load()
+    local existing_contest_data = state.platform == 'cses'
+        and cache.get_contest_data(state.platform, state.contest_id)
+      or cache.get_contest_data(state.platform, contest_id)
+
+    if not existing_contest_data then
+      local metadata_result = scrape.scrape_contest_metadata(state.platform, contest_id)
+      if not metadata_result.success then
+        logger.log(
+          'failed to load contest metadata: ' .. (metadata_result.error or 'unknown error'),
+          vim.log.levels.WARN
+        )
+      end
     end
   end
 
-  local cached_test_cases = cache.get_test_cases(state.platform, contest_id, problem_id)
+  local cache_contest_id = state.platform == 'cses' and state.contest_id or contest_id
+  local cache_problem_id = state.platform == 'cses' and contest_id or problem_id
+  local cached_test_cases = cache.get_test_cases(state.platform, cache_contest_id, cache_problem_id)
   if cached_test_cases then
     state.test_cases = cached_test_cases
     logger.log(('using cached test cases (%d)'):format(#cached_test_cases))
