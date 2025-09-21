@@ -189,6 +189,10 @@ describe('cp.scrape', function()
         return false
       end
 
+      -- Force reload the scrape module to pick up the updated mock
+      package.loaded['cp.scrape'] = nil
+      scrape = require('cp.scrape')
+
       vim.system = function(cmd)
         if cmd[1] == 'ping' then
           return {
