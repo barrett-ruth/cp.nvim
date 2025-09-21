@@ -118,6 +118,16 @@ local function get_problems_for_contest(platform, contest_id)
     return problems
   end
 
+  local constants = require('cp.constants')
+  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
+  logger.log(
+    ('Scraping %s %s for problems, this may take a few seconds...'):format(
+      platform_display_name,
+      contest_id
+    ),
+    vim.log.levels.INFO
+  )
+
   local metadata_result = scrape.scrape_contest_metadata(platform, contest_id)
   if not metadata_result.success then
     logger.log(

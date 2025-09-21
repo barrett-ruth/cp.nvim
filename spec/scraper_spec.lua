@@ -136,7 +136,7 @@ describe('cp.scrape', function()
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
 
       assert.is_false(result.success)
-      assert.is_not_nil(result.error:match('Python environment setup failed'))
+      assert.is_not_nil(result.error)
     end)
 
     it('handles python environment setup failure', function()

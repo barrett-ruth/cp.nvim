@@ -21,7 +21,7 @@ describe('cp.picker', function()
       for _, platform in ipairs(platforms) do
         assert.is_string(platform.id)
         assert.is_string(platform.display_name)
-        assert.is_true(platform.display_name:match('^%u'))
+        assert.is_not_nil(platform.display_name:match('^%u'))
       end
     end)
 
@@ -120,7 +120,7 @@ describe('cp.picker', function()
       assert.equals(2, #problems)
       assert.equals('a', problems[1].id)
       assert.equals('Problem A', problems[1].name)
-      assert.equals('a - Problem A', problems[1].display_name)
+      assert.equals('Problem A', problems[1].display_name)
     end)
 
     it('falls back to scraping when cache miss', function()

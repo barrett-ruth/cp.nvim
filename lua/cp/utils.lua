@@ -34,7 +34,7 @@ function M.setup_python_env()
       logger.log('failed to setup Python environment: ' .. result.stderr, vim.log.levels.ERROR)
       return false
     end
-    logger.log('python environment setup complete')
+    logger.log('Python environment setup complete')
   end
 
   python_env_setup = true
