@@ -275,7 +275,7 @@ def scrape_contests() -> list[ContestSummary]:
                 ContestSummary(id=contest_id, name=name, display_name=display_name)
             )
 
-        return contests[:100]
+        return contests
 
     except Exception as e:
         print(f"Failed to fetch contests: {e}", file=sys.stderr)
