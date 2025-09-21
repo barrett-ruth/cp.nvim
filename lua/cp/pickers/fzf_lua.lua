@@ -63,6 +63,9 @@ local function contest_picker(platform)
 
   return fzf.fzf_exec(entries, {
     prompt = ('Select Contest (%s)> '):format(platform_display_name),
+    fzf_opts = {
+      ['--header'] = 'ctrl-r: refresh',
+    },
     actions = {
       ['default'] = function(selected)
         if not selected or #selected == 0 then

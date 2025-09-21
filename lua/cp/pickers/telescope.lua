@@ -64,6 +64,7 @@ local function contest_picker(opts, platform)
   pickers
     .new(opts, {
       prompt_title = ('Select Contest (%s)'):format(platform_display_name),
+      results_title = '<C-r> refresh',
       finder = finders.new_table({
         results = contests,
         entry_maker = function(entry)
