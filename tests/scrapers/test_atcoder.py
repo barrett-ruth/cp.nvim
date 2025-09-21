@@ -101,12 +101,12 @@ def test_scrape_contests_success(mocker):
     assert result[0] == ContestSummary(
         id="abc350",
         name="AtCoder Beginner Contest 350",
-        display_name="Beginner Contest 350 (ABC)",
+        display_name="AtCoder Beginner Contest 350",
     )
     assert result[1] == ContestSummary(
         id="arc170",
         name="AtCoder Regular Contest 170",
-        display_name="Regular Contest 170 (ARC)",
+        display_name="AtCoder Regular Contest 170",
     )
 
 
