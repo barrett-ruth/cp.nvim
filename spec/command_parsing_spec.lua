@@ -293,4 +293,345 @@ describe('cp command parsing', function()
       end
     end)
   end)
+
+  describe('cache commands', function()
+    it('handles cache clear without platform', function()
+      local opts = { fargs = { 'cache', 'clear' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+
+      local success_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if log_entry.msg and log_entry.msg:match('cleared all cache') then
+          success_logged = true
+          break
+        end
+      end
+      assert.is_true(success_logged)
+    end)
+
+    it('handles cache clear with valid platform', function()
+      local opts = { fargs = { 'cache', 'clear', 'atcoder' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+
+      local success_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if log_entry.msg and log_entry.msg:match('cleared cache for atcoder') then
+          success_logged = true
+          break
+        end
+      end
+      assert.is_true(success_logged)
+    end)
+
+    it('logs error for cache clear with invalid platform', function()
+      local opts = { fargs = { 'cache', 'clear', 'invalid_platform' } }
+
+      cp.handle_command(opts)
+
+      local error_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if log_entry.level == vim.log.levels.ERROR and log_entry.msg:match('unknown platform') then
+          error_logged = true
+          break
+        end
+      end
+      assert.is_true(error_logged)
+    end)
+
+    it('logs error for cache command without subcommand', function()
+      local opts = { fargs = { 'cache' } }
+
+      cp.handle_command(opts)
+
+      local error_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if
+          log_entry.level == vim.log.levels.ERROR
+          and log_entry.msg:match('cache command requires subcommand')
+        then
+          error_logged = true
+          break
+        end
+      end
+      assert.is_true(error_logged)
+    end)
+
+    it('logs error for invalid cache subcommand', function()
+      local opts = { fargs = { 'cache', 'invalid' } }
+
+      cp.handle_command(opts)
+
+      local error_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if
+          log_entry.level == vim.log.levels.ERROR
+          and log_entry.msg:match('unknown cache subcommand')
+        then
+          error_logged = true
+          break
+        end
+      end
+      assert.is_true(error_logged)
+    end)
+  end)
+
+  describe('CP command completion', function()
+    local complete_fn
+
+    before_each(function()
+      package.loaded['cp'] = nil
+      package.loaded['cp.cache'] = nil
+
+      complete_fn = function(ArgLead, CmdLine, _)
+        local constants = require('cp.constants')
+        local platforms = constants.PLATFORMS
+        local actions = constants.ACTIONS
+
+        local args = vim.split(vim.trim(CmdLine), '%s+')
+        local num_args = #args
+        if CmdLine:sub(-1) == ' ' then
+          num_args = num_args + 1
+        end
+
+        if num_args == 2 then
+          local candidates = {}
+          local cp_mod = require('cp')
+          local context = cp_mod.get_current_context()
+          if context.platform and context.contest_id then
+            vim.list_extend(candidates, actions)
+            local cache = require('cp.cache')
+            cache.load()
+            local contest_data = cache.get_contest_data(context.platform, context.contest_id)
+            if contest_data and contest_data.problems then
+              for _, problem in ipairs(contest_data.problems) do
+                table.insert(candidates, problem.id)
+              end
+            end
+          else
+            vim.list_extend(candidates, platforms)
+            table.insert(candidates, 'cache')
+            table.insert(candidates, 'pick')
+          end
+          return vim.tbl_filter(function(cmd)
+            return cmd:find(ArgLead, 1, true) == 1
+          end, candidates)
+        elseif num_args == 3 then
+          if args[2] == 'cache' then
+            return vim.tbl_filter(function(cmd)
+              return cmd:find(ArgLead, 1, true) == 1
+            end, { 'clear' })
+          end
+        elseif num_args == 4 then
+          if args[2] == 'cache' and args[3] == 'clear' then
+            return vim.tbl_filter(function(cmd)
+              return cmd:find(ArgLead, 1, true) == 1
+            end, platforms)
+          elseif vim.tbl_contains(platforms, args[2]) then
+            local cache = require('cp.cache')
+            cache.load()
+            local contest_data = cache.get_contest_data(args[2], args[3])
+            if contest_data and contest_data.problems then
+              local candidates = {}
+              for _, problem in ipairs(contest_data.problems) do
+                table.insert(candidates, problem.id)
+              end
+              return vim.tbl_filter(function(cmd)
+                return cmd:find(ArgLead, 1, true) == 1
+              end, candidates)
+            end
+          end
+        end
+        return {}
+      end
+
+      package.loaded['cp'] = {
+        get_current_context = function()
+          return { platform = nil, contest_id = nil }
+        end,
+      }
+
+      package.loaded['cp.cache'] = {
+        load = function() end,
+        get_contest_data = function()
+          return nil
+        end,
+      }
+    end)
+
+    after_each(function()
+      package.loaded['cp'] = nil
+      package.loaded['cp.cache'] = nil
+    end)
+
+    it('completes platforms and global actions when no contest context', function()
+      local result = complete_fn('', 'CP ', 3)
+
+      assert.is_table(result)
+
+      local has_atcoder = false
+      local has_codeforces = false
+      local has_cses = false
+      local has_cache = false
+      local has_pick = false
+      local has_run = false
+      local has_next = false
+      local has_prev = false
+
+      for _, item in ipairs(result) do
+        if item == 'atcoder' then
+          has_atcoder = true
+        end
+        if item == 'codeforces' then
+          has_codeforces = true
+        end
+        if item == 'cses' then
+          has_cses = true
+        end
+        if item == 'cache' then
+          has_cache = true
+        end
+        if item == 'pick' then
+          has_pick = true
+        end
+        if item == 'run' then
+          has_run = true
+        end
+        if item == 'next' then
+          has_next = true
+        end
+        if item == 'prev' then
+          has_prev = true
+        end
+      end
+
+      assert.is_true(has_atcoder)
+      assert.is_true(has_codeforces)
+      assert.is_true(has_cses)
+      assert.is_true(has_cache)
+      assert.is_true(has_pick)
+      assert.is_false(has_run)
+      assert.is_false(has_next)
+      assert.is_false(has_prev)
+    end)
+
+    it('completes all actions and problems when contest context exists', function()
+      package.loaded['cp'] = {
+        get_current_context = function()
+          return { platform = 'atcoder', contest_id = 'abc350' }
+        end,
+      }
+      package.loaded['cp.cache'] = {
+        load = function() end,
+        get_contest_data = function()
+          return {
+            problems = {
+              { id = 'a' },
+              { id = 'b' },
+              { id = 'c' },
+            },
+          }
+        end,
+      }
+
+      local result = complete_fn('', 'CP ', 3)
+
+      assert.is_table(result)
+
+      local items = {}
+      for _, item in ipairs(result) do
+        items[item] = true
+      end
+
+      assert.is_true(items['run'])
+      assert.is_true(items['next'])
+      assert.is_true(items['prev'])
+      assert.is_true(items['pick'])
+      assert.is_true(items['cache'])
+
+      assert.is_true(items['a'])
+      assert.is_true(items['b'])
+      assert.is_true(items['c'])
+    end)
+
+    it('completes cache subcommands', function()
+      local result = complete_fn('c', 'CP cache c', 10)
+
+      assert.is_table(result)
+      assert.equals(1, #result)
+      assert.equals('clear', result[1])
+    end)
+
+    it('completes cache subcommands with exact match', function()
+      local result = complete_fn('clear', 'CP cache clear', 14)
+
+      assert.is_table(result)
+      assert.equals(1, #result)
+      assert.equals('clear', result[1])
+    end)
+
+    it('completes platforms for cache clear', function()
+      local result = complete_fn('a', 'CP cache clear a', 16)
+
+      assert.is_table(result)
+
+      local has_atcoder = false
+      local has_cache = false
+
+      for _, item in ipairs(result) do
+        if item == 'atcoder' then
+          has_atcoder = true
+        end
+        if item == 'cache' then
+          has_cache = true
+        end
+      end
+
+      assert.is_true(has_atcoder)
+      assert.is_false(has_cache)
+    end)
+
+    it('filters completions based on current input', function()
+      local result = complete_fn('at', 'CP at', 5)
+
+      assert.is_table(result)
+      assert.equals(1, #result)
+      assert.equals('atcoder', result[1])
+    end)
+
+    it('returns empty array when no matches', function()
+      local result = complete_fn('xyz', 'CP xyz', 6)
+
+      assert.is_table(result)
+      assert.equals(0, #result)
+    end)
+
+    it('handles problem completion for platform contest', function()
+      package.loaded['cp.cache'] = {
+        load = function() end,
+        get_contest_data = function(platform, contest)
+          if platform == 'atcoder' and contest == 'abc350' then
+            return {
+              problems = {
+                { id = 'a' },
+                { id = 'b' },
+              },
+            }
+          end
+          return nil
+        end,
+      }
+
+      local result = complete_fn('a', 'CP atcoder abc350 a', 18)
+
+      assert.is_table(result)
+      assert.equals(1, #result)
+      assert.equals('a', result[1])
+    end)
+  end)
 end)

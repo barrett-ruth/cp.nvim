@@ -36,12 +36,24 @@ end, {
         end
       else
         vim.list_extend(candidates, platforms)
+        table.insert(candidates, 'cache')
+        table.insert(candidates, 'pick')
       end
       return vim.tbl_filter(function(cmd)
         return cmd:find(ArgLead, 1, true) == 1
       end, candidates)
+    elseif num_args == 3 then
+      if args[2] == 'cache' then
+        return vim.tbl_filter(function(cmd)
+          return cmd:find(ArgLead, 1, true) == 1
+        end, { 'clear' })
+      end
     elseif num_args == 4 then
-      if vim.tbl_contains(platforms, args[2]) then
+      if args[2] == 'cache' and args[3] == 'clear' then
+        return vim.tbl_filter(function(cmd)
+          return cmd:find(ArgLead, 1, true) == 1
+        end, platforms)
+      elseif vim.tbl_contains(platforms, args[2]) then
         local cache = require('cp.cache')
         cache.load()
         local contest_data = cache.get_contest_data(args[2], args[3])

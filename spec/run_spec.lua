@@ -1,5 +1,5 @@
 describe('run module', function()
-  local run = require('cp.run')
+  local run = require('cp.runner.run')
 
   describe('basic functionality', function()
     it('has required functions', function()

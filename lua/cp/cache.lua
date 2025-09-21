@@ -342,4 +342,24 @@ function M.clear_contest_list(platform)
   end
 end
 
+function M.clear_all()
+  cache_data = {}
+  M.save()
+end
+
+---@param platform string
+function M.clear_platform(platform)
+  vim.validate({
+    platform = { platform, 'string' },
+  })
+
+  if cache_data[platform] then
+    cache_data[platform] = nil
+  end
+  if cache_data.contest_lists and cache_data.contest_lists[platform] then
+    cache_data.contest_lists[platform] = nil
+  end
+  M.save()
+end
+
 return M

@@ -6,7 +6,7 @@ describe('cp.execute', function()
 
   before_each(function()
     spec_helper.setup()
-    execute = require('cp.execute')
+    execute = require('cp.runner.execute')
     mock_system_calls = {}
     temp_files = {}
 
@@ -416,7 +416,7 @@ describe('cp.execute', function()
         }
       end
 
-      local execute_command = require('cp.execute').execute_command
+      local execute_command = require('cp.runner.execute').execute_command
         or function(command, stdin_data, timeout)
           local redirected_cmd = vim.deepcopy(command)
           if #redirected_cmd > 0 then

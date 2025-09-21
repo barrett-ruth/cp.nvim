@@ -1,5 +1,5 @@
 describe('cp.run_render', function()
-  local run_render = require('cp.run_render')
+  local run_render = require('cp.runner.run_render')
   local spec_helper = require('spec.spec_helper')
 
   before_each(function()

@@ -272,75 +272,7 @@ def scrape_contests() -> list[ContestSummary]:
                 r"[\uff01-\uff5e]", lambda m: chr(ord(m.group()) - 0xFEE0), name
             )
 
-            def generate_display_name_from_id(contest_id: str) -> str:
-                parts = contest_id.replace("-", " ").replace("_", " ")
-
-                parts = re.sub(
-                    r"\b(jsc|JSC)\b",
-                    "Japanese Student Championship",
-                    parts,
-                    flags=re.IGNORECASE,
-                )
-                parts = re.sub(
-                    r"\b(wtf|WTF)\b",
-                    "World Tour Finals",
-                    parts,
-                    flags=re.IGNORECASE,
-                )
-                parts = re.sub(
-                    r"\b(ahc)(\d+)\b",
-                    r"Heuristic Contest \2 (AHC)",
-                    parts,
-                    flags=re.IGNORECASE,
-                )
-                parts = re.sub(
-                    r"\b(arc)(\d+)\b",
-                    r"Regular Contest \2 (ARC)",
-                    parts,
-                    flags=re.IGNORECASE,
-                )
-                parts = re.sub(
-                    r"\b(abc)(\d+)\b",
-                    r"Beginner Contest \2 (ABC)",
-                    parts,
-                    flags=re.IGNORECASE,
-                )
-                parts = re.sub(
-                    r"\b(agc)(\d+)\b",
-                    r"Grand Contest \2 (AGC)",
-                    parts,
-                    flags=re.IGNORECASE,
-                )
-
-                return parts.title()
-
-            english_chars = sum(1 for c in name if c.isascii() and c.isalpha())
-            total_chars = len(re.sub(r"\s+", "", name))
-
-            if total_chars > 0 and english_chars / total_chars < 0.3:
-                display_name = generate_display_name_from_id(contest_id)
-            else:
-                display_name = name
-                if "AtCoder Beginner Contest" in name:
-                    match = re.search(r"AtCoder Beginner Contest (\d+)", name)
-                    if match:
-                        display_name = f"Beginner Contest {match.group(1)} (ABC)"
-                elif "AtCoder Regular Contest" in name:
-                    match = re.search(r"AtCoder Regular Contest (\d+)", name)
-                    if match:
-                        display_name = f"Regular Contest {match.group(1)} (ARC)"
-                elif "AtCoder Grand Contest" in name:
-                    match = re.search(r"AtCoder Grand Contest (\d+)", name)
-                    if match:
-                        display_name = f"Grand Contest {match.group(1)} (AGC)"
-                elif "AtCoder Heuristic Contest" in name:
-                    match = re.search(r"AtCoder Heuristic Contest (\d+)", name)
-                    if match:
-                        display_name = f"Heuristic Contest {match.group(1)} (AHC)"
-
-            contests.append(
-                ContestSummary(id=contest_id, name=name, display_name=display_name)
-            )
+            contests.append(ContestSummary(id=contest_id, name=name, display_name=name))
 
         return contests
 

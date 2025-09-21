@@ -169,7 +169,7 @@ describe('cp.config', function()
         assert.equals('cpp', result.contests.test.default_language)
       end)
 
-      it('sets default_language to first available when cpp not present', function()
+      it('sets default_language to single available language when only one configured', function()
         local user_config = {
           contests = {
             test = {
@@ -181,6 +181,38 @@ describe('cp.config', function()
         local result = config.setup(user_config)
 
         assert.equals('python', result.contests.test.default_language)
+      end)
+
+      it('sets default_language to single available language even when not cpp', function()
+        local user_config = {
+          contests = {
+            test = {
+              rust = {
+                test = { './target/release/solution' },
+                extension = 'rs',
+              },
+            },
+          },
+        }
+
+        local result = config.setup(user_config)
+
+        assert.equals('rust', result.contests.test.default_language)
+      end)
+
+      it('uses first available language when multiple configured', function()
+        local user_config = {
+          contests = {
+            test = {
+              python = { test = { 'python3' } },
+              cpp = { compile = { 'g++' } },
+            },
+          },
+        }
+
+        local result = config.setup(user_config)
+
+        assert.is_true(vim.tbl_contains({ 'cpp', 'python' }, result.contests.test.default_language))
       end)
 
       it('preserves explicit default_language', function()

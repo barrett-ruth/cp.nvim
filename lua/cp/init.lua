@@ -246,7 +246,7 @@ local function toggle_run_panel(is_debug)
   end
 
   local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
-  local run = require('cp.run')
+  local run = require('cp.runner.run')
 
   if not run.load_test_cases(ctx, state) then
     logger.log('no test cases found', vim.log.levels.WARN)
@@ -270,7 +270,7 @@ local function toggle_run_panel(is_debug)
     tab_buf = tab_buf,
   }
 
-  local highlight = require('cp.highlight')
+  local highlight = require('cp.ui.highlight')
   local diff_namespace = highlight.create_namespace()
 
   local test_list_namespace = vim.api.nvim_create_namespace('cp_test_list')
@@ -294,6 +294,7 @@ local function toggle_run_panel(is_debug)
 
     vim.api.nvim_set_current_win(parent_win)
     vim.cmd.split()
+    vim.cmd('resize ' .. math.floor(vim.o.lines * 0.35))
     local actual_win = vim.api.nvim_get_current_win()
     vim.api.nvim_win_set_buf(actual_win, actual_buf)
 
@@ -341,13 +342,14 @@ local function toggle_run_panel(is_debug)
 
     vim.api.nvim_set_current_win(parent_win)
     vim.cmd.split()
+    vim.cmd('resize ' .. math.floor(vim.o.lines * 0.35))
     local diff_win = vim.api.nvim_get_current_win()
     vim.api.nvim_win_set_buf(diff_win, diff_buf)
 
     vim.api.nvim_set_option_value('filetype', 'cptest', { buf = diff_buf })
     vim.api.nvim_set_option_value('winbar', 'Expected vs Actual', { win = diff_win })
 
-    local diff_backend = require('cp.diff')
+    local diff_backend = require('cp.ui.diff')
     local backend = diff_backend.get_best_backend('git')
     local diff_result = backend.render(expected_content, actual_content)
 
@@ -375,6 +377,7 @@ local function toggle_run_panel(is_debug)
 
     vim.api.nvim_set_current_win(parent_win)
     vim.cmd.split()
+    vim.cmd('resize ' .. math.floor(vim.o.lines * 0.35))
     local win = vim.api.nvim_get_current_win()
     vim.api.nvim_win_set_buf(win, buf)
     vim.api.nvim_set_option_value('filetype', 'cptest', { buf = buf })
@@ -459,7 +462,7 @@ local function toggle_run_panel(is_debug)
           ansi_namespace
         )
       elseif desired_mode == 'git' then
-        local diff_backend = require('cp.diff')
+        local diff_backend = require('cp.ui.diff')
         local backend = diff_backend.get_best_backend('git')
         local diff_result = backend.render(expected_content, actual_content)
 
@@ -513,7 +516,7 @@ local function toggle_run_panel(is_debug)
       return
     end
 
-    local run_render = require('cp.run_render')
+    local run_render = require('cp.runner.run_render')
     run_render.setup_highlights()
 
     local test_state = run.get_run_panel_state()
@@ -573,7 +576,7 @@ local function toggle_run_panel(is_debug)
     config.hooks.before_debug(ctx)
   end
 
-  local execute = require('cp.execute')
+  local execute = require('cp.runner.execute')
   local contest_config = config.contests[state.platform]
   local compile_result = execute.compile_problem(ctx, contest_config, is_debug)
   if compile_result.success then
@@ -586,7 +589,7 @@ local function toggle_run_panel(is_debug)
 
   vim.schedule(function()
     if config.run_panel.ansi then
-      local ansi = require('cp.ansi')
+      local ansi = require('cp.ui.ansi')
       ansi.setup_highlight_groups()
     end
     if current_diff_layout then
@@ -600,7 +603,10 @@ local function toggle_run_panel(is_debug)
   state.test_buffers = test_buffers
   state.test_windows = test_windows
   local test_state = run.get_run_panel_state()
-  logger.log(string.format('test panel opened (%d test cases)', #test_state.test_cases))
+  logger.log(
+    string.format('test panel opened (%d test cases)', #test_state.test_cases),
+    vim.log.levels.INFO
+  )
 end
 
 ---@param contest_id string
@@ -751,6 +757,29 @@ local function handle_pick_action()
   end
 end
 
+local function handle_cache_command(cmd)
+  if cmd.subcommand == 'clear' then
+    cache.load()
+    if cmd.platform then
+      if vim.tbl_contains(platforms, cmd.platform) then
+        cache.clear_platform(cmd.platform)
+        logger.log(('cleared cache for %s'):format(cmd.platform), vim.log.levels.INFO, true)
+      else
+        logger.log(
+          ('unknown platform: %s. Available: %s'):format(
+            cmd.platform,
+            table.concat(platforms, ', ')
+          ),
+          vim.log.levels.ERROR
+        )
+      end
+    else
+      cache.clear_all()
+      logger.log('cleared all cache', vim.log.levels.INFO, true)
+    end
+  end
+end
+
 local function restore_from_current_file()
   local current_file = vim.fn.expand('%:p')
   if current_file == '' then
@@ -820,7 +849,24 @@ local function parse_command(args)
   local first = filtered_args[1]
 
   if vim.tbl_contains(actions, first) then
-    return { type = 'action', action = first, language = language, debug = debug }
+    if first == 'cache' then
+      local subcommand = filtered_args[2]
+      if not subcommand then
+        return { type = 'error', message = 'cache command requires subcommand: clear' }
+      end
+      if subcommand == 'clear' then
+        local platform = filtered_args[3]
+        return {
+          type = 'cache',
+          subcommand = 'clear',
+          platform = platform,
+        }
+      else
+        return { type = 'error', message = 'unknown cache subcommand: ' .. subcommand }
+      end
+    else
+      return { type = 'action', action = first, language = language, debug = debug }
+    end
   end
 
   if vim.tbl_contains(platforms, first) then
@@ -896,6 +942,11 @@ function M.handle_command(opts)
     return
   end
 
+  if cmd.type == 'cache' then
+    handle_cache_command(cmd)
+    return
+  end
+
   if cmd.type == 'platform_only' then
     set_platform(cmd.platform)
     return
@@ -929,7 +980,9 @@ function M.handle_command(opts)
             #metadata_result.problems,
             cmd.platform,
             cmd.contest
-          )
+          ),
+          vim.log.levels.INFO,
+          true
         )
         problem_ids = vim.tbl_map(function(prob)
           return prob.id

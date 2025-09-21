@@ -77,15 +77,17 @@ def test_scrape_contests_success(mocker):
     assert result[0] == ContestSummary(
         id="1951",
         name="Educational Codeforces Round 168 (Rated for Div. 2)",
-        display_name="Educational Round 168",
+        display_name="Educational Codeforces Round 168 (Rated for Div. 2)",
     )
     assert result[1] == ContestSummary(
         id="1950",
         name="Codeforces Round 936 (Div. 2)",
-        display_name="Round 936 (Div. 2)",
+        display_name="Codeforces Round 936 (Div. 2)",
     )
     assert result[2] == ContestSummary(
-        id="1949", name="Codeforces Global Round 26", display_name="Global Round 26"
+        id="1949",
+        name="Codeforces Global Round 26",
+        display_name="Codeforces Global Round 26",
     )
 
 

@@ -4,7 +4,7 @@ describe('extmarks', function()
 
   before_each(function()
     spec_helper.setup()
-    highlight = require('cp.highlight')
+    highlight = require('cp.ui.highlight')
   end)
 
   after_each(function()

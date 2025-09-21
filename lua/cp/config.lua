@@ -101,7 +101,7 @@ M.defaults = {
   filename = nil,
   run_panel = {
     ansi = true,
-    diff_mode = 'vim',
+    diff_mode = 'git',
     next_test_key = '<c-n>',
     prev_test_key = '<c-p>',
     toggle_diff_key = 't',
@@ -178,7 +178,6 @@ function M.setup(user_config)
 
   local config = vim.tbl_deep_extend('force', M.defaults, user_config or {})
 
-  -- Validate merged config values
   vim.validate({
     before_run = {
       config.hooks.before_run,
@@ -267,12 +266,8 @@ function M.setup(user_config)
         error('No language configurations found')
       end
 
-      if vim.tbl_contains(available_langs, 'cpp') then
-        contest_config.default_language = 'cpp'
-      else
-        table.sort(available_langs)
-        contest_config.default_language = available_langs[1]
-      end
+      table.sort(available_langs)
+      contest_config.default_language = available_langs[1]
     end
   end
 

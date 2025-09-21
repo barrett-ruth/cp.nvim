@@ -194,7 +194,7 @@ local function run_single_test_case(ctx, contest_config, cp_config, test_case)
       .system({ 'sh', '-c', table.concat(redirected_cmd, ' ') }, { text = false })
       :wait()
 
-    local ansi = require('cp.ansi')
+    local ansi = require('cp.ui.ansi')
     compile_result.stdout = ansi.bytes_to_string(compile_result.stdout or '')
     compile_result.stderr = ansi.bytes_to_string(compile_result.stderr or '')
 
@@ -234,7 +234,7 @@ local function run_single_test_case(ctx, contest_config, cp_config, test_case)
     :wait()
   local execution_time = (vim.uv.hrtime() - start_time) / 1000000
 
-  local ansi = require('cp.ansi')
+  local ansi = require('cp.ui.ansi')
   local stdout_str = ansi.bytes_to_string(result.stdout or '')
   local actual_output = stdout_str:gsub('\n$', '')
 
@@ -315,7 +315,7 @@ function M.load_test_cases(ctx, state)
         run_panel_state.constraints.memory_mb
       )
     or ''
-  logger.log(('loaded %d test case(s)%s'):format(#test_cases, constraint_info))
+  logger.log(('loaded %d test case(s)%s'):format(#test_cases, constraint_info), vim.log.levels.INFO)
   return #test_cases > 0
 end
 
@@ -365,7 +365,7 @@ function M.get_run_panel_state()
 end
 
 function M.handle_compilation_failure(compilation_output)
-  local ansi = require('cp.ansi')
+  local ansi = require('cp.ui.ansi')
   local config = require('cp.config').setup()
 
   local clean_text
