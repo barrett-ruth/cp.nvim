@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 import json
-import random
 import re
 import sys
-import time
 from dataclasses import asdict
 
+import backoff
 import requests
 from bs4 import BeautifulSoup, Tag
 
@@ -41,36 +40,29 @@ def denormalize_category_name(category_id: str) -> str:
     return category_map.get(category_id, category_id.replace("_", " ").title())
 
 
-def request_with_retry(
-    url: str, headers: dict, max_retries: int = 3
-) -> requests.Response:
-    for attempt in range(max_retries):
-        try:
-            delay = 0.5 + random.uniform(0, 0.3)
-            time.sleep(delay)
-
-            response = requests.get(url, headers=headers, timeout=10)
-
-            if response.status_code == 429:
-                backoff = (2**attempt) + random.uniform(0, 1)
-                print(f"Rate limited, retrying in {backoff:.1f}s", file=sys.stderr)
-                time.sleep(backoff)
-                continue
-
-            response.raise_for_status()
-            return response
-
-        except requests.exceptions.RequestException as e:
-            if attempt == max_retries - 1:
-                raise
-            backoff = 2**attempt
-            print(
-                f"Request failed (attempt {attempt + 1}), retrying in {backoff}s: {e}",
-                file=sys.stderr,
-            )
-            time.sleep(backoff)
-
-    raise Exception("All retry attempts failed")
+@backoff.on_exception(
+    backoff.expo,
+    (requests.exceptions.RequestException, requests.exceptions.HTTPError),
+    max_tries=4,
+    jitter=backoff.random_jitter,
+    on_backoff=lambda details: print(
+        f"Request failed (attempt {details['tries']}), retrying in {details['wait']:.1f}s: {details['exception']}",
+        file=sys.stderr,
+    ),
+)
+@backoff.on_predicate(
+    backoff.expo,
+    lambda response: response.status_code == 429,
+    max_tries=4,
+    jitter=backoff.random_jitter,
+    on_backoff=lambda details: print(
+        f"Rate limited, retrying in {details['wait']:.1f}s", file=sys.stderr
+    ),
+)
+def make_request(url: str, headers: dict) -> requests.Response:
+    response = requests.get(url, headers=headers, timeout=10)
+    response.raise_for_status()
+    return response
 
 
 def scrape_category_problems(category_id: str) -> list[ProblemSummary]:
@@ -82,7 +74,7 @@ def scrape_category_problems(category_id: str) -> list[ProblemSummary]:
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
 
-        response = request_with_retry(problemset_url, headers)
+        response = make_request(problemset_url, headers)
 
         soup = BeautifulSoup(response.text, "html.parser")
 
@@ -176,7 +168,7 @@ def scrape_categories() -> list[ContestSummary]:
         headers = {
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
-        response = request_with_retry("https://cses.fi/problemset/", headers)
+        response = make_request("https://cses.fi/problemset/", headers)
 
         soup = BeautifulSoup(response.text, "html.parser")
         categories = []
@@ -193,7 +185,7 @@ def scrape_categories() -> list[ContestSummary]:
             if ul:
                 problem_count = len(ul.find_all("li", class_="task"))
 
-            display_name = f"{category_name} ({problem_count} problems)"
+            display_name = category_name
 
             categories.append(
                 ContestSummary(
@@ -323,7 +315,7 @@ def scrape(url: str) -> list[TestCase]:
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
 
-        response = request_with_retry(url, headers)
+        response = make_request(url, headers)
 
         soup = BeautifulSoup(response.text, "html.parser")
 
