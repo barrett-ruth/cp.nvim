@@ -237,9 +237,7 @@ def scrape_contests() -> list[ContestSummary]:
             contest_id = str(contest["id"])
             name = contest["name"]
 
-            contests.append(
-                ContestSummary(id=contest_id, name=name, display_name=name)
-            )
+            contests.append(ContestSummary(id=contest_id, name=name, display_name=name))
 
         return contests
 

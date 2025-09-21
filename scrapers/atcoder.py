@@ -272,9 +272,7 @@ def scrape_contests() -> list[ContestSummary]:
                 r"[\uff01-\uff5e]", lambda m: chr(ord(m.group()) - 0xFEE0), name
             )
 
-            contests.append(
-                ContestSummary(id=contest_id, name=name, display_name=name)
-            )
+            contests.append(ContestSummary(id=contest_id, name=name, display_name=name))
 
         return contests
 
