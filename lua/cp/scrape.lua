@@ -13,7 +13,6 @@
 
 local M = {}
 local cache = require('cp.cache')
-local logger = require('cp.log')
 local problem = require('cp.problem')
 local utils = require('cp.utils')
 

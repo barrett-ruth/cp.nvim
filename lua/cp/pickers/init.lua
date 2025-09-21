@@ -37,6 +37,12 @@ end
 local function get_contests_for_platform(platform)
   local contests = {}
 
+  cache.load()
+  local cached_contests = cache.get_contest_list(platform)
+  if cached_contests then
+    return cached_contests
+  end
+
   if not utils.setup_python_env() then
     return contests
   end
@@ -81,6 +87,7 @@ local function get_contests_for_platform(platform)
     })
   end
 
+  cache.set_contest_list(platform, contests)
   return contests
 end
 

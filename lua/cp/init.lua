@@ -708,7 +708,7 @@ local function handle_pick_action()
   end
 
   if config.picker == 'telescope' then
-    local ok, telescope = pcall(require, 'telescope')
+    local ok = pcall(require, 'telescope')
     if not ok then
       logger.log(
         'Telescope not available. Install telescope.nvim or change picker config',

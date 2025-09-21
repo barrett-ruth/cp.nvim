@@ -1,22 +1,29 @@
 local finders = require('telescope.finders')
 local pickers = require('telescope.pickers')
-local telescope = require('telescope')
 local conf = require('telescope.config').values
 local action_state = require('telescope.actions.state')
 local actions = require('telescope.actions')
 
 local picker_utils = require('cp.pickers')
 
-local function platform_picker(opts)
-  opts = opts or {}
+local function problem_picker(opts, platform, contest_id)
+  local constants = require('cp.constants')
+  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
+  local problems = picker_utils.get_problems_for_contest(platform, contest_id)
 
-  local platforms = picker_utils.get_platforms()
+  if #problems == 0 then
+    vim.notify(
+      ('No problems found for contest: %s %s'):format(platform_display_name, contest_id),
+      vim.log.levels.WARN
+    )
+    return
+  end
 
   pickers
     .new(opts, {
-      prompt_title = 'Select Platform',
+      prompt_title = ('Select Problem (%s %s)'):format(platform_display_name, contest_id),
       finder = finders.new_table({
-        results = platforms,
+        results = problems,
         entry_maker = function(entry)
           return {
             value = entry,
@@ -26,13 +33,13 @@ local function platform_picker(opts)
         end,
       }),
       sorter = conf.generic_sorter(opts),
-      attach_mappings = function(prompt_bufnr, map)
+      attach_mappings = function(prompt_bufnr)
         actions.select_default:replace(function()
           local selection = action_state.get_selected_entry()
           actions.close(prompt_bufnr)
 
           if selection then
-            contest_picker(opts, selection.value.id)
+            picker_utils.setup_problem(platform, contest_id, selection.value.id)
           end
         end)
         return true
@@ -68,7 +75,7 @@ local function contest_picker(opts, platform)
         end,
       }),
       sorter = conf.generic_sorter(opts),
-      attach_mappings = function(prompt_bufnr, map)
+      attach_mappings = function(prompt_bufnr)
         actions.select_default:replace(function()
           local selection = action_state.get_selected_entry()
           actions.close(prompt_bufnr)
@@ -83,24 +90,16 @@ local function contest_picker(opts, platform)
     :find()
 end
 
-local function problem_picker(opts, platform, contest_id)
-  local constants = require('cp.constants')
-  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
-  local problems = picker_utils.get_problems_for_contest(platform, contest_id)
+local function platform_picker(opts)
+  opts = opts or {}
 
-  if #problems == 0 then
-    vim.notify(
-      ('No problems found for contest: %s %s'):format(platform_display_name, contest_id),
-      vim.log.levels.WARN
-    )
-    return
-  end
+  local platforms = picker_utils.get_platforms()
 
   pickers
     .new(opts, {
-      prompt_title = ('Select Problem (%s %s)'):format(platform_display_name, contest_id),
+      prompt_title = 'Select Platform',
       finder = finders.new_table({
-        results = problems,
+        results = platforms,
         entry_maker = function(entry)
           return {
             value = entry,
@@ -110,13 +109,13 @@ local function problem_picker(opts, platform, contest_id)
         end,
       }),
       sorter = conf.generic_sorter(opts),
-      attach_mappings = function(prompt_bufnr, map)
+      attach_mappings = function(prompt_bufnr)
         actions.select_default:replace(function()
           local selection = action_state.get_selected_entry()
           actions.close(prompt_bufnr)
 
           if selection then
-            picker_utils.setup_problem(platform, contest_id, selection.value.id)
+            contest_picker(opts, selection.value.id)
           end
         end)
         return true
