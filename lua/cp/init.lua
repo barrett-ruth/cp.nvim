@@ -45,8 +45,7 @@ local function set_platform(platform)
   end
 
   state.platform = platform
-  vim.fn.mkdir('build', 'p')
-  vim.fn.mkdir('io', 'p')
+  vim.system({ 'mkdir', '-p', 'build', 'io' }):wait()
   return true
 end
 
@@ -145,12 +144,8 @@ local function setup_problem(contest_id, problem_id, language)
   logger.log(('switched to problem %s'):format(ctx.problem_name))
 end
 
-local function ensure_io_directory()
-  vim.fn.mkdir('io', 'p')
-end
-
 local function scrape_missing_problems(contest_id, missing_problems)
-  ensure_io_directory()
+  vim.fn.mkdir('io', 'p')
 
   logger.log(('scraping %d uncached problems...'):format(#missing_problems))
 

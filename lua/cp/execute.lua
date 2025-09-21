@@ -63,10 +63,6 @@ local function build_command(cmd_template, executable, substitutions)
   return cmd
 end
 
-local function ensure_directories()
-  vim.system({ 'mkdir', '-p', 'build', 'io' }):wait()
-end
-
 ---@param language_config table
 ---@param substitutions table<string, string>
 ---@return {code: integer, stdout: string, stderr: string}
@@ -252,7 +248,7 @@ function M.run_problem(ctx, contest_config, is_debug)
     is_debug = { is_debug, 'boolean' },
   })
 
-  ensure_directories()
+  vim.system({ 'mkdir', '-p', 'build', 'io' }):wait()
 
   local language = get_language_from_file(ctx.source_file, contest_config)
   local language_config = contest_config[language]
