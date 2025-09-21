@@ -189,7 +189,7 @@ describe('cp.config', function()
             test = {
               rust = {
                 test = { './target/release/solution' },
-                extension = 'rs'
+                extension = 'rs',
               },
             },
           },
@@ -212,7 +212,7 @@ describe('cp.config', function()
 
         local result = config.setup(user_config)
 
-        assert.is_true(vim.tbl_contains({'cpp', 'python'}, result.contests.test.default_language))
+        assert.is_true(vim.tbl_contains({ 'cpp', 'python' }, result.contests.test.default_language))
       end)
 
       it('preserves explicit default_language', function()
