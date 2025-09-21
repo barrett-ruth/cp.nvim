@@ -351,7 +351,10 @@ describe('cp command parsing', function()
 
       local error_logged = false
       for _, log_entry in ipairs(logged_messages) do
-        if log_entry.level == vim.log.levels.ERROR and log_entry.msg:match('cache command requires subcommand') then
+        if
+          log_entry.level == vim.log.levels.ERROR
+          and log_entry.msg:match('cache command requires subcommand')
+        then
           error_logged = true
           break
         end
@@ -366,7 +369,10 @@ describe('cp command parsing', function()
 
       local error_logged = false
       for _, log_entry in ipairs(logged_messages) do
-        if log_entry.level == vim.log.levels.ERROR and log_entry.msg:match('unknown cache subcommand') then
+        if
+          log_entry.level == vim.log.levels.ERROR
+          and log_entry.msg:match('unknown cache subcommand')
+        then
           error_logged = true
           break
         end

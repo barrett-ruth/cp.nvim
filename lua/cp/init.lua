@@ -603,7 +603,10 @@ local function toggle_run_panel(is_debug)
   state.test_buffers = test_buffers
   state.test_windows = test_windows
   local test_state = run.get_run_panel_state()
-  logger.log(string.format('test panel opened (%d test cases)', #test_state.test_cases), vim.log.levels.INFO)
+  logger.log(
+    string.format('test panel opened (%d test cases)', #test_state.test_cases),
+    vim.log.levels.INFO
+  )
 end
 
 ---@param contest_id string
@@ -763,7 +766,10 @@ local function handle_cache_command(cmd)
         logger.log(('cleared cache for %s'):format(cmd.platform), vim.log.levels.INFO, true)
       else
         logger.log(
-          ('unknown platform: %s. Available: %s'):format(cmd.platform, table.concat(platforms, ', ')),
+          ('unknown platform: %s. Available: %s'):format(
+            cmd.platform,
+            table.concat(platforms, ', ')
+          ),
           vim.log.levels.ERROR
         )
       end
@@ -853,7 +859,7 @@ local function parse_command(args)
         return {
           type = 'cache',
           subcommand = 'clear',
-          platform = platform
+          platform = platform,
         }
       else
         return { type = 'error', message = 'unknown cache subcommand: ' .. subcommand }

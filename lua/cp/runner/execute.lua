@@ -235,7 +235,10 @@ function M.compile_problem(ctx, contest_config, is_debug)
     if compile_result.code ~= 0 then
       return { success = false, output = compile_result.stdout or 'unknown error' }
     end
-    logger.log(('compilation successful (%s)'):format(is_debug and 'debug mode' or 'test mode'), vim.log.levels.INFO)
+    logger.log(
+      ('compilation successful (%s)'):format(is_debug and 'debug mode' or 'test mode'),
+      vim.log.levels.INFO
+    )
   end
 
   return { success = true, output = nil }
