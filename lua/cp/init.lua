@@ -91,7 +91,8 @@ local function setup_problem(contest_id, problem_id, language)
         contest_id,
         problem_id
       ),
-      vim.log.levels.WARN
+      vim.log.levels.INFO,
+      true
     )
 
     local scrape_result = scrape.scrape_problem(ctx)

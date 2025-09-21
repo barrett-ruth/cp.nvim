@@ -51,7 +51,8 @@ local function get_contests_for_platform(platform)
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   logger.log(
     ('Scraping %s for contests, this may take a few seconds...'):format(platform_display_name),
-    vim.log.levels.WARN
+    vim.log.levels.INFO,
+    true
   )
 
   local plugin_path = utils.get_plugin_path()
@@ -125,7 +126,8 @@ local function get_problems_for_contest(platform, contest_id)
       platform_display_name,
       contest_id
     ),
-    vim.log.levels.WARN
+    vim.log.levels.INFO,
+    true
   )
 
   local metadata_result = scrape.scrape_contest_metadata(platform, contest_id)

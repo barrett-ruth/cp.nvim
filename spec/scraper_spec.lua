@@ -129,8 +129,35 @@ describe('cp.scrape', function()
 
   describe('system dependency checks', function()
     it('handles missing uv executable', function()
+      local cache = require('cp.cache')
+      local utils = require('cp.utils')
+
+      cache.load = function() end
+      cache.get_contest_data = function()
+        return nil
+      end
+
       vim.fn.executable = function(cmd)
         return cmd == 'uv' and 0 or 1
+      end
+
+      utils.setup_python_env = function()
+        return vim.fn.executable('uv') == 1
+      end
+
+      vim.system = function(cmd)
+        if cmd[1] == 'ping' then
+          return {
+            wait = function()
+              return { code = 0 }
+            end,
+          }
+        end
+        return {
+          wait = function()
+            return { code = 0 }
+          end,
+        }
       end
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')

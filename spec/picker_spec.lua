@@ -68,6 +68,22 @@ describe('cp.picker', function()
     end)
 
     it('returns contest list when scraper succeeds', function()
+      local cache = require('cp.cache')
+      local utils = require('cp.utils')
+
+      cache.load = function() end
+      cache.get_contest_list = function()
+        return nil
+      end
+      cache.set_contest_list = function() end
+
+      utils.setup_python_env = function()
+        return true
+      end
+      utils.get_plugin_path = function()
+        return '/test/path'
+      end
+
       vim.system = function(_, _)
         return {
           wait = function()
