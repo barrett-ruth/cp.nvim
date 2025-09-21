@@ -1,12 +1,12 @@
 # cp.nvim
 
-**Fast, minimal competitive programming environment for Neovim**
+**The definitive competitive programming environment for Neovim**
 
 Scrape problems, run tests, and debug solutions across multiple platforms with zero configuration.
 
 > **Disclaimer**: cp.nvim webs crapes data from competitive programming platforms - use at your own risk.
 
-https://github.com/user-attachments/assets/cb142535-fba0-4280-8f11-66ad1ca50ca9
+https://github.com/user-attachments/assets/50b19481-8e6d-47b4-bebc-15e16c61a9c9
 
 ## Features
 
