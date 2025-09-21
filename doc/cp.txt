@@ -45,10 +45,14 @@ COMMANDS                                                        *cp-commands*
                                     :CP codeforces 1933 a --lang=python
 <
             :CP {platform} {contest_id}
-                                Contest setup: set platform and load contest
-                                metadata for navigation. Caches problem list.
+                                Contest setup: set platform, load contest metadata,
+                                and scrape ALL problems in the contest. This creates
+                                source files for every problem and caches all test
+                                cases for efficient bulk setup. Opens the first
+                                problem after completion.
                                 Example: >
                                     :CP atcoder abc324
+                                    :CP codeforces 1951
 <
             :CP {platform}      Platform setup: set platform only.
                                 Example: >
@@ -349,9 +353,11 @@ In terms of cp.nvim, this corresponds to:
 
 Usage examples: >
     :CP cses dynamic_programming 1633      " Set up problem 1633 from DP category
+    :CP cses dynamic_programming           " Set up ALL problems from DP category
 <
-                                Note: Both category and problem ID are required
-                                entities rather than contest problems.
+                                Note: Category name is always required. For bulk
+                                setup, omit the problem ID to scrape all problems
+                                in the category.
 
 ==============================================================================
 
@@ -361,16 +367,14 @@ Example: Setting up and solving AtCoder contest ABC324
 
 1. Browse to https://atcoder.jp/contests/abc324
 
-2. Set up contest and load metadata: >
+2. Set up entire contest (bulk setup): >
     :CP atcoder abc324
-<   This caches all problems (A, B, ...) for navigation
+<   This scrapes ALL problems (A, B, C, D, ...), creates source files
+   for each, downloads all test cases, and opens problem A.
 
-3. Start with problem A: >
-    :CP a
-<
-   Or do both at once with: >
+3. Alternative: Set up single problem: >
     :CP atcoder abc324 a
-<   This creates a.cc and scrapes test cases
+<   This creates only a.cc and scrapes its test cases
 
 4. Code your solution, then test: >
     :CP run
