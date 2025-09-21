@@ -1,6 +1,6 @@
 # cp.nvim
 
-**Fast, minimal competitive programming environment for Neovim**
+**The definitive competitive programming environment for Neovim**
 
 Scrape problems, run tests, and debug solutions across multiple platforms with zero configuration.
 
