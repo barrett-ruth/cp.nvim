@@ -96,7 +96,11 @@ if __name__ == "__main__":
 if __name__ == "__main__":
     solve()]],
 
-      cses = [[{}]],
+      cses = [[def solve():
+    {}
+
+if __name__ == "__main__":
+    solve()]],
     },
   }
 
