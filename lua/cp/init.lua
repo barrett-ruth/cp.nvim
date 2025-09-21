@@ -632,7 +632,7 @@ local function setup_contest(contest_id, language)
 
   cache.load()
   local missing_problems = {}
-  for _, problem in ipairs(problems) do
+  for _, prob in ipairs(problems) do
     local cached_tests = cache.get_test_cases(state.platform, contest_id, problem.id)
     if not cached_tests then
       table.insert(missing_problems, problem)

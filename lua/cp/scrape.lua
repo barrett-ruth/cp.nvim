@@ -316,31 +316,17 @@ function M.scrape_problems_parallel(platform, contest_id, problems, config)
   local jobs = {}
 
   for _, prob in ipairs(problems) do
-    local args
-    if platform == 'cses' then
-      args = {
-        'uv',
-        'run',
-        '--directory',
-        plugin_path,
-        '-m',
-        'scrapers.' .. platform,
-        'tests',
-        prob.id,
-      }
-    else
-      args = {
-        'uv',
-        'run',
-        '--directory',
-        plugin_path,
-        '-m',
-        'scrapers.' .. platform,
-        'tests',
-        contest_id,
-        prob.id,
-      }
-    end
+    local args = {
+      'uv',
+      'run',
+      '--directory',
+      plugin_path,
+      '-m',
+      'scrapers.' .. platform,
+      'tests',
+      contest_id,
+      prob.id,
+    }
 
     local job = vim.system(args, {
       cwd = plugin_path,
