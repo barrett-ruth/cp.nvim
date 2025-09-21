@@ -597,7 +597,7 @@ local function toggle_run_panel(is_debug)
       toggle_run_panel()
     end, { buffer = buf, silent = true })
     vim.keymap.set('n', config.run_panel.toggle_diff_key, function()
-      local modes = { 'none', 'vim', 'git' }
+      local modes = { 'none', 'git', 'vim' }
       local current_idx = nil
       for i, mode in ipairs(modes) do
         if config.run_panel.diff_mode == mode then
