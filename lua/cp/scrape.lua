@@ -162,31 +162,17 @@ function M.scrape_problem(ctx)
 
   local plugin_path = utils.get_plugin_path()
 
-  local args
-  if ctx.contest == 'cses' then
-    args = {
-      'uv',
-      'run',
-      '--directory',
-      plugin_path,
-      '-m',
-      'scrapers.' .. ctx.contest,
-      'tests',
-      ctx.problem_id,
-    }
-  else
-    args = {
-      'uv',
-      'run',
-      '--directory',
-      plugin_path,
-      '-m',
-      'scrapers.' .. ctx.contest,
-      'tests',
-      ctx.contest_id,
-      ctx.problem_id,
-    }
-  end
+  local args = {
+    'uv',
+    'run',
+    '--directory',
+    plugin_path,
+    '-m',
+    'scrapers.' .. ctx.contest,
+    'tests',
+    ctx.contest_id,
+    ctx.problem_id,
+  }
 
   local result = vim
     .system(args, {
