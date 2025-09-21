@@ -385,6 +385,9 @@ describe('cp command parsing', function()
     local complete_fn
 
     before_each(function()
+      package.loaded['cp'] = nil
+      package.loaded['cp.cache'] = nil
+
       complete_fn = function(ArgLead, CmdLine, _)
         local constants = require('cp.constants')
         local platforms = constants.PLATFORMS
@@ -398,6 +401,7 @@ describe('cp command parsing', function()
 
         if num_args == 2 then
           local candidates = {}
+          local cp = require('cp')
           local context = cp.get_current_context()
           if context.platform and context.contest_id then
             vim.list_extend(candidates, actions)
@@ -458,6 +462,11 @@ describe('cp command parsing', function()
           return nil
         end,
       }
+    end)
+
+    after_each(function()
+      package.loaded['cp'] = nil
+      package.loaded['cp.cache'] = nil
     end)
 
     it('completes platforms and global actions when no contest context', function()
