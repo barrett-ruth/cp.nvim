@@ -180,11 +180,6 @@ def scrape_categories() -> list[ContestSummary]:
 
             category_id = normalize_category_name(category_name)
 
-            ul = h2.find_next_sibling("ul", class_="task-list")
-            problem_count = 0
-            if ul:
-                problem_count = len(ul.find_all("li", class_="task"))
-
             display_name = category_name
 
             categories.append(
