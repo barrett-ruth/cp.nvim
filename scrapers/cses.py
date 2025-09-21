@@ -387,7 +387,6 @@ def main() -> None:
             print(json.dumps(asdict(tests_result)))
             sys.exit(1)
 
-        category: str = sys.argv[2]
         problem_input: str = sys.argv[3]
         url: str | None = parse_problem_url(problem_input)
 
