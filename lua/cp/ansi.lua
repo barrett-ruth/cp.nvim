@@ -194,17 +194,9 @@ function M.setup_highlight_groups()
     BrightWhite = vim.g.terminal_color_15,
   }
 
-  local missing_color = false
-  for _, terminal_color in pairs(color_map) do
-    if terminal_color == nil then
-      missing_color = true
-      break
-    end
-  end
-
-  if missing_color or #color_map == 0 then
+  if vim.tbl_count(color_map) < 16 then
     logger.log(
-      'ansi terminal colors (vim.g.terminal_color_*) not configured. . ANSI colors will not display properly. ',
+      'ansi terminal colors (vim.g.terminal_color_*) not configured. ANSI colors will not display properly. ',
       vim.log.levels.WARN
     )
   end
