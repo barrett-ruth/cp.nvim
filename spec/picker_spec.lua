@@ -40,7 +40,7 @@ describe('cp.picker', function()
 
   describe('get_contests_for_platform', function()
     it('returns empty list when scraper fails', function()
-      vim.system = function(cmd, opts)
+      vim.system = function()
         return {
           wait = function()
             return { code = 1, stderr = 'test error' }
@@ -54,7 +54,7 @@ describe('cp.picker', function()
     end)
 
     it('returns empty list when JSON is invalid', function()
-      vim.system = function(cmd, opts)
+      vim.system = function()
         return {
           wait = function()
             return { code = 0, stdout = 'invalid json' }
@@ -68,7 +68,7 @@ describe('cp.picker', function()
     end)
 
     it('returns contest list when scraper succeeds', function()
-      vim.system = function(cmd, opts)
+      vim.system = function()
         return {
           wait = function()
             return {
