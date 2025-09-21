@@ -27,8 +27,7 @@ jobs:
               - 'ftdetect/**'
               - '*.lua'
               - '.luarc.json'
-              - 'stylua.toml'
-              - 'selene.toml'
+              - '*.toml'
             python:
               - 'scrapers/**'
               - 'tests/scrapers/**'

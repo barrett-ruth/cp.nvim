@@ -99,7 +99,6 @@ def scrape_contest_problems(contest_id: str) -> list[ProblemSummary]:
             if problem:
                 problems.append(problem)
 
-        problems.sort(key=lambda x: x.id)
         return problems
 
     except Exception as e:

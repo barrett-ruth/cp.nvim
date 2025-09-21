@@ -114,7 +114,6 @@ def scrape_category_problems(category_id: str) -> list[ProblemSummary]:
 
                     problems.append(ProblemSummary(id=problem_id, name=problem_name))
 
-        problems.sort(key=lambda x: int(x.id))
         return problems
 
     except Exception as e:
@@ -263,8 +262,7 @@ def scrape_all_problems() -> dict[str, list[ProblemSummary]]:
                             problem = ProblemSummary(id=problem_id, name=problem_name)
                             all_categories[current_category].append(problem)
 
-        for category in all_categories:
-            all_categories[category].sort(key=lambda x: int(x.id))
+        # Preserve HTML document order - do not sort
 
         print(
             f"Found {len(all_categories)} categories with {sum(len(probs) for probs in all_categories.values())} problems",
