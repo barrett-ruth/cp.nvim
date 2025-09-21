@@ -266,6 +266,7 @@ function M.setup(user_config)
         error('No language configurations found')
       end
 
+      table.sort(available_langs)
       contest_config.default_language = available_langs[1]
     end
   end

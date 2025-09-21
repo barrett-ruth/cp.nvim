@@ -194,6 +194,10 @@ describe('cp.picker', function()
 
       picker.setup_problem('codeforces', '1951', 'a')
 
+      vim.wait(100, function()
+        return called_with ~= nil
+      end)
+
       assert.is_table(called_with)
       assert.is_table(called_with.fargs)
       assert.equals('codeforces', called_with.fargs[1])
