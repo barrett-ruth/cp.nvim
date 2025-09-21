@@ -315,7 +315,7 @@ function M.scrape_problems_parallel(platform, contest_id, problems, config)
   local plugin_path = get_plugin_path()
   local jobs = {}
 
-  for _, problem in ipairs(problems) do
+  for _, prob in ipairs(problems) do
     local args
     if platform == 'cses' then
       args = {

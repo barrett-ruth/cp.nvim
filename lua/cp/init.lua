@@ -647,11 +647,7 @@ local function setup_contest(contest_id, language)
   end
 
   state.contest_id = contest_id
-  if state.platform == 'cses' then
-    setup_problem(problems[1].id, nil, language)
-  else
-    setup_problem(contest_id, problems[1].id, language)
-  end
+  setup_problem(contest_id, problems[1].id, language)
 
   return true
 end
