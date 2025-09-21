@@ -518,6 +518,7 @@ local function toggle_run_panel(is_debug)
     update_diff_panes()
   end
 
+  ---@param delta number 1 for next, -1 for prev
   local function navigate_test_case(delta)
     local test_state = run.get_run_panel_state()
     if #test_state.test_cases == 0 then
@@ -597,7 +598,7 @@ local function toggle_run_panel(is_debug)
   logger.log(string.format('test panel opened (%d test cases)', #test_state.test_cases))
 end
 
----@param delta number 1 for next, -1 for prev
+---@param contest_id string
 ---@param language? string
 local function setup_contest(contest_id, language)
   if not state.platform then
@@ -655,6 +656,8 @@ local function setup_contest(contest_id, language)
   return true
 end
 
+---@param delta number 1 for next, -1 for prev
+---@param language? string
 local function navigate_problem(delta, language)
   if not state.platform or not state.contest_id then
     logger.log('no contest set. run :CP <platform> <contest> first', vim.log.levels.ERROR)

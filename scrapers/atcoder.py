@@ -247,7 +247,7 @@ def scrape_contests() -> list[ContestSummary]:
 
                     try:
                         name = name.encode().decode("unicode_escape")
-                    except:
+                    except (UnicodeDecodeError, UnicodeEncodeError):
                         pass
 
                     name = (

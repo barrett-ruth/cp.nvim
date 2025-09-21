@@ -343,7 +343,7 @@ def main() -> None:
     if len(sys.argv) < 2:
         result = MetadataResult(
             success=False,
-            error="Usage: cses.py metadata <category_id> OR cses.py tests <problem_id_or_url> OR cses.py contests",
+            error="Usage: cses.py metadata <category_id> OR cses.py tests <category> <problem_id> OR cses.py contests",
         )
         print(json.dumps(asdict(result)))
         sys.exit(1)
@@ -374,10 +374,10 @@ def main() -> None:
         print(json.dumps(asdict(result)))
 
     elif mode == "tests":
-        if len(sys.argv) != 3:
+        if len(sys.argv) != 4:
             tests_result = TestsResult(
                 success=False,
-                error="Usage: cses.py tests <problem_id_or_url>",
+                error="Usage: cses.py tests <category> <problem_id>",
                 problem_id="",
                 url="",
                 tests=[],
@@ -387,7 +387,8 @@ def main() -> None:
             print(json.dumps(asdict(tests_result)))
             sys.exit(1)
 
-        problem_input: str = sys.argv[2]
+        category: str = sys.argv[2]
+        problem_input: str = sys.argv[3]
         url: str | None = parse_problem_url(problem_input)
 
         if not url:
@@ -475,7 +476,7 @@ def main() -> None:
     else:
         result = MetadataResult(
             success=False,
-            error=f"Unknown mode: {mode}. Use 'metadata', 'tests', or 'contests'",
+            error=f"Unknown mode: {mode}. Use 'metadata <category>', 'tests <category> <problem_id>', or 'contests'",
         )
         print(json.dumps(asdict(result)))
         sys.exit(1)
