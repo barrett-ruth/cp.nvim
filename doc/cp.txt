@@ -211,7 +211,7 @@ Here's an example configuration with lazy.nvim: >lua
                           ANSI escape codes are stripped for plain text display.
                           Requires vim.g.terminal_color_* to be configured for
                           proper color display.
-        {diff_mode}       (string, default: "git") Diff backend: "none", "vim", or "git".
+        {diff_mode}       (string, default: "none") Diff backend: "none", "vim", or "git".
                           "none" displays plain buffers without highlighting,
                           "vim" uses built-in diff, "git" provides character-level precision.
         {next_test_key}   (string, default: "<c-n>") Key to navigate to next test case.
