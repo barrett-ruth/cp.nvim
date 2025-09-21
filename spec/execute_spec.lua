@@ -6,7 +6,7 @@ describe('cp.execute', function()
 
   before_each(function()
     spec_helper.setup()
-    execute = require('cp.execute')
+    execute = require('cp.runner.execute')
     mock_system_calls = {}
     temp_files = {}
 

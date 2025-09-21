@@ -246,7 +246,7 @@ local function toggle_run_panel(is_debug)
   end
 
   local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
-  local run = require('cp.run')
+  local run = require('cp.runner.run')
 
   if not run.load_test_cases(ctx, state) then
     logger.log('no test cases found', vim.log.levels.WARN)
@@ -270,7 +270,7 @@ local function toggle_run_panel(is_debug)
     tab_buf = tab_buf,
   }
 
-  local highlight = require('cp.highlight')
+  local highlight = require('cp.ui.highlight')
   local diff_namespace = highlight.create_namespace()
 
   local test_list_namespace = vim.api.nvim_create_namespace('cp_test_list')
@@ -347,7 +347,7 @@ local function toggle_run_panel(is_debug)
     vim.api.nvim_set_option_value('filetype', 'cptest', { buf = diff_buf })
     vim.api.nvim_set_option_value('winbar', 'Expected vs Actual', { win = diff_win })
 
-    local diff_backend = require('cp.diff')
+    local diff_backend = require('cp.ui.diff')
     local backend = diff_backend.get_best_backend('git')
     local diff_result = backend.render(expected_content, actual_content)
 
@@ -459,7 +459,7 @@ local function toggle_run_panel(is_debug)
           ansi_namespace
         )
       elseif desired_mode == 'git' then
-        local diff_backend = require('cp.diff')
+        local diff_backend = require('cp.ui.diff')
         local backend = diff_backend.get_best_backend('git')
         local diff_result = backend.render(expected_content, actual_content)
 
@@ -513,7 +513,7 @@ local function toggle_run_panel(is_debug)
       return
     end
 
-    local run_render = require('cp.run_render')
+    local run_render = require('cp.runner.run_render')
     run_render.setup_highlights()
 
     local test_state = run.get_run_panel_state()
@@ -573,7 +573,7 @@ local function toggle_run_panel(is_debug)
     config.hooks.before_debug(ctx)
   end
 
-  local execute = require('cp.execute')
+  local execute = require('cp.runner.execute')
   local contest_config = config.contests[state.platform]
   local compile_result = execute.compile_problem(ctx, contest_config, is_debug)
   if compile_result.success then
@@ -586,7 +586,7 @@ local function toggle_run_panel(is_debug)
 
   vim.schedule(function()
     if config.run_panel.ansi then
-      local ansi = require('cp.ansi')
+      local ansi = require('cp.ui.ansi')
       ansi.setup_highlight_groups()
     end
     if current_diff_layout then

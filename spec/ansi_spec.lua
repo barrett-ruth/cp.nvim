@@ -1,5 +1,5 @@
 describe('ansi parser', function()
-  local ansi = require('cp.ansi')
+  local ansi = require('cp.ui.ansi')
 
   describe('bytes_to_string', function()
     it('returns string as-is', function()
@@ -224,7 +224,6 @@ describe('ansi parser', function()
       ansi.setup_highlight_groups()
 
       local highlight = vim.api.nvim_get_hl(0, { name = 'CpAnsiRed' })
-      -- When 'NONE' is set, nvim_get_hl returns nil for that field
       assert.is_nil(highlight.fg)
 
       for i = 0, 15 do

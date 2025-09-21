@@ -89,7 +89,7 @@ function M.compile_generic(language_config, substitutions)
     :wait()
   local compile_time = (vim.uv.hrtime() - start_time) / 1000000
 
-  local ansi = require('cp.ansi')
+  local ansi = require('cp.ui.ansi')
   result.stdout = ansi.bytes_to_string(result.stdout or '')
   result.stderr = ansi.bytes_to_string(result.stderr or '')
 

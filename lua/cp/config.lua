@@ -178,7 +178,6 @@ function M.setup(user_config)
 
   local config = vim.tbl_deep_extend('force', M.defaults, user_config or {})
 
-  -- Validate merged config values
   vim.validate({
     before_run = {
       config.hooks.before_run,

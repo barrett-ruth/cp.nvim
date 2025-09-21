@@ -4,7 +4,7 @@ describe('cp.diff', function()
 
   before_each(function()
     spec_helper.setup()
-    diff = require('cp.diff')
+    diff = require('cp.ui.diff')
   end)
 
   after_each(function()

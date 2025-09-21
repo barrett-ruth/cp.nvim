@@ -17,7 +17,7 @@ local problem = require('cp.problem')
 local utils = require('cp.utils')
 
 local function check_internet_connectivity()
-  local result = vim.system({ 'ping', '-c', '1', '-W', '3', '8.8.8.8' }, { text = true }):wait()
+  local result = vim.system({ 'ping', '-c', '5', '-W', '3', '8.8.8.8' }, { text = true }):wait()
   return result.code == 0
 end
 
