@@ -293,4 +293,85 @@ describe('cp command parsing', function()
       end
     end)
   end)
+
+  describe('cache commands', function()
+    it('handles cache clear without platform', function()
+      local opts = { fargs = { 'cache', 'clear' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+
+      local success_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if log_entry.msg and log_entry.msg:match('cleared all cache') then
+          success_logged = true
+          break
+        end
+      end
+      assert.is_true(success_logged)
+    end)
+
+    it('handles cache clear with valid platform', function()
+      local opts = { fargs = { 'cache', 'clear', 'atcoder' } }
+
+      assert.has_no_errors(function()
+        cp.handle_command(opts)
+      end)
+
+      local success_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if log_entry.msg and log_entry.msg:match('cleared cache for atcoder') then
+          success_logged = true
+          break
+        end
+      end
+      assert.is_true(success_logged)
+    end)
+
+    it('logs error for cache clear with invalid platform', function()
+      local opts = { fargs = { 'cache', 'clear', 'invalid_platform' } }
+
+      cp.handle_command(opts)
+
+      local error_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if log_entry.level == vim.log.levels.ERROR and log_entry.msg:match('unknown platform') then
+          error_logged = true
+          break
+        end
+      end
+      assert.is_true(error_logged)
+    end)
+
+    it('logs error for cache command without subcommand', function()
+      local opts = { fargs = { 'cache' } }
+
+      cp.handle_command(opts)
+
+      local error_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if log_entry.level == vim.log.levels.ERROR and log_entry.msg:match('cache command requires subcommand') then
+          error_logged = true
+          break
+        end
+      end
+      assert.is_true(error_logged)
+    end)
+
+    it('logs error for invalid cache subcommand', function()
+      local opts = { fargs = { 'cache', 'invalid' } }
+
+      cp.handle_command(opts)
+
+      local error_logged = false
+      for _, log_entry in ipairs(logged_messages) do
+        if log_entry.level == vim.log.levels.ERROR and log_entry.msg:match('unknown cache subcommand') then
+          error_logged = true
+          break
+        end
+      end
+      assert.is_true(error_logged)
+    end)
+  end)
 end)
