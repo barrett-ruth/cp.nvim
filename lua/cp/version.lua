@@ -1,8 +1,9 @@
 local M = {}
 
+local utils = require('cp.utils')
+
 local function get_git_version()
-  local plugin_path = debug.getinfo(1, 'S').source:sub(2)
-  local plugin_root = vim.fn.fnamemodify(plugin_path, ':h:h:h')
+  local plugin_root = utils.get_plugin_path()
 
   local result = vim
     .system({ 'git', 'describe', '--tags', '--always', '--dirty' }, {

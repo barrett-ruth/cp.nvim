@@ -1,5 +1,7 @@
 local M = {}
 
+local utils = require('cp.utils')
+
 local function check_nvim_version()
   if vim.fn.has('nvim-0.10.0') == 1 then
     vim.health.ok('Neovim 0.10.0+ detected')
@@ -22,8 +24,7 @@ local function check_uv()
 end
 
 local function check_python_env()
-  local plugin_path = debug.getinfo(1, 'S').source:sub(2)
-  plugin_path = vim.fn.fnamemodify(plugin_path, ':h:h:h')
+  local plugin_path = utils.get_plugin_path()
   local venv_dir = plugin_path .. '/.venv'
 
   if vim.fn.isdirectory(venv_dir) == 1 then
@@ -34,8 +35,7 @@ local function check_python_env()
 end
 
 local function check_scrapers()
-  local plugin_path = debug.getinfo(1, 'S').source:sub(2)
-  plugin_path = vim.fn.fnamemodify(plugin_path, ':h:h:h')
+  local plugin_path = utils.get_plugin_path()
 
   local scrapers = { 'atcoder.py', 'codeforces.py', 'cses.py' }
   for _, scraper in ipairs(scrapers) do

@@ -15,40 +15,11 @@ local M = {}
 local cache = require('cp.cache')
 local logger = require('cp.log')
 local problem = require('cp.problem')
-
-local function get_plugin_path()
-  local plugin_path = debug.getinfo(1, 'S').source:sub(2)
-  return vim.fn.fnamemodify(plugin_path, ':h:h:h')
-end
+local utils = require('cp.utils')
 
 local function check_internet_connectivity()
   local result = vim.system({ 'ping', '-c', '1', '-W', '3', '8.8.8.8' }, { text = true }):wait()
   return result.code == 0
-end
-
-local function setup_python_env()
-  local plugin_path = get_plugin_path()
-  local venv_dir = plugin_path .. '/.venv'
-
-  if vim.fn.executable('uv') == 0 then
-    logger.log(
-      'uv is not installed. Install it to enable problem scraping: https://docs.astral.sh/uv/',
-      vim.log.levels.WARN
-    )
-    return false
-  end
-
-  if vim.fn.isdirectory(venv_dir) == 0 then
-    logger.log('setting up Python environment for scrapers...')
-    local result = vim.system({ 'uv', 'sync' }, { cwd = plugin_path, text = true }):wait()
-    if result.code ~= 0 then
-      logger.log('failed to setup Python environment: ' .. result.stderr, vim.log.levels.ERROR)
-      return false
-    end
-    logger.log('python environment setup complete')
-  end
-
-  return true
 end
 
 ---@param platform string
@@ -77,14 +48,14 @@ function M.scrape_contest_metadata(platform, contest_id)
     }
   end
 
-  if not setup_python_env() then
+  if not utils.setup_python_env() then
     return {
       success = false,
       error = 'Python environment setup failed',
     }
   end
 
-  local plugin_path = get_plugin_path()
+  local plugin_path = utils.get_plugin_path()
 
   local args = {
     'uv',
@@ -182,7 +153,7 @@ function M.scrape_problem(ctx)
     }
   end
 
-  if not setup_python_env() then
+  if not utils.setup_python_env() then
     return {
       success = false,
       problem_id = ctx.problem_name,
@@ -190,7 +161,7 @@ function M.scrape_problem(ctx)
     }
   end
 
-  local plugin_path = get_plugin_path()
+  local plugin_path = utils.get_plugin_path()
 
   local args
   if ctx.contest == 'cses' then
@@ -308,11 +279,11 @@ function M.scrape_problems_parallel(platform, contest_id, problems, config)
     return {}
   end
 
-  if not setup_python_env() then
+  if not utils.setup_python_env() then
     return {}
   end
 
-  local plugin_path = get_plugin_path()
+  local plugin_path = utils.get_plugin_path()
   local jobs = {}
 
   for _, prob in ipairs(problems) do

@@ -3,6 +3,7 @@ local M = {}
 local cache = require('cp.cache')
 local logger = require('cp.log')
 local scrape = require('cp.scrape')
+local utils = require('cp.utils')
 
 ---@class cp.PlatformItem
 ---@field id string Platform identifier (e.g. "codeforces", "atcoder", "cses")
@@ -36,12 +37,11 @@ end
 local function get_contests_for_platform(platform)
   local contests = {}
 
-  local function get_plugin_path()
-    local plugin_path = debug.getinfo(1, 'S').source:sub(2)
-    return vim.fn.fnamemodify(plugin_path, ':h:h:h')
+  if not utils.setup_python_env() then
+    return contests
   end
 
-  local plugin_path = get_plugin_path()
+  local plugin_path = utils.get_plugin_path()
   local cmd = {
     'uv',
     'run',
