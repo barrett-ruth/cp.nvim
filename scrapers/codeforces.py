@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+import re
 import sys
 from dataclasses import asdict
 
@@ -148,8 +149,6 @@ def parse_problem_url(contest_id: str, problem_letter: str) -> str:
 
 
 def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, float]:
-    import re
-
     timeout_ms = None
     memory_mb = None
 
@@ -240,28 +239,45 @@ def scrape_contests() -> list[ContestSummary]:
             contest_id = str(contest["id"])
             name = contest["name"]
 
-            # Clean up contest names for display
             display_name = name
             if "Educational Codeforces Round" in name:
-                import re
-
                 match = re.search(r"Educational Codeforces Round (\d+)", name)
                 if match:
                     display_name = f"Educational Round {match.group(1)}"
-            elif "Codeforces Round" in name and "Div" in name:
-                match = re.search(r"Codeforces Round (\d+) \(Div\. (\d+)\)", name)
-                if match:
-                    display_name = f"Round {match.group(1)} (Div. {match.group(2)})"
             elif "Codeforces Global Round" in name:
                 match = re.search(r"Codeforces Global Round (\d+)", name)
                 if match:
                     display_name = f"Global Round {match.group(1)}"
+            elif "Codeforces Round" in name:
+                div_match = re.search(r"Codeforces Round (\d+) \(Div\. (\d+)\)", name)
+                if div_match:
+                    display_name = (
+                        f"Round {div_match.group(1)} (Div. {div_match.group(2)})"
+                    )
+                else:
+                    combined_match = re.search(
+                        r"Codeforces Round (\d+) \(Div\. 1 \+ Div\. 2\)", name
+                    )
+                    if combined_match:
+                        display_name = (
+                            f"Round {combined_match.group(1)} (Div. 1 + Div. 2)"
+                        )
+                    else:
+                        single_div_match = re.search(
+                            r"Codeforces Round (\d+) \(Div\. 1\)", name
+                        )
+                        if single_div_match:
+                            display_name = f"Round {single_div_match.group(1)} (Div. 1)"
+                        else:
+                            round_match = re.search(r"Codeforces Round (\d+)", name)
+                            if round_match:
+                                display_name = f"Round {round_match.group(1)}"
 
             contests.append(
                 ContestSummary(id=contest_id, name=name, display_name=display_name)
             )
 
-        return contests[:100]  # Limit to recent 100 contests
+        return contests[:100]
 
     except Exception as e:
         print(f"Failed to fetch contests: {e}", file=sys.stderr)

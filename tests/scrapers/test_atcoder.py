@@ -54,18 +54,22 @@ def test_scrape_network_error(mocker):
 
 def test_scrape_contests_success(mocker):
     def mock_get_side_effect(url, **kwargs):
-        if "page=1" in url:
+        if url == "https://atcoder.jp/contests/archive":
             mock_response = Mock()
+            mock_response.raise_for_status.return_value = None
             mock_response.text = """
-            <table class="table table-default table-striped table-hover table-condensed table-bordered small">
-                <thead>
-                    <tr>
-                        <th>Start Time</th>
-                        <th>Contest Name</th>
-                        <th>Duration</th>
-                        <th>Rated Range</th>
-                    </tr>
-                </thead>
+            <html>
+                <ul class="pagination">
+                    <li>1</li>
+                </ul>
+            </html>
+            """
+            return mock_response
+        elif "page=1" in url:
+            mock_response = Mock()
+            mock_response.raise_for_status.return_value = None
+            mock_response.text = """
+            <table class="table">
                 <tbody>
                     <tr>
                         <td>2025-01-15 21:00:00+0900</td>
@@ -84,9 +88,9 @@ def test_scrape_contests_success(mocker):
             """
             return mock_response
         else:
-            # Return empty page for all other pages
             mock_response = Mock()
-            mock_response.text = "<html><body>No table found</body></html>"
+            mock_response.raise_for_status.return_value = None
+            mock_response.text = "<html></html>"
             return mock_response
 
     mocker.patch("scrapers.atcoder.requests.get", side_effect=mock_get_side_effect)
