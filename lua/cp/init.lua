@@ -288,6 +288,43 @@ local function toggle_run_panel(is_debug)
     highlight.apply_highlights(bufnr, highlights, namespace or test_list_namespace)
   end
 
+  local function create_none_diff_layout(parent_win, expected_content, actual_content)
+    local expected_buf = create_buffer_with_options()
+    local actual_buf = create_buffer_with_options()
+
+    vim.api.nvim_set_current_win(parent_win)
+    vim.cmd.split()
+    vim.cmd('resize ' .. math.floor(vim.o.lines * 0.35))
+    local actual_win = vim.api.nvim_get_current_win()
+    vim.api.nvim_win_set_buf(actual_win, actual_buf)
+
+    vim.cmd.vsplit()
+    local expected_win = vim.api.nvim_get_current_win()
+    vim.api.nvim_win_set_buf(expected_win, expected_buf)
+
+    vim.api.nvim_set_option_value('filetype', 'cptest', { buf = expected_buf })
+    vim.api.nvim_set_option_value('filetype', 'cptest', { buf = actual_buf })
+    vim.api.nvim_set_option_value('winbar', 'Expected', { win = expected_win })
+    vim.api.nvim_set_option_value('winbar', 'Actual', { win = actual_win })
+
+    local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
+    local actual_lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
+
+    update_buffer_content(expected_buf, expected_lines, {})
+    update_buffer_content(actual_buf, actual_lines, {})
+
+    return {
+      buffers = { expected_buf, actual_buf },
+      windows = { expected_win, actual_win },
+      cleanup = function()
+        pcall(vim.api.nvim_win_close, expected_win, true)
+        pcall(vim.api.nvim_win_close, actual_win, true)
+        pcall(vim.api.nvim_buf_delete, expected_buf, { force = true })
+        pcall(vim.api.nvim_buf_delete, actual_buf, { force = true })
+      end,
+    }
+  end
+
   local function create_vim_diff_layout(parent_win, expected_content, actual_content)
     local expected_buf = create_buffer_with_options()
     local actual_buf = create_buffer_with_options()
@@ -395,6 +432,8 @@ local function toggle_run_panel(is_debug)
   local function create_diff_layout(mode, parent_win, expected_content, actual_content)
     if mode == 'single' then
       return create_single_layout(parent_win, actual_content)
+    elseif mode == 'none' then
+      return create_none_diff_layout(parent_win, expected_content, actual_content)
     elseif mode == 'git' then
       return create_git_diff_layout(parent_win, expected_content, actual_content)
     else
@@ -481,6 +520,16 @@ local function toggle_run_panel(is_debug)
             ansi_namespace
           )
         end
+      elseif desired_mode == 'none' then
+        local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
+        local actual_lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
+        update_buffer_content(current_diff_layout.buffers[1], expected_lines, {})
+        update_buffer_content(
+          current_diff_layout.buffers[2],
+          actual_lines,
+          actual_highlights,
+          ansi_namespace
+        )
       else
         local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
         local actual_lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
@@ -548,7 +597,16 @@ local function toggle_run_panel(is_debug)
       toggle_run_panel()
     end, { buffer = buf, silent = true })
     vim.keymap.set('n', config.run_panel.toggle_diff_key, function()
-      config.run_panel.diff_mode = config.run_panel.diff_mode == 'vim' and 'git' or 'vim'
+      local modes = { 'none', 'vim', 'git' }
+      local current_idx = nil
+      for i, mode in ipairs(modes) do
+        if config.run_panel.diff_mode == mode then
+          current_idx = i
+          break
+        end
+      end
+      current_idx = current_idx or 1
+      config.run_panel.diff_mode = modes[(current_idx % #modes) + 1]
       refresh_run_panel()
     end, { buffer = buf, silent = true })
     vim.keymap.set('n', config.run_panel.next_test_key, function()

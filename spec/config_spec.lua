@@ -70,6 +70,28 @@ describe('cp.config', function()
       end)
     end)
 
+    it('validates diff_mode values', function()
+      local valid_config = {
+        run_panel = {
+          diff_mode = 'none',
+        },
+      }
+
+      assert.has_no.errors(function()
+        config.setup(valid_config)
+      end)
+
+      local invalid_config = {
+        run_panel = {
+          diff_mode = 'invalid_mode',
+        },
+      }
+
+      assert.has_error(function()
+        config.setup(invalid_config)
+      end)
+    end)
+
     it('validates hook functions', function()
       local invalid_config = {
         hooks = { before_run = 'not_a_function' },

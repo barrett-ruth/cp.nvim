@@ -23,6 +23,20 @@ local vim_backend = {
 }
 
 ---@type DiffBackend
+local none_backend = {
+  name = 'none',
+  render = function(expected, actual)
+    local expected_lines = vim.split(expected, '\n', { plain = true, trimempty = true })
+    local actual_lines = vim.split(actual, '\n', { plain = true, trimempty = true })
+
+    return {
+      content = { expected = expected_lines, actual = actual_lines },
+      highlights = {},
+    }
+  end,
+}
+
+---@type DiffBackend
 local git_backend = {
   name = 'git',
   render = function(expected, actual)
@@ -143,6 +157,7 @@ local git_backend = {
 
 ---@type table<string, DiffBackend>
 local backends = {
+  none = none_backend,
   vim = vim_backend,
   git = git_backend,
 }

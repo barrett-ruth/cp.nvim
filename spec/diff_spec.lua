@@ -12,10 +12,10 @@ describe('cp.diff', function()
   end)
 
   describe('get_available_backends', function()
-    it('returns vim and git backends', function()
+    it('returns none, vim and git backends', function()
       local backends = diff.get_available_backends()
       table.sort(backends)
-      assert.same({ 'git', 'vim' }, backends)
+      assert.same({ 'git', 'none', 'vim' }, backends)
     end)
   end)
 
@@ -30,6 +30,12 @@ describe('cp.diff', function()
       local backend = diff.get_backend('git')
       assert.is_not_nil(backend)
       assert.equals('git', backend.name)
+    end)
+
+    it('returns none backend by name', function()
+      local backend = diff.get_backend('none')
+      assert.is_not_nil(backend)
+      assert.equals('none', backend.name)
     end)
 
     it('returns nil for invalid name', function()
@@ -92,6 +98,19 @@ describe('cp.diff', function()
     it('defaults to vim backend', function()
       local backend = diff.get_best_backend()
       assert.equals('vim', backend.name)
+    end)
+  end)
+
+  describe('none backend', function()
+    it('returns both expected and actual content', function()
+      local backend = diff.get_backend('none')
+      local result = backend.render('expected\nline2', 'actual\nline2')
+
+      assert.same({
+        expected = { 'expected', 'line2' },
+        actual = { 'actual', 'line2' },
+      }, result.content)
+      assert.same({}, result.highlights)
     end)
   end)
 

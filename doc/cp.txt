@@ -211,12 +211,12 @@ Here's an example configuration with lazy.nvim: >lua
                           ANSI escape codes are stripped for plain text display.
                           Requires vim.g.terminal_color_* to be configured for
                           proper color display.
-        {diff_mode}       (string, default: "vim") Diff backend: "vim" or "git".
-                          Git provides character-level precision, vim uses
-                          built-in diff.
+        {diff_mode}       (string, default: "git") Diff backend: "none", "vim", or "git".
+                          "none" displays plain buffers without highlighting,
+                          "vim" uses built-in diff, "git" provides character-level precision.
         {next_test_key}   (string, default: "<c-n>") Key to navigate to next test case.
         {prev_test_key}   (string, default: "<c-p>") Key to navigate to previous test case.
-        {toggle_diff_key} (string, default: "t") Key to toggle diff mode.
+        {toggle_diff_key} (string, default: "t") Key to cycle through diff modes.
         {max_output_lines} (number, default: 50) Maximum lines of test output.
 
                                                             *cp.DiffConfig*
@@ -545,7 +545,7 @@ RUN PANEL KEYMAPS                                           *cp-test-keys*
                                 run_panel.next_test_key)
 <c-p>                           Navigate to previous test case (configurable via
                                 run_panel.prev_test_key)
-t                               Toggle diff mode between vim and git (configurable
+t                               Cycle through diff modes: none → vim → git (configurable
                                 via run_panel.toggle_diff_key)
 q                               Exit test panel and restore layout
 
