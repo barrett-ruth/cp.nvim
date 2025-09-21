@@ -103,6 +103,7 @@ local function setup_problem(contest_id, problem_id, language)
   end
 
   vim.cmd('silent only')
+  state.run_panel_active = false
 
   state.contest_id = contest_id
   state.problem_id = problem_id
