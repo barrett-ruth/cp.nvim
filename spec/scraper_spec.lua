@@ -56,7 +56,7 @@ describe('cp.scrape', function()
 
     package.loaded['cp.cache'] = mock_cache
     package.loaded['cp.utils'] = mock_utils
-    package.loaded['cp.scrape'] = nil -- Force reload
+    package.loaded['cp.scrape'] = nil
     scrape = require('cp.scrape')
 
     local original_fn = vim.fn

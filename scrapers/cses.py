@@ -262,8 +262,6 @@ def scrape_all_problems() -> dict[str, list[ProblemSummary]]:
                             problem = ProblemSummary(id=problem_id, name=problem_name)
                             all_categories[current_category].append(problem)
 
-        # Preserve HTML document order - do not sort
-
         print(
             f"Found {len(all_categories)} categories with {sum(len(probs) for probs in all_categories.values())} problems",
             file=sys.stderr,
