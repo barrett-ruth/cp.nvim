@@ -77,9 +77,8 @@ local function setup_problem(contest_id, problem_id, language)
   local cached_test_cases = cache.get_test_cases(state.platform, contest_id, problem_id)
   if cached_test_cases then
     state.test_cases = cached_test_cases
-  end
-
-  if vim.tbl_contains(config.scrapers, state.platform) then
+    logger.log(('using cached test cases (%d)'):format(#cached_test_cases))
+  elseif vim.tbl_contains(config.scrapers, state.platform) then
     local scrape_result = scrape.scrape_problem(ctx)
 
     if not scrape_result.success then
