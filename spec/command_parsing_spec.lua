@@ -398,7 +398,6 @@ describe('cp command parsing', function()
 
         if num_args == 2 then
           local candidates = {}
-          local cp = require('cp')
           local context = cp.get_current_context()
           if context.platform and context.contest_id then
             vim.list_extend(candidates, actions)
