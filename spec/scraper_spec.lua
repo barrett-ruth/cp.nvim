@@ -425,7 +425,7 @@ describe('cp.scrape', function()
       assert.is_not_nil(tests_call)
       assert.is_true(vim.tbl_contains(tests_call.cmd, 'tests'))
       assert.is_true(vim.tbl_contains(tests_call.cmd, '1001'))
-      assert.is_false(vim.tbl_contains(tests_call.cmd, 'sorting_and_searching'))
+      assert.is_true(vim.tbl_contains(tests_call.cmd, 'sorting_and_searching'))
     end)
   end)
 
