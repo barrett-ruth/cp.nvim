@@ -334,9 +334,9 @@ function M.scrape_problems_parallel(platform, contest_id, problems, config)
       timeout = 30000,
     })
 
-    jobs[problem.id] = {
+    jobs[prob.id] = {
       job = job,
-      problem = problem,
+      problem = prob,
     }
   end
 
