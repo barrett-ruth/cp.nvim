@@ -82,6 +82,11 @@ local function contest_picker(platform)
           problem_picker(platform, contest.id)
         end
       end,
+      ['ctrl-r'] = function()
+        local cache = require('cp.cache')
+        cache.clear_contest_list(platform)
+        contest_picker(platform)
+      end,
     },
   })
 end

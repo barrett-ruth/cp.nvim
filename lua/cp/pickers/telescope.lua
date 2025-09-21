@@ -75,7 +75,7 @@ local function contest_picker(opts, platform)
         end,
       }),
       sorter = conf.generic_sorter(opts),
-      attach_mappings = function(prompt_bufnr)
+      attach_mappings = function(prompt_bufnr, map)
         actions.select_default:replace(function()
           local selection = action_state.get_selected_entry()
           actions.close(prompt_bufnr)
@@ -84,6 +84,14 @@ local function contest_picker(opts, platform)
             problem_picker(opts, platform, selection.value.id)
           end
         end)
+
+        map('i', '<C-r>', function()
+          local cache = require('cp.cache')
+          cache.clear_contest_list(platform)
+          actions.close(prompt_bufnr)
+          contest_picker(opts, platform)
+        end)
+
         return true
       end,
     })

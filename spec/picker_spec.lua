@@ -106,7 +106,7 @@ describe('cp.picker', function()
     it('returns problems from cache when available', function()
       local cache = require('cp.cache')
       cache.load = function() end
-      cache.get_contest_data = function(platform, contest_id)
+      cache.get_contest_data = function()
         return {
           problems = {
             { id = 'a', name = 'Problem A' },
@@ -131,7 +131,7 @@ describe('cp.picker', function()
       cache.get_contest_data = function()
         return nil
       end
-      scrape.scrape_contest_metadata = function(platform, contest_id)
+      scrape.scrape_contest_metadata = function()
         return {
           success = true,
           problems = {
@@ -154,7 +154,7 @@ describe('cp.picker', function()
       cache.get_contest_data = function()
         return nil
       end
-      scrape.scrape_contest_metadata = function(platform, contest_id)
+      scrape.scrape_contest_metadata = function()
         return {
           success = false,
           error = 'test error',
