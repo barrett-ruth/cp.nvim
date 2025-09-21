@@ -83,6 +83,17 @@ local function setup_problem(contest_id, problem_id, language)
     state.test_cases = cached_test_cases
     logger.log(('using cached test cases (%d)'):format(#cached_test_cases))
   elseif vim.tbl_contains(config.scrapers, state.platform) then
+    local constants = require('cp.constants')
+    local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[state.platform] or state.platform
+    logger.log(
+      ('Scraping %s %s %s for test cases, this may take a few seconds...'):format(
+        platform_display_name,
+        contest_id,
+        problem_id
+      ),
+      vim.log.levels.WARN
+    )
+
     local scrape_result = scrape.scrape_problem(ctx)
 
     if not scrape_result.success then
