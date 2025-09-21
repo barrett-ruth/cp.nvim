@@ -355,16 +355,7 @@ function M.scrape_problems_parallel(platform, contest_id, problems, config)
         scrape_result = data
 
         if data.tests and #data.tests > 0 then
-          local ctx_contest_id, ctx_problem_id
-          if platform == 'cses' then
-            ctx_contest_id = problem_id
-            ctx_problem_id = nil
-          else
-            ctx_contest_id = contest_id
-            ctx_problem_id = problem_id
-          end
-
-          local ctx = problem.create_context(platform, ctx_contest_id, ctx_problem_id, config)
+          local ctx = problem.create_context(platform, contest_id, problem_id, config)
           local base_name = vim.fn.fnamemodify(ctx.input_file, ':r')
 
           for i, test_case in ipairs(data.tests) do
