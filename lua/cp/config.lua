@@ -52,6 +52,7 @@
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 ---@field run_panel RunPanelConfig
 ---@field diff DiffConfig
+---@field picker "telescope"|"fzf-lua"|nil
 
 ---@class cp.UserConfig
 ---@field contests? table<string, PartialContestConfig>
@@ -62,6 +63,7 @@
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 ---@field run_panel? RunPanelConfig
 ---@field diff? DiffConfig
+---@field picker? "telescope"|"fzf-lua"|nil
 
 local M = {}
 local constants = require('cp.constants')
@@ -110,6 +112,7 @@ M.defaults = {
       args = { 'diff', '--no-index', '--word-diff=plain', '--word-diff-regex=.', '--no-prefix' },
     },
   },
+  picker = nil,
 }
 
 ---@param user_config cp.UserConfig|nil
@@ -129,6 +132,7 @@ function M.setup(user_config)
       filename = { user_config.filename, { 'function', 'nil' }, true },
       run_panel = { user_config.run_panel, { 'table', 'nil' }, true },
       diff = { user_config.diff, { 'table', 'nil' }, true },
+      picker = { user_config.picker, { 'string', 'nil' }, true },
     })
 
     if user_config.contests then
@@ -162,6 +166,12 @@ function M.setup(user_config)
             )
           )
         end
+      end
+    end
+
+    if user_config.picker then
+      if not vim.tbl_contains({ 'telescope', 'fzf-lua' }, user_config.picker) then
+        error(("Invalid picker '%s'. Must be 'telescope' or 'fzf-lua'"):format(user_config.picker))
       end
     end
   end

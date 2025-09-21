@@ -72,6 +72,12 @@ COMMANDS                                                        *cp-commands*
                                 Use --debug flag to compile with debug flags.
                                 Requires contest setup first.
 
+            :CP pick            Launch configured picker for interactive
+                                platform/contest/problem selection. Requires
+                                picker = 'telescope' or picker = 'fzf-lua'
+                                in configuration and corresponding plugin
+                                to be installed.
+
         Navigation Commands ~
             :CP next            Navigate to next problem in current contest.
                                 Stops at last problem (no wrapping).
@@ -118,6 +124,32 @@ Template Variables ~
 <
 
 ==============================================================================
+PICKER INTEGRATION                                            *cp-picker*
+
+When picker integration is enabled in configuration, cp.nvim provides interactive
+platform, contest, and problem selection using telescope.nvim or fzf-lua.
+
+:CP pick                                                        *:CP-pick*
+        Launch configured picker for interactive problem selection.
+        Flow: Platform → Contest → Problem → Setup
+
+        Requires picker = 'telescope' or picker = 'fzf-lua' in configuration.
+        Requires corresponding plugin (telescope.nvim or fzf-lua) to be installed.
+        Picker availability is checked at runtime when command is executed.
+
+Picker Flow ~
+    1. Platform Selection: Choose from AtCoder, Codeforces, CSES
+    2. Contest Selection: Choose from available contests for selected platform
+    3. Problem Selection: Choose from problems in selected contest
+    4. Problem Setup: Automatically runs equivalent of :CP platform contest problem
+
+Notes ~
+    • Contest lists are fetched dynamically using scrapers
+    • Large contest lists may take time to load
+    • Runtime picker validation - shows clear error if picker plugin not available
+    • Picker configuration can be changed without plugin restart
+
+==============================================================================
 CONFIGURATION                                                   *cp-config*
 
 cp.nvim works out of the box. No setup required.
@@ -131,10 +163,11 @@ Here's an example configuration with lazy.nvim: >lua
                 default = {
                     cpp = {
                         compile = { 'g++', '{source}', '-o', '{binary}',
-                                   '-std=c++17' },
+                                   '-std=c++17', '-fdiagnostic-colors=always' },
                         test = { '{binary}' },
                         debug = { 'g++', '{source}', '-o', '{binary}',
                                  '-std=c++17', '-g',
+                                 '-fdiagnostic-colors=always'
                                  '-fsanitize=address,undefined' },
                     },
                     python = {
@@ -165,6 +198,7 @@ Here's an example configuration with lazy.nvim: >lua
                             '--word-diff-regex=.', '--no-prefix' },
                 },
             },
+            picker = 'telescope',  -- 'telescope', 'fzf-lua', or nil (disabled)
         }
     }
 <
@@ -180,6 +214,11 @@ Here's an example configuration with lazy.nvim: >lua
                         Default: all scrapers enabled
         {run_panel}     (|RunPanelConfig|) Test panel behavior configuration.
         {diff}          (|DiffConfig|) Diff backend configuration.
+        {picker}        (string, optional) Picker integration: "telescope",
+                        "fzf-lua", or nil to disable. When enabled, provides
+                        :Telescope cp or :FzfLua cp commands for interactive
+                        platform/contest/problem selection. Requires the
+                        corresponding picker plugin to be installed.
         {filename}      (function, optional) Custom filename generation.
                         function(contest, contest_id, problem_id, config, language)
                         Should return full filename with extension.
