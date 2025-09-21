@@ -94,7 +94,7 @@ function M.compile_generic(language_config, substitutions)
   result.stderr = ansi.bytes_to_string(result.stderr or '')
 
   if result.code == 0 then
-    logger.log(('compilation successful (%.1fms)'):format(compile_time))
+    logger.log(('compilation successful (%.1fms)'):format(compile_time), vim.log.levels.INFO)
   else
     logger.log(('compilation failed (%.1fms)'):format(compile_time))
   end
@@ -235,7 +235,7 @@ function M.compile_problem(ctx, contest_config, is_debug)
     if compile_result.code ~= 0 then
       return { success = false, output = compile_result.stdout or 'unknown error' }
     end
-    logger.log(('compilation successful (%s)'):format(is_debug and 'debug mode' or 'test mode'))
+    logger.log(('compilation successful (%s)'):format(is_debug and 'debug mode' or 'test mode'), vim.log.levels.INFO)
   end
 
   return { success = true, output = nil }

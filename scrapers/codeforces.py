@@ -237,42 +237,8 @@ def scrape_contests() -> list[ContestSummary]:
             contest_id = str(contest["id"])
             name = contest["name"]
 
-            display_name = name
-            if "Educational Codeforces Round" in name:
-                match = re.search(r"Educational Codeforces Round (\d+)", name)
-                if match:
-                    display_name = f"Educational Round {match.group(1)}"
-            elif "Codeforces Global Round" in name:
-                match = re.search(r"Codeforces Global Round (\d+)", name)
-                if match:
-                    display_name = f"Global Round {match.group(1)}"
-            elif "Codeforces Round" in name:
-                div_match = re.search(r"Codeforces Round (\d+) \(Div\. (\d+)\)", name)
-                if div_match:
-                    display_name = (
-                        f"Round {div_match.group(1)} (Div. {div_match.group(2)})"
-                    )
-                else:
-                    combined_match = re.search(
-                        r"Codeforces Round (\d+) \(Div\. 1 \+ Div\. 2\)", name
-                    )
-                    if combined_match:
-                        display_name = (
-                            f"Round {combined_match.group(1)} (Div. 1 + Div. 2)"
-                        )
-                    else:
-                        single_div_match = re.search(
-                            r"Codeforces Round (\d+) \(Div\. 1\)", name
-                        )
-                        if single_div_match:
-                            display_name = f"Round {single_div_match.group(1)} (Div. 1)"
-                        else:
-                            round_match = re.search(r"Codeforces Round (\d+)", name)
-                            if round_match:
-                                display_name = f"Round {round_match.group(1)}"
-
             contests.append(
-                ContestSummary(id=contest_id, name=name, display_name=display_name)
+                ContestSummary(id=contest_id, name=name, display_name=name)
             )
 
         return contests

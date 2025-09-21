@@ -156,4 +156,38 @@ describe('cp.cache', function()
       assert.equals('python', result.language)
     end)
   end)
+
+  describe('cache management', function()
+    it('clears all cache data', function()
+      cache.set_contest_data('atcoder', 'test_contest', { { id = 'A' } })
+      cache.set_contest_data('codeforces', 'test_contest', { { id = 'B' } })
+      cache.set_file_state('/tmp/test.cpp', 'atcoder', 'abc123', 'a', 'cpp')
+
+      cache.clear_all()
+
+      assert.is_nil(cache.get_contest_data('atcoder', 'test_contest'))
+      assert.is_nil(cache.get_contest_data('codeforces', 'test_contest'))
+      assert.is_nil(cache.get_file_state('/tmp/test.cpp'))
+    end)
+
+    it('clears cache for specific platform', function()
+      cache.set_contest_data('atcoder', 'test_contest', { { id = 'A' } })
+      cache.set_contest_data('codeforces', 'test_contest', { { id = 'B' } })
+      cache.set_contest_list('atcoder', { { id = '123', name = 'Test' } })
+      cache.set_contest_list('codeforces', { { id = '456', name = 'Test' } })
+
+      cache.clear_platform('atcoder')
+
+      assert.is_nil(cache.get_contest_data('atcoder', 'test_contest'))
+      assert.is_nil(cache.get_contest_list('atcoder'))
+      assert.is_not_nil(cache.get_contest_data('codeforces', 'test_contest'))
+      assert.is_not_nil(cache.get_contest_list('codeforces'))
+    end)
+
+    it('handles clear platform for non-existent platform', function()
+      assert.has_no_errors(function()
+        cache.clear_platform('nonexistent')
+      end)
+    end)
+  end)
 end)

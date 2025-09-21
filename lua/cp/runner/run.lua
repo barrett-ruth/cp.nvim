@@ -315,7 +315,7 @@ function M.load_test_cases(ctx, state)
         run_panel_state.constraints.memory_mb
       )
     or ''
-  logger.log(('loaded %d test case(s)%s'):format(#test_cases, constraint_info))
+  logger.log(('loaded %d test case(s)%s'):format(#test_cases, constraint_info), vim.log.levels.INFO)
   return #test_cases > 0
 end
 

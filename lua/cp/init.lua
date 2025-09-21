@@ -294,6 +294,7 @@ local function toggle_run_panel(is_debug)
 
     vim.api.nvim_set_current_win(parent_win)
     vim.cmd.split()
+    vim.cmd('resize ' .. math.floor(vim.o.lines * 0.35))
     local actual_win = vim.api.nvim_get_current_win()
     vim.api.nvim_win_set_buf(actual_win, actual_buf)
 
@@ -341,6 +342,7 @@ local function toggle_run_panel(is_debug)
 
     vim.api.nvim_set_current_win(parent_win)
     vim.cmd.split()
+    vim.cmd('resize ' .. math.floor(vim.o.lines * 0.35))
     local diff_win = vim.api.nvim_get_current_win()
     vim.api.nvim_win_set_buf(diff_win, diff_buf)
 
@@ -375,6 +377,7 @@ local function toggle_run_panel(is_debug)
 
     vim.api.nvim_set_current_win(parent_win)
     vim.cmd.split()
+    vim.cmd('resize ' .. math.floor(vim.o.lines * 0.35))
     local win = vim.api.nvim_get_current_win()
     vim.api.nvim_win_set_buf(win, buf)
     vim.api.nvim_set_option_value('filetype', 'cptest', { buf = buf })
@@ -600,7 +603,7 @@ local function toggle_run_panel(is_debug)
   state.test_buffers = test_buffers
   state.test_windows = test_windows
   local test_state = run.get_run_panel_state()
-  logger.log(string.format('test panel opened (%d test cases)', #test_state.test_cases))
+  logger.log(string.format('test panel opened (%d test cases)', #test_state.test_cases), vim.log.levels.INFO)
 end
 
 ---@param contest_id string
@@ -751,6 +754,26 @@ local function handle_pick_action()
   end
 end
 
+local function handle_cache_command(cmd)
+  if cmd.subcommand == 'clear' then
+    cache.load()
+    if cmd.platform then
+      if vim.tbl_contains(platforms, cmd.platform) then
+        cache.clear_platform(cmd.platform)
+        logger.log(('cleared cache for %s'):format(cmd.platform), vim.log.levels.INFO, true)
+      else
+        logger.log(
+          ('unknown platform: %s. Available: %s'):format(cmd.platform, table.concat(platforms, ', ')),
+          vim.log.levels.ERROR
+        )
+      end
+    else
+      cache.clear_all()
+      logger.log('cleared all cache', vim.log.levels.INFO, true)
+    end
+  end
+end
+
 local function restore_from_current_file()
   local current_file = vim.fn.expand('%:p')
   if current_file == '' then
@@ -820,7 +843,24 @@ local function parse_command(args)
   local first = filtered_args[1]
 
   if vim.tbl_contains(actions, first) then
-    return { type = 'action', action = first, language = language, debug = debug }
+    if first == 'cache' then
+      local subcommand = filtered_args[2]
+      if not subcommand then
+        return { type = 'error', message = 'cache command requires subcommand: clear' }
+      end
+      if subcommand == 'clear' then
+        local platform = filtered_args[3]
+        return {
+          type = 'cache',
+          subcommand = 'clear',
+          platform = platform
+        }
+      else
+        return { type = 'error', message = 'unknown cache subcommand: ' .. subcommand }
+      end
+    else
+      return { type = 'action', action = first, language = language, debug = debug }
+    end
   end
 
   if vim.tbl_contains(platforms, first) then
@@ -896,6 +936,11 @@ function M.handle_command(opts)
     return
   end
 
+  if cmd.type == 'cache' then
+    handle_cache_command(cmd)
+    return
+  end
+
   if cmd.type == 'platform_only' then
     set_platform(cmd.platform)
     return
@@ -929,7 +974,9 @@ function M.handle_command(opts)
             #metadata_result.problems,
             cmd.platform,
             cmd.contest
-          )
+          ),
+          vim.log.levels.INFO,
+          true
         )
         problem_ids = vim.tbl_map(function(prob)
           return prob.id
