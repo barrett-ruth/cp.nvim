@@ -8,11 +8,8 @@ M.PYTHON = 'python'
 
 ---@type table<string, string>
 M.filetype_to_language = {
-  cc = M.CPP,
-  cxx = M.CPP,
+  python = M.PYTHON,
   cpp = M.CPP,
-  py = M.PYTHON,
-  py3 = M.PYTHON,
 }
 
 ---@type table<string, string>
