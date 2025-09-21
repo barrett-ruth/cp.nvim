@@ -80,6 +80,8 @@ local function setup_problem(contest_id, problem_id, language)
     end
   end
 
+  -- NOTE: CSES uses different cache key structure: (platform, category, problem_id)
+  -- vs other platforms: (platform, contest_id, problem_letter)
   local cache_contest_id = state.platform == 'cses' and state.contest_id or contest_id
   local cache_problem_id = state.platform == 'cses' and contest_id or problem_id
   local cached_test_cases = cache.get_test_cases(state.platform, cache_contest_id, cache_problem_id)

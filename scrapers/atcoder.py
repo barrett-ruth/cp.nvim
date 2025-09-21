@@ -366,7 +366,6 @@ def scrape_contests() -> list[ContestSummary]:
             page_contests = future.result()
             page_results[page] = page_contests
 
-    # Sort by page number to maintain order
     all_contests = []
     for page in sorted(page_results.keys()):
         all_contests.extend(page_results[page])

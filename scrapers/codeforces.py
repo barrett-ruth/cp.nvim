@@ -249,14 +249,12 @@ def scrape_contests() -> list[ContestSummary]:
                 if match:
                     display_name = f"Global Round {match.group(1)}"
             elif "Codeforces Round" in name:
-                # Handle various Div patterns
                 div_match = re.search(r"Codeforces Round (\d+) \(Div\. (\d+)\)", name)
                 if div_match:
                     display_name = (
                         f"Round {div_match.group(1)} (Div. {div_match.group(2)})"
                     )
                 else:
-                    # Handle combined divs like "Div. 1 + Div. 2"
                     combined_match = re.search(
                         r"Codeforces Round (\d+) \(Div\. 1 \+ Div\. 2\)", name
                     )
@@ -265,7 +263,6 @@ def scrape_contests() -> list[ContestSummary]:
                             f"Round {combined_match.group(1)} (Div. 1 + Div. 2)"
                         )
                     else:
-                        # Handle single div like "Div. 1"
                         single_div_match = re.search(
                             r"Codeforces Round (\d+) \(Div\. 1\)", name
                         )
