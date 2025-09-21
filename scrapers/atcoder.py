@@ -168,70 +168,210 @@ def scrape(url: str) -> list[TestCase]:
 
 
 def scrape_contests() -> list[ContestSummary]:
-    contests = []
-    max_pages = 15
+    import concurrent.futures
+    import random
 
-    for page in range(1, max_pages + 1):
+    def get_max_pages() -> int:
         try:
             headers = {
                 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
-            url = f"https://atcoder.jp/contests/archive?page={page}"
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(
+                "https://atcoder.jp/contests/archive", headers=headers, timeout=10
+            )
             response.raise_for_status()
 
             soup = BeautifulSoup(response.text, "html.parser")
-            table = soup.find("table", class_="table")
-            if not table:
-                break
+            pagination = soup.find("ul", class_="pagination")
+            if not pagination or not isinstance(pagination, Tag):
+                return 15
 
-            tbody = table.find("tbody")
-            if not tbody or not isinstance(tbody, Tag):
-                break
+            lis = pagination.find_all("li")
+            if lis and isinstance(lis[-1], Tag):
+                last_li_text = lis[-1].get_text().strip()
+                try:
+                    return int(last_li_text)
+                except ValueError:
+                    return 15
+            return 15
+        except Exception:
+            return 15
 
-            rows = tbody.find_all("tr")
-            if not rows:
-                break
+    def scrape_page_with_retry(page: int, max_retries: int = 3) -> list[ContestSummary]:
+        for attempt in range(max_retries):
+            try:
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                }
+                url = f"https://atcoder.jp/contests/archive?page={page}"
+                response = requests.get(url, headers=headers, timeout=10)
 
-            for row in rows:
-                cells = row.find_all("td")
-                if len(cells) < 2:
+                if response.status_code == 429:
+                    backoff_time = (2**attempt) + random.uniform(0, 1)
+                    print(
+                        f"Rate limited on page {page}, retrying in {backoff_time:.1f}s",
+                        file=sys.stderr,
+                    )
+                    time.sleep(backoff_time)
                     continue
 
-                contest_cell = cells[1]
-                link = contest_cell.find("a")
-                if not link or not link.get("href"):
+                response.raise_for_status()
+
+                soup = BeautifulSoup(response.text, "html.parser")
+                table = soup.find("table", class_="table")
+                if not table:
+                    return []
+
+                tbody = table.find("tbody")
+                if not tbody or not isinstance(tbody, Tag):
+                    return []
+
+                rows = tbody.find_all("tr")
+                if not rows:
+                    return []
+
+                contests = []
+                for row in rows:
+                    cells = row.find_all("td")
+                    if len(cells) < 2:
+                        continue
+
+                    contest_cell = cells[1]
+                    link = contest_cell.find("a")
+                    if not link or not link.get("href"):
+                        continue
+
+                    href = link.get("href")
+                    contest_id = href.split("/")[-1]
+                    name = link.get_text().strip()
+
+                    try:
+                        name = name.encode().decode("unicode_escape")
+                    except:
+                        pass
+
+                    name = (
+                        name.replace("\uff08", "(")
+                        .replace("\uff09", ")")
+                        .replace("\u3000", " ")
+                    )
+                    name = re.sub(
+                        r"[\uff01-\uff5e]", lambda m: chr(ord(m.group()) - 0xFEE0), name
+                    )
+
+                    def generate_display_name_from_id(contest_id: str) -> str:
+                        parts = contest_id.replace("-", " ").replace("_", " ")
+
+                        parts = re.sub(
+                            r"\b(jsc|JSC)\b",
+                            "Japanese Student Championship",
+                            parts,
+                            flags=re.IGNORECASE,
+                        )
+                        parts = re.sub(
+                            r"\b(wtf|WTF)\b",
+                            "World Tour Finals",
+                            parts,
+                            flags=re.IGNORECASE,
+                        )
+                        parts = re.sub(
+                            r"\b(ahc)(\d+)\b",
+                            r"Heuristic Contest \2 (AHC)",
+                            parts,
+                            flags=re.IGNORECASE,
+                        )
+                        parts = re.sub(
+                            r"\b(arc)(\d+)\b",
+                            r"Regular Contest \2 (ARC)",
+                            parts,
+                            flags=re.IGNORECASE,
+                        )
+                        parts = re.sub(
+                            r"\b(abc)(\d+)\b",
+                            r"Beginner Contest \2 (ABC)",
+                            parts,
+                            flags=re.IGNORECASE,
+                        )
+                        parts = re.sub(
+                            r"\b(agc)(\d+)\b",
+                            r"Grand Contest \2 (AGC)",
+                            parts,
+                            flags=re.IGNORECASE,
+                        )
+
+                        return parts.title()
+
+                    english_chars = sum(1 for c in name if c.isascii() and c.isalpha())
+                    total_chars = len(re.sub(r"\s+", "", name))
+
+                    if total_chars > 0 and english_chars / total_chars < 0.3:
+                        display_name = generate_display_name_from_id(contest_id)
+                    else:
+                        display_name = name
+                        if "AtCoder Beginner Contest" in name:
+                            match = re.search(r"AtCoder Beginner Contest (\d+)", name)
+                            if match:
+                                display_name = (
+                                    f"Beginner Contest {match.group(1)} (ABC)"
+                                )
+                        elif "AtCoder Regular Contest" in name:
+                            match = re.search(r"AtCoder Regular Contest (\d+)", name)
+                            if match:
+                                display_name = f"Regular Contest {match.group(1)} (ARC)"
+                        elif "AtCoder Grand Contest" in name:
+                            match = re.search(r"AtCoder Grand Contest (\d+)", name)
+                            if match:
+                                display_name = f"Grand Contest {match.group(1)} (AGC)"
+                        elif "AtCoder Heuristic Contest" in name:
+                            match = re.search(r"AtCoder Heuristic Contest (\d+)", name)
+                            if match:
+                                display_name = (
+                                    f"Heuristic Contest {match.group(1)} (AHC)"
+                                )
+
+                    contests.append(
+                        ContestSummary(
+                            id=contest_id, name=name, display_name=display_name
+                        )
+                    )
+
+                return contests
+
+            except requests.exceptions.RequestException as e:
+                if response.status_code == 429:
                     continue
-
-                href = link.get("href")
-                contest_id = href.split("/")[-1]
-                name = link.get_text().strip()
-
-                display_name = name
-                if "AtCoder Beginner Contest" in name:
-                    match = re.search(r"AtCoder Beginner Contest (\d+)", name)
-                    if match:
-                        display_name = f"Beginner Contest {match.group(1)} (ABC)"
-                elif "AtCoder Regular Contest" in name:
-                    match = re.search(r"AtCoder Regular Contest (\d+)", name)
-                    if match:
-                        display_name = f"Regular Contest {match.group(1)} (ARC)"
-                elif "AtCoder Grand Contest" in name:
-                    match = re.search(r"AtCoder Grand Contest (\d+)", name)
-                    if match:
-                        display_name = f"Grand Contest {match.group(1)} (AGC)"
-
-                contests.append(
-                    ContestSummary(id=contest_id, name=name, display_name=display_name)
+                print(
+                    f"Failed to scrape page {page} (attempt {attempt + 1}): {e}",
+                    file=sys.stderr,
                 )
+                if attempt == max_retries - 1:
+                    return []
+            except Exception as e:
+                print(f"Unexpected error on page {page}: {e}", file=sys.stderr)
+                return []
 
-            time.sleep(0.5)
+        return []
 
-        except Exception as e:
-            print(f"Failed to scrape page {page}: {e}", file=sys.stderr)
-            continue
+    max_pages = get_max_pages()
+    page_results = {}
 
-    return contests
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_page = {
+            executor.submit(scrape_page_with_retry, page): page
+            for page in range(1, max_pages + 1)
+        }
+
+        for future in concurrent.futures.as_completed(future_to_page):
+            page = future_to_page[future]
+            page_contests = future.result()
+            page_results[page] = page_contests
+
+    # Sort by page number to maintain order
+    all_contests = []
+    for page in sorted(page_results.keys()):
+        all_contests.extend(page_results[page])
+
+    return all_contests
 
 
 def main() -> None:

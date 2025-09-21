@@ -14,6 +14,7 @@
 local M = {}
 local cache = require('cp.cache')
 local logger = require('cp.log')
+local problem = require('cp.problem')
 
 local function get_plugin_path()
   local plugin_path = debug.getinfo(1, 'S').source:sub(2)
@@ -292,6 +293,129 @@ function M.scrape_problem(ctx)
     memory_mb = data.memory_mb,
     url = data.url,
   }
+end
+
+---@param platform string
+---@param contest_id string
+---@param problems table[]
+---@param config table
+---@return table[]
+function M.scrape_problems_parallel(platform, contest_id, problems, config)
+  vim.validate({
+    platform = { platform, 'string' },
+    contest_id = { contest_id, 'string' },
+    problems = { problems, 'table' },
+    config = { config, 'table' },
+  })
+
+  if not check_internet_connectivity() then
+    return {}
+  end
+
+  if not setup_python_env() then
+    return {}
+  end
+
+  local plugin_path = get_plugin_path()
+  local jobs = {}
+
+  for _, problem in ipairs(problems) do
+    local args
+    if platform == 'cses' then
+      args = {
+        'uv',
+        'run',
+        '--directory',
+        plugin_path,
+        '-m',
+        'scrapers.' .. platform,
+        'tests',
+        problem.id,
+      }
+    else
+      args = {
+        'uv',
+        'run',
+        '--directory',
+        plugin_path,
+        '-m',
+        'scrapers.' .. platform,
+        'tests',
+        contest_id,
+        problem.id,
+      }
+    end
+
+    local job = vim.system(args, {
+      cwd = plugin_path,
+      text = true,
+      timeout = 30000,
+    })
+
+    jobs[problem.id] = {
+      job = job,
+      problem = problem,
+    }
+  end
+
+  local results = {}
+  for problem_id, job_data in pairs(jobs) do
+    local result = job_data.job:wait()
+    local scrape_result = {
+      success = false,
+      problem_id = problem_id,
+      error = 'Unknown error',
+    }
+
+    if result.code == 0 then
+      local ok, data = pcall(vim.json.decode, result.stdout)
+      if ok and data.success then
+        scrape_result = data
+
+        if data.tests and #data.tests > 0 then
+          local ctx = problem.create_context(platform, contest_id, problem_id, config)
+          local base_name = vim.fn.fnamemodify(ctx.input_file, ':r')
+
+          for i, test_case in ipairs(data.tests) do
+            local input_file = base_name .. '.' .. i .. '.cpin'
+            local expected_file = base_name .. '.' .. i .. '.cpout'
+
+            local input_content = test_case.input:gsub('\r', '')
+            local expected_content = test_case.expected:gsub('\r', '')
+
+            vim.fn.writefile(vim.split(input_content, '\n', true), input_file)
+            vim.fn.writefile(vim.split(expected_content, '\n', true), expected_file)
+          end
+
+          local cached_test_cases = {}
+          for i, test_case in ipairs(data.tests) do
+            table.insert(cached_test_cases, {
+              index = i,
+              input = test_case.input,
+              expected = test_case.expected,
+            })
+          end
+
+          cache.set_test_cases(
+            platform,
+            contest_id,
+            problem_id,
+            cached_test_cases,
+            data.timeout_ms,
+            data.memory_mb
+          )
+        end
+      else
+        scrape_result.error = ok and data.error or 'Failed to parse scraper output'
+      end
+    else
+      scrape_result.error = 'Scraper execution failed: ' .. (result.stderr or 'Unknown error')
+    end
+
+    results[problem_id] = scrape_result
+  end
+
+  return results
 end
 
 return M

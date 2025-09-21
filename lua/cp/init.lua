@@ -145,6 +145,42 @@ local function setup_problem(contest_id, problem_id, language)
   logger.log(('switched to problem %s'):format(ctx.problem_name))
 end
 
+local function ensure_io_directory()
+  vim.fn.mkdir('io', 'p')
+end
+
+local function scrape_missing_problems(contest_id, missing_problems)
+  ensure_io_directory()
+
+  logger.log(('scraping %d uncached problems...'):format(#missing_problems))
+
+  local results =
+    scrape.scrape_problems_parallel(state.platform, contest_id, missing_problems, config)
+
+  local success_count = 0
+  local failed_problems = {}
+  for problem_id, result in pairs(results) do
+    if result.success then
+      success_count = success_count + 1
+    else
+      table.insert(failed_problems, problem_id)
+    end
+  end
+
+  if #failed_problems > 0 then
+    logger.log(
+      ('scraping complete: %d/%d successful, failed: %s'):format(
+        success_count,
+        #missing_problems,
+        table.concat(failed_problems, ', ')
+      ),
+      vim.log.levels.WARN
+    )
+  else
+    logger.log(('scraping complete: %d/%d successful'):format(success_count, #missing_problems))
+  end
+end
+
 local function get_current_problem()
   local filename = vim.fn.expand('%:t:r')
   if filename == '' then
@@ -557,6 +593,62 @@ end
 
 ---@param delta number 1 for next, -1 for prev
 ---@param language? string
+local function setup_contest(contest_id, language)
+  if not state.platform then
+    logger.log('no platform set', vim.log.levels.ERROR)
+    return false
+  end
+
+  if not vim.tbl_contains(config.scrapers, state.platform) then
+    logger.log('scraping disabled for ' .. state.platform, vim.log.levels.WARN)
+    return false
+  end
+
+  logger.log(('setting up contest %s %s'):format(state.platform, contest_id))
+
+  local metadata_result = scrape.scrape_contest_metadata(state.platform, contest_id)
+  if not metadata_result.success then
+    logger.log(
+      'failed to load contest metadata: ' .. (metadata_result.error or 'unknown error'),
+      vim.log.levels.ERROR
+    )
+    return false
+  end
+
+  local problems = metadata_result.problems
+  if not problems or #problems == 0 then
+    logger.log('no problems found in contest', vim.log.levels.ERROR)
+    return false
+  end
+
+  logger.log(('found %d problems, checking cache...'):format(#problems))
+
+  cache.load()
+  local missing_problems = {}
+  for _, problem in ipairs(problems) do
+    local cached_tests = cache.get_test_cases(state.platform, contest_id, problem.id)
+    if not cached_tests then
+      table.insert(missing_problems, problem)
+    end
+  end
+
+  if #missing_problems > 0 then
+    logger.log(('scraping %d uncached problems...'):format(#missing_problems))
+    scrape_missing_problems(contest_id, missing_problems)
+  else
+    logger.log('all problems already cached')
+  end
+
+  state.contest_id = contest_id
+  if state.platform == 'cses' then
+    setup_problem(problems[1].id, nil, language)
+  else
+    setup_problem(contest_id, problems[1].id, language)
+  end
+
+  return true
+end
+
 local function navigate_problem(delta, language)
   if not state.platform or not state.contest_id then
     logger.log('no contest set. run :CP <platform> <contest> first', vim.log.levels.ERROR)
@@ -701,20 +793,12 @@ local function parse_command(args)
         language = language,
       }
     elseif #filtered_args == 2 then
-      if first == 'cses' then
-        logger.log(
-          'CSES requires both category and problem ID. Usage: :CP cses <category> <problem_id>',
-          vim.log.levels.ERROR
-        )
-        return { type = 'error' }
-      else
-        return {
-          type = 'contest_setup',
-          platform = first,
-          contest = filtered_args[2],
-          language = language,
-        }
-      end
+      return {
+        type = 'contest_setup',
+        platform = first,
+        contest = filtered_args[2],
+        language = language,
+      }
     elseif #filtered_args == 3 then
       return {
         type = 'full_setup',
@@ -779,24 +863,7 @@ function M.handle_command(opts)
 
   if cmd.type == 'contest_setup' then
     if set_platform(cmd.platform) then
-      state.contest_id = cmd.contest
-      if vim.tbl_contains(config.scrapers, cmd.platform) then
-        local metadata_result = scrape.scrape_contest_metadata(cmd.platform, cmd.contest)
-        if not metadata_result.success then
-          logger.log(
-            'failed to load contest metadata: ' .. (metadata_result.error or 'unknown error'),
-            vim.log.levels.WARN
-          )
-        else
-          logger.log(
-            ('loaded %d problems for %s %s'):format(
-              #metadata_result.problems,
-              cmd.platform,
-              cmd.contest
-            )
-          )
-        end
-      end
+      setup_contest(cmd.contest, cmd.language)
     end
     return
   end
