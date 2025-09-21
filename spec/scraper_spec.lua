@@ -9,6 +9,7 @@ describe('cp.scrape', function()
   before_each(function()
     spec_helper.setup()
     temp_files = {}
+    mock_system_calls = {}
 
     mock_cache = {
       load = function() end,
@@ -19,7 +20,14 @@ describe('cp.scrape', function()
       set_test_cases = function() end,
     }
 
-    mock_system_calls = {}
+    mock_utils = {
+      setup_python_env = function()
+        return true
+      end,
+      get_plugin_path = function()
+        return '/test/plugin/path'
+      end,
+    }
 
     vim.system = function(cmd, opts)
       table.insert(mock_system_calls, { cmd = cmd, opts = opts })
@@ -46,17 +54,9 @@ describe('cp.scrape', function()
       }
     end
 
-    mock_utils = {
-      setup_python_env = function()
-        return true
-      end,
-      get_plugin_path = function()
-        return '/test/plugin/path'
-      end,
-    }
-
     package.loaded['cp.cache'] = mock_cache
     package.loaded['cp.utils'] = mock_utils
+    package.loaded['cp.scrape'] = nil -- Force reload
     scrape = require('cp.scrape')
 
     local original_fn = vim.fn
@@ -188,10 +188,6 @@ describe('cp.scrape', function()
       mock_utils.setup_python_env = function()
         return false
       end
-
-      -- Force reload the scrape module to pick up the updated mock
-      package.loaded['cp.scrape'] = nil
-      scrape = require('cp.scrape')
 
       vim.system = function(cmd)
         if cmd[1] == 'ping' then
