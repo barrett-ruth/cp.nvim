@@ -385,7 +385,6 @@ describe('cp command parsing', function()
     local complete_fn
 
     before_each(function()
-      -- Mock the command completion function
       complete_fn = function(ArgLead, CmdLine, _)
         local constants = require('cp.constants')
         local platforms = constants.PLATFORMS
@@ -448,14 +447,12 @@ describe('cp command parsing', function()
         return {}
       end
 
-      -- Mock cp module
       package.loaded['cp'] = {
         get_current_context = function()
           return { platform = nil, contest_id = nil }
         end,
       }
 
-      -- Mock cache module
       package.loaded['cp.cache'] = {
         load = function() end,
         get_contest_data = function()
@@ -469,14 +466,11 @@ describe('cp command parsing', function()
 
       assert.is_table(result)
 
-      -- Should include platforms
       local has_atcoder = false
       local has_codeforces = false
       local has_cses = false
-      -- Should include global actions
       local has_cache = false
       local has_pick = false
-      -- Should NOT include context-dependent actions
       local has_run = false
       local has_next = false
       local has_prev = false
@@ -519,7 +513,6 @@ describe('cp command parsing', function()
     end)
 
     it('completes all actions and problems when contest context exists', function()
-      -- Mock with contest context
       package.loaded['cp'] = {
         get_current_context = function()
           return { platform = 'atcoder', contest_id = 'abc350' }
@@ -547,14 +540,12 @@ describe('cp command parsing', function()
         items[item] = true
       end
 
-      -- Should include all actions
       assert.is_true(items['run'])
       assert.is_true(items['next'])
       assert.is_true(items['prev'])
       assert.is_true(items['pick'])
       assert.is_true(items['cache'])
 
-      -- Should include problems
       assert.is_true(items['a'])
       assert.is_true(items['b'])
       assert.is_true(items['c'])
@@ -613,7 +604,6 @@ describe('cp command parsing', function()
     end)
 
     it('handles problem completion for platform contest', function()
-      -- Mock cache with contest problems
       package.loaded['cp.cache'] = {
         load = function() end,
         get_contest_data = function(platform, contest)
