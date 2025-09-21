@@ -14,7 +14,7 @@ describe('cp.telescope', function()
 
     package.preload['telescope.pickers'] = function()
       return {
-        new = function()
+        new = function(_, _)
           return {
             find = function() end,
           }

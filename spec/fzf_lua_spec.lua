@@ -6,7 +6,7 @@ describe('cp.fzf_lua', function()
 
     package.preload['fzf-lua'] = function()
       return {
-        fzf_exec = function() end,
+        fzf_exec = function(_, _) end,
       }
     end
   end)

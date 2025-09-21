@@ -129,7 +129,7 @@ describe('cp.scrape', function()
 
   describe('system dependency checks', function()
     it('handles missing uv executable', function()
-      vim.fn.executable = function(cmd)
+      vim.fn.executable = function(_)
         return cmd == 'uv' and 0 or 1
       end
 
@@ -140,7 +140,7 @@ describe('cp.scrape', function()
     end)
 
     it('handles python environment setup failure', function()
-      vim.system = function(cmd)
+      vim.system = function(_)
         if cmd[1] == 'ping' then
           return {
             wait = function()
@@ -172,7 +172,7 @@ describe('cp.scrape', function()
     end)
 
     it('handles network connectivity issues', function()
-      vim.system = function(cmd)
+      vim.system = function(_)
         if cmd[1] == 'ping' then
           return {
             wait = function()
@@ -231,7 +231,7 @@ describe('cp.scrape', function()
     end)
 
     it('handles subprocess execution failure', function()
-      vim.system = function(cmd)
+      vim.system = function(_)
         if cmd[1] == 'ping' then
           return {
             wait = function()
@@ -262,7 +262,7 @@ describe('cp.scrape', function()
 
   describe('json parsing', function()
     it('handles invalid json output', function()
-      vim.system = function(cmd)
+      vim.system = function(_)
         if cmd[1] == 'ping' then
           return {
             wait = function()
@@ -290,7 +290,7 @@ describe('cp.scrape', function()
     end)
 
     it('handles scraper-reported failures', function()
-      vim.system = function(cmd)
+      vim.system = function(_)
         if cmd[1] == 'ping' then
           return {
             wait = function()

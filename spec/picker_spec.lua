@@ -40,7 +40,7 @@ describe('cp.picker', function()
 
   describe('get_contests_for_platform', function()
     it('returns empty list when scraper fails', function()
-      vim.system = function()
+      vim.system = function(_, _)
         return {
           wait = function()
             return { code = 1, stderr = 'test error' }
@@ -54,7 +54,7 @@ describe('cp.picker', function()
     end)
 
     it('returns empty list when JSON is invalid', function()
-      vim.system = function()
+      vim.system = function(_, _)
         return {
           wait = function()
             return { code = 0, stdout = 'invalid json' }
@@ -68,7 +68,7 @@ describe('cp.picker', function()
     end)
 
     it('returns contest list when scraper succeeds', function()
-      vim.system = function()
+      vim.system = function(_, _)
         return {
           wait = function()
             return {
@@ -106,7 +106,7 @@ describe('cp.picker', function()
     it('returns problems from cache when available', function()
       local cache = require('cp.cache')
       cache.load = function() end
-      cache.get_contest_data = function()
+      cache.get_contest_data = function(_, _)
         return {
           problems = {
             { id = 'a', name = 'Problem A' },
@@ -128,10 +128,10 @@ describe('cp.picker', function()
       local scrape = require('cp.scrape')
 
       cache.load = function() end
-      cache.get_contest_data = function()
+      cache.get_contest_data = function(_, _)
         return nil
       end
-      scrape.scrape_contest_metadata = function()
+      scrape.scrape_contest_metadata = function(_, _)
         return {
           success = true,
           problems = {
@@ -151,10 +151,10 @@ describe('cp.picker', function()
       local scrape = require('cp.scrape')
 
       cache.load = function() end
-      cache.get_contest_data = function()
+      cache.get_contest_data = function(_, _)
         return nil
       end
-      scrape.scrape_contest_metadata = function()
+      scrape.scrape_contest_metadata = function(_, _)
         return {
           success = false,
           error = 'test error',
