@@ -45,7 +45,17 @@ describe('cp.scrape', function()
       }
     end
 
+    local mock_utils = {
+      setup_python_env = function()
+        return true
+      end,
+      get_plugin_path = function()
+        return '/test/plugin/path'
+      end,
+    }
+
     package.loaded['cp.cache'] = mock_cache
+    package.loaded['cp.utils'] = mock_utils
     scrape = require('cp.scrape')
 
     local original_fn = vim.fn
