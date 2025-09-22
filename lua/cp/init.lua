@@ -715,7 +715,7 @@ local function setup_contest(contest_id, language)
     logger.log('all problems already cached')
   end
 
-  state.contest_id = contest_id
+  state.set_contest_id(contest_id)
   setup_problem(contest_id, problems[1].id, language)
 
   return true
@@ -1019,7 +1019,7 @@ function M.handle_command(opts)
 
   if cmd.type == 'full_setup' then
     if set_platform(cmd.platform) then
-      state.contest_id = cmd.contest
+      state.set_contest_id(cmd.contest)
       local problem_ids = {}
       local has_metadata = false
 
