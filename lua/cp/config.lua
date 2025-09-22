@@ -292,4 +292,14 @@ end
 
 M.default_filename = default_filename
 
+local current_config = nil
+
+function M.set_current_config(config)
+  current_config = config
+end
+
+function M.get_config()
+  return current_config or M.defaults
+end
+
 return M
