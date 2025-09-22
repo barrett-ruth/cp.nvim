@@ -6,6 +6,7 @@ local logger = require('cp.log')
 local problem = require('cp.problem')
 local scrape = require('cp.scrape')
 local snippets = require('cp.snippets')
+local state = require('cp.state')
 
 if not vim.fn.has('nvim-0.10.0') then
   logger.log('[cp.nvim]: requires nvim-0.10.0+', vim.log.levels.ERROR)
@@ -14,19 +15,7 @@ end
 
 local user_config = {}
 local config = config_module.setup(user_config)
-logger.set_config(config)
 local snippets_initialized = false
-
-local state = {
-  platform = nil,
-  contest_id = nil,
-  problem_id = nil,
-  saved_layout = nil,
-  saved_session = nil,
-  test_cases = nil,
-  test_states = {},
-  run_panel_active = false,
-}
 
 local current_diff_layout = nil
 local current_mode = nil
@@ -44,7 +33,7 @@ local function set_platform(platform)
     return false
   end
 
-  state.platform = platform
+  state.set_platform(platform)
   vim.system({ 'mkdir', '-p', 'build', 'io' }):wait()
   return true
 end
@@ -53,7 +42,7 @@ end
 ---@param problem_id? string
 ---@param language? string
 local function setup_problem(contest_id, problem_id, language)
-  if not state.platform then
+  if state.get_platform() == '' then
     logger.log('no platform set. run :CP <platform> <contest> first', vim.log.levels.ERROR)
     return
   end
@@ -61,14 +50,14 @@ local function setup_problem(contest_id, problem_id, language)
   local problem_name = contest_id .. (problem_id or '')
   logger.log(('setting up problem: %s'):format(problem_name))
 
-  local ctx = problem.create_context(state.platform, contest_id, problem_id, config, language)
+  local ctx = problem.create_context(state.get_platform(), contest_id, problem_id, config, language)
 
-  if vim.tbl_contains(config.scrapers, state.platform) then
+  if vim.tbl_contains(config.scrapers, state.get_platform()) then
     cache.load()
-    local existing_contest_data = cache.get_contest_data(state.platform, contest_id)
+    local existing_contest_data = cache.get_contest_data(state.get_platform(), contest_id)
 
     if not existing_contest_data then
-      local metadata_result = scrape.scrape_contest_metadata(state.platform, contest_id)
+      local metadata_result = scrape.scrape_contest_metadata(state.get_platform(), contest_id)
       if not metadata_result.success then
         logger.log(
           'failed to load contest metadata: ' .. (metadata_result.error or 'unknown error'),
@@ -78,12 +67,13 @@ local function setup_problem(contest_id, problem_id, language)
     end
   end
 
-  local cached_test_cases = cache.get_test_cases(state.platform, contest_id, problem_id)
+  local cached_test_cases = cache.get_test_cases(state.get_platform(), contest_id, problem_id)
   if cached_test_cases then
-    state.test_cases = cached_test_cases
+    state.set_test_cases(cached_test_cases)
     logger.log(('using cached test cases (%d)'):format(#cached_test_cases))
-  elseif vim.tbl_contains(config.scrapers, state.platform) then
-    local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[state.platform] or state.platform
+  elseif vim.tbl_contains(config.scrapers, state.get_platform()) then
+    local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[state.get_platform()]
+      or state.get_platform()
     logger.log(
       ('Scraping %s %s %s for test cases, this may take a few seconds...'):format(
         platform_display_name,
@@ -106,21 +96,21 @@ local function setup_problem(contest_id, problem_id, language)
 
     local test_count = scrape_result.test_count or 0
     logger.log(('scraped %d test case(s) for %s'):format(test_count, scrape_result.problem_id))
-    state.test_cases = scrape_result.test_cases
+    state.set_test_cases(scrape_result.test_cases)
 
     if scrape_result.test_cases then
-      cache.set_test_cases(state.platform, contest_id, problem_id, scrape_result.test_cases)
+      cache.set_test_cases(state.get_platform(), contest_id, problem_id, scrape_result.test_cases)
     end
   else
-    logger.log(('scraping disabled for %s'):format(state.platform))
-    state.test_cases = nil
+    logger.log(('scraping disabled for %s'):format(state.get_platform()))
+    state.set_test_cases(nil)
   end
 
   vim.cmd('silent only')
-  state.run_panel_active = false
+  state.set_run_panel_active(false)
 
-  state.contest_id = contest_id
-  state.problem_id = problem_id
+  state.set_contest_id(contest_id)
+  state.set_problem_id(problem_id)
 
   vim.cmd.e(ctx.source_file)
   local source_buf = vim.api.nvim_get_current_buf()
@@ -131,7 +121,7 @@ local function setup_problem(contest_id, problem_id, language)
       local filetype = vim.api.nvim_get_option_value('filetype', { buf = source_buf })
       local language_name = constants.filetype_to_language[filetype]
       local canonical_language = constants.canonical_filetypes[language_name] or language_name
-      local prefixed_trigger = ('cp.nvim/%s.%s'):format(state.platform, canonical_language)
+      local prefixed_trigger = ('cp.nvim/%s.%s'):format(state.get_platform(), canonical_language)
 
       vim.api.nvim_buf_set_lines(0, 0, -1, false, { prefixed_trigger })
       vim.api.nvim_win_set_cursor(0, { 1, #prefixed_trigger })
@@ -147,7 +137,7 @@ local function setup_problem(contest_id, problem_id, language)
         vim.cmd.stopinsert()
       end)
     else
-      vim.api.nvim_input(('i%s<c-space><esc>'):format(state.platform))
+      vim.api.nvim_input(('i%s<c-space><esc>'):format(state.get_platform()))
     end
   end
 
@@ -155,7 +145,7 @@ local function setup_problem(contest_id, problem_id, language)
     config.hooks.setup_code(ctx)
   end
 
-  cache.set_file_state(vim.fn.expand('%:p'), state.platform, contest_id, problem_id, language)
+  cache.set_file_state(vim.fn.expand('%:p'), state.get_platform(), contest_id, problem_id, language)
 
   logger.log(('switched to problem %s'):format(ctx.problem_name))
 end
@@ -166,7 +156,7 @@ local function scrape_missing_problems(contest_id, missing_problems)
   logger.log(('scraping %d uncached problems...'):format(#missing_problems))
 
   local results =
-    scrape.scrape_problems_parallel(state.platform, contest_id, missing_problems, config)
+    scrape.scrape_problems_parallel(state.get_platform(), contest_id, missing_problems, config)
 
   local success_count = 0
   local failed_problems = {}
@@ -227,12 +217,12 @@ local function toggle_run_panel(is_debug)
       state.saved_session = nil
     end
 
-    state.run_panel_active = false
+    state.set_run_panel_active(false)
     logger.log('test panel closed')
     return
   end
 
-  if not state.platform then
+  if state.get_platform() == '' then
     logger.log(
       'No contest configured. Use :CP <platform> <contest> <problem> to set up first.',
       vim.log.levels.ERROR
@@ -245,7 +235,12 @@ local function toggle_run_panel(is_debug)
     return
   end
 
-  local ctx = problem.create_context(state.platform, state.contest_id, state.problem_id, config)
+  local ctx = problem.create_context(
+    state.get_platform(),
+    state.get_contest_id(),
+    state.get_problem_id(),
+    config
+  )
   local run = require('cp.runner.run')
 
   if not run.load_test_cases(ctx, state) then
@@ -635,7 +630,7 @@ local function toggle_run_panel(is_debug)
   end
 
   local execute = require('cp.runner.execute')
-  local contest_config = config.contests[state.platform]
+  local contest_config = config.contests[state.get_platform()]
   local compile_result = execute.compile_problem(ctx, contest_config, is_debug)
   if compile_result.success then
     run.run_all_test_cases(ctx, contest_config, config)
@@ -670,19 +665,19 @@ end
 ---@param contest_id string
 ---@param language? string
 local function setup_contest(contest_id, language)
-  if not state.platform then
+  if state.get_platform() == '' then
     logger.log('no platform set', vim.log.levels.ERROR)
     return false
   end
 
-  if not vim.tbl_contains(config.scrapers, state.platform) then
-    logger.log('scraping disabled for ' .. state.platform, vim.log.levels.WARN)
+  if not vim.tbl_contains(config.scrapers, state.get_platform()) then
+    logger.log('scraping disabled for ' .. state.get_platform(), vim.log.levels.WARN)
     return false
   end
 
-  logger.log(('setting up contest %s %s'):format(state.platform, contest_id))
+  logger.log(('setting up contest %s %s'):format(state.get_platform(), contest_id))
 
-  local metadata_result = scrape.scrape_contest_metadata(state.platform, contest_id)
+  local metadata_result = scrape.scrape_contest_metadata(state.get_platform(), contest_id)
   if not metadata_result.success then
     logger.log(
       'failed to load contest metadata: ' .. (metadata_result.error or 'unknown error'),
@@ -702,7 +697,7 @@ local function setup_contest(contest_id, language)
   cache.load()
   local missing_problems = {}
   for _, prob in ipairs(problems) do
-    local cached_tests = cache.get_test_cases(state.platform, contest_id, prob.id)
+    local cached_tests = cache.get_test_cases(state.get_platform(), contest_id, prob.id)
     if not cached_tests then
       table.insert(missing_problems, prob)
     end
@@ -715,7 +710,7 @@ local function setup_contest(contest_id, language)
     logger.log('all problems already cached')
   end
 
-  state.contest_id = contest_id
+  state.set_contest_id(contest_id)
   setup_problem(contest_id, problems[1].id, language)
 
   return true
@@ -724,13 +719,13 @@ end
 ---@param delta number 1 for next, -1 for prev
 ---@param language? string
 local function navigate_problem(delta, language)
-  if not state.platform or not state.contest_id then
+  if state.get_platform() == '' or state.get_contest_id() == '' then
     logger.log('no contest set. run :CP <platform> <contest> first', vim.log.levels.ERROR)
     return
   end
 
   cache.load()
-  local contest_data = cache.get_contest_data(state.platform, state.contest_id)
+  local contest_data = cache.get_contest_data(state.get_platform(), state.get_contest_id())
   if not contest_data or not contest_data.problems then
     logger.log(
       'no contest metadata found. set up a problem first to cache contest data',
@@ -740,7 +735,7 @@ local function navigate_problem(delta, language)
   end
 
   local problems = contest_data.problems
-  local current_problem_id = state.problem_id
+  local current_problem_id = state.get_problem_id()
 
   if not current_problem_id then
     logger.log('no current problem set', vim.log.levels.ERROR)
@@ -770,7 +765,7 @@ local function navigate_problem(delta, language)
 
   local new_problem = problems[new_index]
 
-  setup_problem(state.contest_id, new_problem.id, language)
+  setup_problem(state.get_contest_id(), new_problem.id, language)
 end
 
 local function handle_pick_action()
@@ -867,8 +862,8 @@ local function restore_from_current_file()
     return false
   end
 
-  state.contest_id = file_state.contest_id
-  state.problem_id = file_state.problem_id
+  state.set_contest_id(file_state.contest_id)
+  state.set_problem_id(file_state.problem_id)
 
   setup_problem(file_state.contest_id, file_state.problem_id, file_state.language)
 
@@ -954,9 +949,9 @@ local function parse_command(args)
     end
   end
 
-  if state.platform and state.contest_id then
+  if state.get_platform() ~= '' and state.get_contest_id() ~= '' then
     cache.load()
-    local contest_data = cache.get_contest_data(state.platform, state.contest_id)
+    local contest_data = cache.get_contest_data(state.get_platform(), state.get_contest_id())
     if contest_data and contest_data.problems then
       local problem_ids = vim.tbl_map(function(prob)
         return prob.id
@@ -1019,7 +1014,7 @@ function M.handle_command(opts)
 
   if cmd.type == 'full_setup' then
     if set_platform(cmd.platform) then
-      state.contest_id = cmd.contest
+      state.set_contest_id(cmd.contest)
       local problem_ids = {}
       local has_metadata = false
 
@@ -1071,7 +1066,7 @@ function M.handle_command(opts)
   end
 
   if cmd.type == 'problem_switch' then
-    setup_problem(state.contest_id, cmd.problem, cmd.language)
+    setup_problem(state.get_contest_id(), cmd.problem, cmd.language)
     return
   end
 end
@@ -1080,7 +1075,6 @@ function M.setup(opts)
   opts = opts or {}
   user_config = opts
   config = config_module.setup(user_config)
-  logger.set_config(config)
   if not snippets_initialized then
     snippets.setup(config)
     snippets_initialized = true
@@ -1089,9 +1083,9 @@ end
 
 function M.get_current_context()
   return {
-    platform = state.platform,
-    contest_id = state.contest_id,
-    problem_id = state.problem_id,
+    platform = state.get_platform(),
+    contest_id = state.get_contest_id(),
+    problem_id = state.get_problem_id(),
   }
 end
 

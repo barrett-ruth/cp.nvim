@@ -45,19 +45,6 @@ local CONTEST_LIST_TTL = {
   atcoder = 24 * 60 * 60, -- 1 day
 }
 
----@param platform string
----@return number?
-local function get_expiry_date(platform)
-  vim.validate({
-    platform = { platform, 'string' },
-  })
-
-  if platform == 'cses' then
-    return os.time() + (30 * 24 * 60 * 60)
-  end
-  return nil
-end
-
 ---@param contest_data ContestData
 ---@param platform string
 ---@return boolean
@@ -67,16 +54,11 @@ local function is_cache_valid(contest_data, platform)
     platform = { platform, 'string' },
   })
 
-  if platform ~= 'cses' then
-    return true
-  end
-
-  local expires_at = contest_data.expires_at
-  if not expires_at then
+  if contest_data.expires_at and os.time() >= contest_data.expires_at then
     return false
   end
 
-  return os.time() < expires_at
+  return true
 end
 
 function M.load()
@@ -151,10 +133,11 @@ function M.set_contest_data(platform, contest_id, problems)
     cache_data[platform] = {}
   end
 
+  local ttl = CONTEST_LIST_TTL[platform] or (24 * 60 * 60)
   cache_data[platform][contest_id] = {
     problems = problems,
     scraped_at = os.date('%Y-%m-%d'),
-    expires_at = get_expiry_date(platform),
+    expires_at = os.time() + ttl,
   }
 
   M.save()
