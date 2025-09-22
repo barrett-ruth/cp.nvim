@@ -719,7 +719,7 @@ end
 ---@param delta number 1 for next, -1 for prev
 ---@param language? string
 local function navigate_problem(delta, language)
-  if not state.get_platform() or not state.get_contest_id() then
+  if state.get_platform() == '' or state.get_contest_id() == '' then
     logger.log('no contest set. run :CP <platform> <contest> first', vim.log.levels.ERROR)
     return
   end
@@ -949,7 +949,7 @@ local function parse_command(args)
     end
   end
 
-  if state.get_platform() and state.get_contest_id() then
+  if state.get_platform() ~= '' and state.get_contest_id() ~= '' then
     cache.load()
     local contest_data = cache.get_contest_data(state.get_platform(), state.get_contest_id())
     if contest_data and contest_data.problems then
