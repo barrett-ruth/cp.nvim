@@ -545,7 +545,7 @@ RUN PANEL KEYMAPS                                           *cp-test-keys*
                                 run_panel.next_test_key)
 <c-p>                           Navigate to previous test case (configurable via
                                 run_panel.prev_test_key)
-t                               Cycle through diff modes: none → vim → git (configurable
+t                               Cycle through diff modes: none → git → vim (configurable
                                 via run_panel.toggle_diff_key)
 q                               Exit test panel and restore layout
 
