@@ -42,7 +42,7 @@ end
 ---@param problem_id? string
 ---@param language? string
 local function setup_problem(contest_id, problem_id, language)
-  if not state.get_platform() then
+  if state.get_platform() == '' then
     logger.log('no platform set. run :CP <platform> <contest> first', vim.log.levels.ERROR)
     return
   end
@@ -222,7 +222,7 @@ local function toggle_run_panel(is_debug)
     return
   end
 
-  if not state.get_platform() then
+  if state.get_platform() == '' then
     logger.log(
       'No contest configured. Use :CP <platform> <contest> <problem> to set up first.',
       vim.log.levels.ERROR
@@ -665,7 +665,7 @@ end
 ---@param contest_id string
 ---@param language? string
 local function setup_contest(contest_id, language)
-  if not state.get_platform() then
+  if state.get_platform() == '' then
     logger.log('no platform set', vim.log.levels.ERROR)
     return false
   end
