@@ -1075,7 +1075,6 @@ function M.setup(opts)
   opts = opts or {}
   user_config = opts
   config = config_module.setup(user_config)
-  logger.set_config(config)
   if not snippets_initialized then
     snippets.setup(config)
     snippets_initialized = true
