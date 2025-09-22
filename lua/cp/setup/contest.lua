@@ -9,8 +9,12 @@ function M.scrape_missing_problems(contest_id, missing_problems, config)
 
   logger.log(('scraping %d uncached problems...'):format(#missing_problems))
 
-  local results =
-    scrape.scrape_problems_parallel(state.get_platform(), contest_id, missing_problems, config)
+  local results = scrape.scrape_problems_parallel(
+    state.get_platform() or '',
+    contest_id,
+    missing_problems,
+    config
+  )
 
   local success_count = 0
   local failed_problems = {}

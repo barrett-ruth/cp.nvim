@@ -26,7 +26,7 @@ function M.set_platform(platform)
 end
 
 function M.setup_problem(contest_id, problem_id, language)
-  if state.get_platform() == '' then
+  if not state.get_platform() then
     logger.log('no platform set. run :CP <platform> <contest> first', vim.log.levels.ERROR)
     return
   end
@@ -35,14 +35,15 @@ function M.setup_problem(contest_id, problem_id, language)
   local problem_name = contest_id .. (problem_id or '')
   logger.log(('setting up problem: %s'):format(problem_name))
 
-  local ctx = problem.create_context(state.get_platform(), contest_id, problem_id, config, language)
+  local ctx =
+    problem.create_context(state.get_platform() or '', contest_id, problem_id, config, language)
 
-  if vim.tbl_contains(config.scrapers, state.get_platform()) then
+  if vim.tbl_contains(config.scrapers, state.get_platform() or '') then
     cache.load()
-    local existing_contest_data = cache.get_contest_data(state.get_platform(), contest_id)
+    local existing_contest_data = cache.get_contest_data(state.get_platform() or '', contest_id)
 
     if not existing_contest_data then
-      local metadata_result = scrape.scrape_contest_metadata(state.get_platform(), contest_id)
+      local metadata_result = scrape.scrape_contest_metadata(state.get_platform() or '', contest_id)
       if not metadata_result.success then
         logger.log(
           'failed to load contest metadata: ' .. (metadata_result.error or 'unknown error'),
@@ -52,13 +53,13 @@ function M.setup_problem(contest_id, problem_id, language)
     end
   end
 
-  local cached_test_cases = cache.get_test_cases(state.get_platform(), contest_id, problem_id)
+  local cached_test_cases = cache.get_test_cases(state.get_platform() or '', contest_id, problem_id)
   if cached_test_cases then
     state.set_test_cases(cached_test_cases)
     logger.log(('using cached test cases (%d)'):format(#cached_test_cases))
-  elseif vim.tbl_contains(config.scrapers, state.get_platform()) then
-    local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[state.get_platform()]
-      or state.get_platform()
+  elseif vim.tbl_contains(config.scrapers, state.get_platform() or '') then
+    local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[state.get_platform() or '']
+      or (state.get_platform() or '')
     logger.log(
       ('Scraping %s %s %s for test cases, this may take a few seconds...'):format(
         platform_display_name,
@@ -84,10 +85,15 @@ function M.setup_problem(contest_id, problem_id, language)
     state.set_test_cases(scrape_result.test_cases)
 
     if scrape_result.test_cases then
-      cache.set_test_cases(state.get_platform(), contest_id, problem_id, scrape_result.test_cases)
+      cache.set_test_cases(
+        state.get_platform() or '',
+        contest_id,
+        problem_id,
+        scrape_result.test_cases
+      )
     end
   else
-    logger.log(('scraping disabled for %s'):format(state.get_platform()))
+    logger.log(('scraping disabled for %s'):format(state.get_platform() or ''))
     state.set_test_cases(nil)
   end
 
@@ -130,27 +136,33 @@ function M.setup_problem(contest_id, problem_id, language)
     config.hooks.setup_code(ctx)
   end
 
-  cache.set_file_state(vim.fn.expand('%:p'), state.get_platform(), contest_id, problem_id, language)
+  cache.set_file_state(
+    vim.fn.expand('%:p'),
+    state.get_platform() or '',
+    contest_id,
+    problem_id,
+    language
+  )
 
   logger.log(('switched to problem %s'):format(ctx.problem_name))
 end
 
 function M.setup_contest(contest_id, language)
-  if state.get_platform() == '' then
+  if not state.get_platform() then
     logger.log('no platform set', vim.log.levels.ERROR)
     return false
   end
 
   local config = config_module.get_config()
 
-  if not vim.tbl_contains(config.scrapers, state.get_platform()) then
-    logger.log('scraping disabled for ' .. state.get_platform(), vim.log.levels.WARN)
+  if not vim.tbl_contains(config.scrapers, state.get_platform() or '') then
+    logger.log('scraping disabled for ' .. (state.get_platform() or ''), vim.log.levels.WARN)
     return false
   end
 
-  logger.log(('setting up contest %s %s'):format(state.get_platform(), contest_id))
+  logger.log(('setting up contest %s %s'):format(state.get_platform() or '', contest_id))
 
-  local metadata_result = scrape.scrape_contest_metadata(state.get_platform(), contest_id)
+  local metadata_result = scrape.scrape_contest_metadata(state.get_platform() or '', contest_id)
   if not metadata_result.success then
     logger.log(
       'failed to load contest metadata: ' .. (metadata_result.error or 'unknown error'),
@@ -170,7 +182,7 @@ function M.setup_contest(contest_id, language)
   cache.load()
   local missing_problems = {}
   for _, prob in ipairs(problems) do
-    local cached_tests = cache.get_test_cases(state.get_platform(), contest_id, prob.id)
+    local cached_tests = cache.get_test_cases(state.get_platform() or '', contest_id, prob.id)
     if not cached_tests then
       table.insert(missing_problems, prob)
     end
@@ -190,7 +202,7 @@ function M.setup_contest(contest_id, language)
 end
 
 function M.navigate_problem(delta, language)
-  if state.get_platform() == '' or state.get_contest_id() == '' then
+  if not state.get_platform() or not state.get_contest_id() then
     logger.log('no contest set. run :CP <platform> <contest> first', vim.log.levels.ERROR)
     return
   end
@@ -226,7 +238,7 @@ function M.handle_full_setup(cmd)
     has_metadata = true
   else
     cache.load()
-    local contest_data = cache.get_contest_data(cmd.platform, cmd.contest)
+    local contest_data = cache.get_contest_data(cmd.platform or '', cmd.contest)
     if contest_data and contest_data.problems then
       problem_ids = vim.tbl_map(function(prob)
         return prob.id

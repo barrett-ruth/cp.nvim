@@ -15,7 +15,8 @@ end
 
 function M.navigate_problem(delta, language)
   cache.load()
-  local contest_data = cache.get_contest_data(state.get_platform(), state.get_contest_id())
+  local contest_data =
+    cache.get_contest_data(state.get_platform() or '', state.get_contest_id() or '')
   if not contest_data or not contest_data.problems then
     logger.log(
       'no contest metadata found. set up a problem first to cache contest data',
@@ -55,7 +56,7 @@ function M.navigate_problem(delta, language)
 
   local new_problem = problems[new_index]
   local setup = require('cp.setup')
-  setup.setup_problem(state.get_contest_id(), new_problem.id, language)
+  setup.setup_problem(state.get_contest_id() or '', new_problem.id, language)
 end
 
 M.get_current_problem = get_current_problem

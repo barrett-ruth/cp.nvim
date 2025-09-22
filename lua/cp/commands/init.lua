@@ -86,10 +86,11 @@ local function parse_command(args)
     end
   end
 
-  if state.get_platform() ~= '' and state.get_contest_id() ~= '' then
+  if state.get_platform() and state.get_contest_id() then
     local cache = require('cp.cache')
     cache.load()
-    local contest_data = cache.get_contest_data(state.get_platform(), state.get_contest_id())
+    local contest_data =
+      cache.get_contest_data(state.get_platform() or '', state.get_contest_id() or '')
     if contest_data and contest_data.problems then
       local problem_ids = vim.tbl_map(function(prob)
         return prob.id
@@ -168,7 +169,7 @@ function M.handle_command(opts)
 
   if cmd.type == 'problem_switch' then
     local setup = require('cp.setup')
-    setup.setup_problem(state.get_contest_id(), cmd.problem, cmd.language)
+    setup.setup_problem(state.get_contest_id() or '', cmd.problem, cmd.language)
     return
   end
 end

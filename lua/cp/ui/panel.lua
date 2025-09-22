@@ -33,7 +33,7 @@ function M.toggle_run_panel(is_debug)
     return
   end
 
-  if state.get_platform() == '' then
+  if not state.get_platform() then
     logger.log(
       'No contest configured. Use :CP <platform> <contest> <problem> to set up first.',
       vim.log.levels.ERROR
@@ -48,8 +48,8 @@ function M.toggle_run_panel(is_debug)
 
   local config = config_module.get_config()
   local ctx = problem.create_context(
-    state.get_platform(),
-    state.get_contest_id(),
+    state.get_platform() or '',
+    state.get_contest_id() or '',
     state.get_problem_id(),
     config
   )
@@ -173,7 +173,7 @@ function M.toggle_run_panel(is_debug)
   end
 
   local execute = require('cp.runner.execute')
-  local contest_config = config.contests[state.get_platform()]
+  local contest_config = config.contests[state.get_platform() or '']
   local compile_result = execute.compile_problem(ctx, contest_config, is_debug)
   if compile_result.success then
     run.run_all_test_cases(ctx, contest_config, config)
