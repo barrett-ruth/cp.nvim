@@ -297,7 +297,8 @@ end
 ---@param state table
 ---@return boolean
 function M.load_test_cases(ctx, state)
-  local test_cases = parse_test_cases_from_cache(state.platform, state.contest_id, state.problem_id)
+  local test_cases =
+    parse_test_cases_from_cache(state.platform or '', state.contest_id or '', state.problem_id)
 
   if #test_cases == 0 then
     test_cases = parse_test_cases_from_files(ctx.input_file, ctx.expected_file)
