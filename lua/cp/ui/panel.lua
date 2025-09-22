@@ -41,14 +41,6 @@ function M.toggle_run_panel(is_debug)
     return
   end
 
-  if not state.get_contest_id() then
-    logger.log(
-      'No contest configured. Use :CP <platform> <contest> <problem> to set up first.',
-      vim.log.levels.ERROR
-    )
-    return
-  end
-
   local problem_id = get_current_problem()
   if not problem_id then
     return
