@@ -15,7 +15,6 @@ end
 
 local user_config = {}
 local config = config_module.setup(user_config)
-logger.set_config(config)
 local snippets_initialized = false
 
 local current_diff_layout = nil
