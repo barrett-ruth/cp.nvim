@@ -54,6 +54,10 @@ local function is_cache_valid(contest_data, platform)
     platform = { platform, 'string' },
   })
 
+  if contest_data.expires_at and os.time() >= contest_data.expires_at then
+    return false
+  end
+
   return true
 end
 
@@ -129,9 +133,11 @@ function M.set_contest_data(platform, contest_id, problems)
     cache_data[platform] = {}
   end
 
+  local ttl = CONTEST_LIST_TTL[platform] or (24 * 60 * 60)
   cache_data[platform][contest_id] = {
     problems = problems,
     scraped_at = os.date('%Y-%m-%d'),
+    expires_at = os.time() + ttl,
   }
 
   M.save()
