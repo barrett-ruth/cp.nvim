@@ -77,11 +77,9 @@ function M.toggle_run_panel(is_debug)
     tab_buf = tab_buf,
   }
 
-  local highlight = require('cp.ui.highlight')
-  local diff_namespace = highlight.create_namespace()
-
   local test_list_namespace = vim.api.nvim_create_namespace('cp_test_list')
-  local ansi_namespace = vim.api.nvim_create_namespace('cp_ansi_highlights')
+
+  local setup_keybindings_for_buffer
 
   local function update_diff_panes()
     current_diff_layout, current_mode = layouts.update_diff_panes(

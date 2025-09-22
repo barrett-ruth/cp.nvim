@@ -5,7 +5,6 @@ local config_module = require('cp.config')
 local logger = require('cp.log')
 local problem = require('cp.problem')
 local scrape = require('cp.scrape')
-local snippets = require('cp.snippets')
 local state = require('cp.state')
 
 local constants = require('cp.constants')
