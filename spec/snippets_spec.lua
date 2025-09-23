@@ -5,8 +5,7 @@ describe('cp.snippets', function()
 
   before_each(function()
     spec_helper.setup()
-    package.loaded['cp.snippets'] = nil
-    snippets = require('cp.snippets')
+    snippets = spec_helper.fresh_require('cp.snippets')
     mock_luasnip = {
       snippet = function(trigger, body)
         return { trigger = trigger, body = body }

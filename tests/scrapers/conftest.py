@@ -4,6 +4,8 @@ import pytest
 @pytest.fixture
 def mock_codeforces_html():
     return """
+    <div class="time-limit">Time limit: 1 seconds</div>
+    <div class="memory-limit">Memory limit: 256 megabytes</div>
     <div class="input">
         <pre>
             <div class="test-example-line-1">3</div>

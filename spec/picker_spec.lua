@@ -158,9 +158,7 @@ describe('cp.picker', function()
         end,
       }
 
-      package.loaded['cp.pickers.init'] = nil
-      package.loaded['cp.pickers'] = nil
-      picker = require('cp.pickers')
+      picker = spec_helper.fresh_require('cp.pickers', { 'cp.pickers.init' })
 
       local problems = picker.get_problems_for_contest('test_platform', 'test_contest')
       assert.is_table(problems)
@@ -182,6 +180,8 @@ describe('cp.picker', function()
           error = 'test error',
         }
       end
+
+      picker = spec_helper.fresh_require('cp.pickers', { 'cp.pickers.init' })
 
       local problems = picker.get_problems_for_contest('test_platform', 'test_contest')
       assert.is_table(problems)

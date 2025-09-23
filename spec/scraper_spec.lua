@@ -56,8 +56,7 @@ describe('cp.scrape', function()
 
     package.loaded['cp.cache'] = mock_cache
     package.loaded['cp.utils'] = mock_utils
-    package.loaded['cp.scrape'] = nil
-    scrape = require('cp.scrape')
+    scrape = spec_helper.fresh_require('cp.scrape')
 
     local original_fn = vim.fn
     vim.fn = vim.tbl_extend('force', vim.fn, {
@@ -125,8 +124,7 @@ describe('cp.scrape', function()
         stored_data = { platform = platform, contest_id = contest_id, problems = problems }
       end
 
-      package.loaded['cp.scrape'] = nil
-      scrape = require('cp.scrape')
+      scrape = spec_helper.fresh_require('cp.scrape')
 
       local result = scrape.scrape_contest_metadata('atcoder', 'abc123')
 

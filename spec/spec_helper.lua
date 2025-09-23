@@ -121,6 +121,17 @@ function M.find_logged_message(pattern)
   return nil
 end
 
+function M.fresh_require(module_name, additional_clears)
+  additional_clears = additional_clears or {}
+
+  for _, clear_module in ipairs(additional_clears) do
+    package.loaded[clear_module] = nil
+  end
+  package.loaded[module_name] = nil
+
+  return require(module_name)
+end
+
 function M.teardown()
   package.loaded['cp.log'] = nil
   package.loaded['cp.scrape'] = nil
