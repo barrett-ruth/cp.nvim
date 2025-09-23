@@ -62,9 +62,11 @@ describe('Panel integration', function()
     state.set_problem_id('b')
 
     local problem = require('cp.problem')
-    local ctx = problem.create_context('codeforces', '2146', 'b', {
+    local config_module = require('cp.config')
+    local processed_config = config_module.setup({
       contests = { codeforces = { cpp = { extension = 'cpp' } } },
     })
+    local ctx = problem.create_context('codeforces', '2146', 'b', processed_config)
 
     assert.has_no_errors(function()
       run.load_test_cases(ctx, state)

@@ -158,6 +158,10 @@ describe('cp.picker', function()
         end,
       }
 
+      package.loaded['cp.pickers.init'] = nil
+      package.loaded['cp.pickers'] = nil
+      picker = require('cp.pickers')
+
       local problems = picker.get_problems_for_contest('test_platform', 'test_contest')
       assert.is_table(problems)
       assert.equals(1, #problems)
