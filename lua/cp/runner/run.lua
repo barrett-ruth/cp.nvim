@@ -86,7 +86,7 @@ end
 ---@param input_file string
 ---@param expected_file string
 ---@return TestCase[]
-local function parse_test_cases_from_files(input_file, expected_file)
+local function parse_test_cases_from_files(input_file, _)
   local base_name = vim.fn.fnamemodify(input_file, ':r')
   local test_cases = {}
 

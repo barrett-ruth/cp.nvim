@@ -182,7 +182,6 @@ end
 
 function M.scrape_remaining_problems(platform, contest_id, problems)
   cache.load()
-  local config = config_module.get_config()
   local missing_problems = {}
 
   for _, prob in ipairs(problems) do
@@ -227,8 +226,8 @@ function M.navigate_problem(direction, language)
 
   local problems = contest_data.problems
   local current_index = nil
-  for i, problem in ipairs(problems) do
-    if problem.id == current_problem_id then
+  for i, prob in ipairs(problems) do
+    if prob.id == current_problem_id then
       current_index = i
       break
     end

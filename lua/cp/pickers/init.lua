@@ -2,7 +2,6 @@ local M = {}
 
 local cache = require('cp.cache')
 local logger = require('cp.log')
-local scraper = require('cp.scraper')
 local utils = require('cp.utils')
 
 ---@class cp.PlatformItem

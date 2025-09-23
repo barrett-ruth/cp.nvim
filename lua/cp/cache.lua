@@ -89,7 +89,7 @@ function M.load()
 end
 
 function M.save()
-  local ok, err = pcall(vim.fn.mkdir, vim.fn.fnamemodify(cache_file, ':h'), 'p')
+  local ok, _ = pcall(vim.fn.mkdir, vim.fn.fnamemodify(cache_file, ':h'), 'p')
   if not ok then
     vim.schedule(function()
       vim.fn.mkdir(vim.fn.fnamemodify(cache_file, ':h'), 'p')
