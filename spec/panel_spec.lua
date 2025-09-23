@@ -26,7 +26,7 @@ describe('Panel integration', function()
         state.set_platform(platform)
         return true
       end,
-      setup_contest = function(platform, contest, problem, language)
+      setup_contest = function(platform, contest, problem, _)
         state.set_platform(platform)
         state.set_contest_id(contest)
         if problem then
