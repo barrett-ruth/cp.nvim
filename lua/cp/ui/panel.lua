@@ -15,7 +15,7 @@ local function get_current_problem()
 end
 
 function M.toggle_run_panel(is_debug)
-  if state.run_panel_active then
+  if state.is_run_panel_active() then
     if current_diff_layout then
       current_diff_layout.cleanup()
       current_diff_layout = nil
@@ -27,15 +27,12 @@ function M.toggle_run_panel(is_debug)
       state.saved_session = nil
     end
 
-    print('run panel was active, returning')
-
     state.set_run_panel_active(false)
     logger.log('test panel closed')
     return
   end
 
   if not state.get_platform() then
-    print('no panel active, returning')
     logger.log(
       'No contest configured. Use :CP <platform> <contest> <problem> to set up first.',
       vim.log.levels.ERROR
@@ -44,9 +41,7 @@ function M.toggle_run_panel(is_debug)
   end
 
   local problem_id = get_current_problem()
-  print(problem_id)
   if not problem_id then
-    logger.log('no current problem set', vim.log.levels.ERROR)
     return
   end
 
@@ -205,7 +200,7 @@ function M.toggle_run_panel(is_debug)
 
   vim.api.nvim_set_current_win(test_windows.tab_win)
 
-  state.run_panel_active = true
+  state.set_run_panel_active(true)
   state.test_buffers = test_buffers
   state.test_windows = test_windows
   local test_state = run.get_run_panel_state()

@@ -91,11 +91,6 @@ function M.scrape_problem_tests(platform, contest_id, problem_id, callback)
         if mkdir_ok then
           local config = require('cp.config')
           local base_name = config.default_filename(contest_id, problem_id)
-          local logger = require('cp.log')
-
-          logger.log(
-            ('writing %d test files for %s (base: %s)'):format(#result.tests, problem_id, base_name)
-          )
 
           for i, test_case in ipairs(result.tests) do
             local input_file = 'io/' .. base_name .. '.' .. i .. '.cpin'
@@ -104,23 +99,9 @@ function M.scrape_problem_tests(platform, contest_id, problem_id, callback)
             local input_content = test_case.input:gsub('\r', '')
             local expected_content = test_case.expected:gsub('\r', '')
 
-            local input_ok =
-              pcall(vim.fn.writefile, vim.split(input_content, '\n', true), input_file)
-            local expected_ok =
-              pcall(vim.fn.writefile, vim.split(expected_content, '\n', true), expected_file)
-
-            if input_ok and expected_ok then
-              logger.log(('wrote test files: %s, %s'):format(input_file, expected_file))
-            else
-              logger.log(
-                ('failed to write test files for %s.%d'):format(base_name, i),
-                vim.log.levels.WARN
-              )
-            end
+            pcall(vim.fn.writefile, vim.split(input_content, '\n', true), input_file)
+            pcall(vim.fn.writefile, vim.split(expected_content, '\n', true), expected_file)
           end
-        else
-          local logger = require('cp.log')
-          logger.log('failed to create io/ directory', vim.log.levels.ERROR)
         end
       end)
 

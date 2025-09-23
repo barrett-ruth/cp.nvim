@@ -108,22 +108,20 @@ function M.setup_problem(contest_id, problem_id, language)
     logger.log('loading test cases...')
 
     scraper.scrape_problem_tests(platform, contest_id, problem_id, function(result)
-      vim.schedule(function()
-        if result.success then
-          logger.log(('loaded %d test cases for %s'):format(#(result.tests or {}), problem_id))
-          if state.get_problem_id() == problem_id then
-            state.set_test_cases(result.tests)
-          end
-        else
-          logger.log(
-            'failed to load tests: ' .. (result.error or 'unknown error'),
-            vim.log.levels.ERROR
-          )
-          if state.get_problem_id() == problem_id then
-            state.set_test_cases({})
-          end
+      if result.success then
+        logger.log(('loaded %d test cases for %s'):format(#(result.tests or {}), problem_id))
+        if state.get_problem_id() == problem_id then
+          state.set_test_cases(result.tests)
         end
-      end)
+      else
+        logger.log(
+          'failed to load tests: ' .. (result.error or 'unknown error'),
+          vim.log.levels.ERROR
+        )
+        if state.get_problem_id() == problem_id then
+          state.set_test_cases({})
+        end
+      end
     end)
   else
     logger.log(('scraping disabled for %s'):format(platform))
@@ -202,20 +200,9 @@ function M.scrape_remaining_problems(platform, contest_id, problems)
   logger.log(('scraping %d uncached problems in background...'):format(#missing_problems))
 
   for _, prob in ipairs(missing_problems) do
-    logger.log(('starting background scrape for problem %s'):format(prob.id))
     scraper.scrape_problem_tests(platform, contest_id, prob.id, function(result)
       if result.success then
-        logger.log(
-          ('background: scraped problem %s - %d test cases'):format(prob.id, #(result.tests or {}))
-        )
-      else
-        logger.log(
-          ('background: failed to scrape problem %s: %s'):format(
-            prob.id,
-            result.error or 'unknown error'
-          ),
-          vim.log.levels.WARN
-        )
+        logger.log(('background: scraped problem %s'):format(prob.id))
       end
     end)
   end
@@ -260,8 +247,6 @@ function M.navigate_problem(direction, language)
 
   local new_problem = problems[new_index]
   M.setup_problem(contest_id, new_problem.id, language)
-
-  state.set_problem_id(new_problem.id)
 end
 
 return M

@@ -109,9 +109,7 @@ local function parse_command(args)
 end
 
 function M.handle_command(opts)
-  logger.log(('command received: %s'):format(vim.inspect(opts.fargs)))
   local cmd = parse_command(opts.fargs)
-  logger.log(('parsed command: %s'):format(vim.inspect(cmd)))
 
   if cmd.type == 'error' then
     logger.log(cmd.message, vim.log.levels.ERROR)
@@ -125,19 +123,14 @@ function M.handle_command(opts)
   end
 
   if cmd.type == 'action' then
-    logger.log(('handling action: %s'):format(cmd.action))
     local setup = require('cp.setup')
     local ui = require('cp.ui.panel')
 
     if cmd.action == 'run' then
-      print('running')
-      logger.log('calling toggle_run_panel')
       ui.toggle_run_panel(cmd.debug)
     elseif cmd.action == 'next' then
-      logger.log('calling navigate_problem(1)')
       setup.navigate_problem(1, cmd.language)
     elseif cmd.action == 'prev' then
-      logger.log('calling navigate_problem(-1)')
       setup.navigate_problem(-1, cmd.language)
     elseif cmd.action == 'pick' then
       local picker = require('cp.commands.picker')
