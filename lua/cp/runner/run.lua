@@ -84,7 +84,6 @@ local function parse_test_cases_from_cache(platform, contest_id, problem_id)
 end
 
 ---@param input_file string
----@param expected_file string
 ---@return TestCase[]
 local function parse_test_cases_from_files(input_file, _)
   local base_name = vim.fn.fnamemodify(input_file, ':r')
