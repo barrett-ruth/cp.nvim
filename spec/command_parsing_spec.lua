@@ -12,16 +12,11 @@ describe('cp command parsing', function()
     }
     package.loaded['cp.log'] = mock_logger
 
-    local mock_async_setup = {
-      setup_contest_async = function() end,
-      handle_full_setup_async = function() end,
-      setup_problem_async = function() end,
-    }
-    package.loaded['cp.async.setup'] = mock_async_setup
     local mock_setup = {
       set_platform = function()
         return true
       end,
+      setup_contest = function() end,
       navigate_problem = function() end,
     }
     package.loaded['cp.setup'] = mock_setup
@@ -32,6 +27,9 @@ describe('cp command parsing', function()
       end,
       get_contest_id = function()
         return 'abc123'
+      end,
+      is_run_panel_active = function()
+        return false
       end,
     }
     package.loaded['cp.state'] = mock_state
@@ -53,7 +51,6 @@ describe('cp command parsing', function()
 
   after_each(function()
     package.loaded['cp.log'] = nil
-    package.loaded['cp.async.setup'] = nil
     package.loaded['cp.setup'] = nil
     package.loaded['cp.state'] = nil
   end)
