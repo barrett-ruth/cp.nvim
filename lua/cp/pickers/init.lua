@@ -42,7 +42,7 @@ local function get_contests_for_platform(platform)
 
   local constants = require('cp.constants')
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
-  logger.log(('Loading %s contests...'):format(platform_display_name), vim.log.levels.INFO, true)
+  logger.progress(('loading %s contests...'):format(platform_display_name))
 
   if not utils.setup_python_env() then
     return {}
@@ -91,7 +91,7 @@ local function get_contests_for_platform(platform)
   end
 
   cache.set_contest_list(platform, contests)
-  logger.log(('Loaded %d contests'):format(#contests), vim.log.levels.INFO)
+  logger.progress(('loaded %d contests'):format(#contests))
   return contests
 end
 
@@ -120,11 +120,7 @@ local function get_problems_for_contest(platform, contest_id)
 
   local constants = require('cp.constants')
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
-  logger.log(
-    ('Scraping %s %s for problems...'):format(platform_display_name, contest_id),
-    vim.log.levels.INFO,
-    true
-  )
+  logger.progress(('loading %s %s problems...'):format(platform_display_name, contest_id))
 
   local plugin_path = utils.get_plugin_path()
   local cmd = {

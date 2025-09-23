@@ -42,7 +42,7 @@ function M.setup_contest(platform, contest_id, problem_id, language)
     return
   end
 
-  logger.log(('setting up contest %s %s'):format(platform, contest_id))
+  logger.progress(('fetching contest %s %s...'):format(platform, contest_id))
 
   scraper.scrape_contest_metadata(platform, contest_id, function(result)
     if not result.success then
@@ -59,7 +59,7 @@ function M.setup_contest(platform, contest_id, problem_id, language)
       return
     end
 
-    logger.log(('found %d problems'):format(#problems))
+    logger.progress(('found %d problems'):format(#problems))
 
     state.set_contest_id(contest_id)
     local target_problem = problem_id or problems[1].id
@@ -96,7 +96,7 @@ function M.setup_problem(contest_id, problem_id, language)
   local config = config_module.get_config()
   local platform = state.get_platform() or ''
 
-  logger.log(('setting up problem: %s%s'):format(contest_id, problem_id or ''))
+  logger.progress(('setting up problem %s%s...'):format(contest_id, problem_id or ''))
 
   local ctx = problem.create_context(platform, contest_id, problem_id, config, language)
 
@@ -105,7 +105,7 @@ function M.setup_problem(contest_id, problem_id, language)
     state.set_test_cases(cached_tests)
     logger.log(('using cached test cases (%d)'):format(#cached_tests))
   elseif vim.tbl_contains(config.scrapers, platform) then
-    logger.log('loading test cases...')
+    logger.progress('loading test cases...')
 
     scraper.scrape_problem_tests(platform, contest_id, problem_id, function(result)
       if result.success then
@@ -171,7 +171,7 @@ function M.setup_problem(contest_id, problem_id, language)
 
       cache.set_file_state(vim.fn.expand('%:p'), platform, contest_id, problem_id, language)
 
-      logger.log(('switched to problem %s'):format(ctx.problem_name))
+      logger.progress(('ready - problem %s'):format(ctx.problem_name))
     end)
 
     if not ok then
@@ -196,7 +196,7 @@ function M.scrape_remaining_problems(platform, contest_id, problems)
     return
   end
 
-  logger.log(('scraping %d uncached problems in background...'):format(#missing_problems))
+  logger.progress(('caching %d remaining problems...'):format(#missing_problems))
 
   for _, prob in ipairs(missing_problems) do
     scraper.scrape_problem_tests(platform, contest_id, prob.id, function(result)
