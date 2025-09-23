@@ -14,7 +14,7 @@ describe('Error boundary handling', function()
     package.loaded['cp.log'] = mock_logger
 
     package.loaded['cp.scraper'] = {
-      scrape_problem_tests = function(platform, contest_id, problem_id, callback)
+      scrape_problem_tests = function(_, contest_id, problem_id, callback)
         if contest_id == 'fail_scrape' then
           callback({
             success = false,
@@ -30,7 +30,7 @@ describe('Error boundary handling', function()
           },
         })
       end,
-      scrape_contest_metadata = function(platform, contest_id, callback)
+      scrape_contest_metadata = function(_, contest_id, callback)
         if contest_id == 'fail_scrape' then
           callback({
             success = false,

@@ -157,7 +157,7 @@ describe('cp.picker', function()
       end
 
       -- Mock vim.system to return success with problems
-      vim.system = function(cmd, opts)
+      vim.system = function()
         return {
           wait = function()
             return {

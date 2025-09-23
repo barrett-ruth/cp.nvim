@@ -50,7 +50,7 @@ describe('cp command parsing', function()
 
     local mock_cache = {
       load = function() end,
-      get_contest_data = function(platform, contest_id)
+      get_contest_data = function()
         return {
           problems = {
             { id = 'a', name = 'Problem A' },
