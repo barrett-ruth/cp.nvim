@@ -19,6 +19,7 @@ describe('cp command parsing', function()
       setup_contest = function() end,
       navigate_problem = function() end,
       setup_problem = function() end,
+      scrape_remaining_problems = function() end,
     }
     package.loaded['cp.setup'] = mock_setup
 
@@ -101,6 +102,8 @@ describe('cp command parsing', function()
     package.loaded['cp.restore'] = nil
     package.loaded['cp.commands.picker'] = nil
     package.loaded['cp.commands.cache'] = nil
+    package.loaded['cp'] = nil
+    package.loaded['cp.commands.init'] = nil
   end)
 
   describe('empty arguments', function()
