@@ -297,7 +297,11 @@ end
 ---@param state table
 ---@return boolean
 function M.load_test_cases(ctx, state)
-  local test_cases = parse_test_cases_from_cache(state.platform, state.contest_id, state.problem_id)
+  local test_cases = parse_test_cases_from_cache(
+    state.get_platform() or '',
+    state.get_contest_id() or '',
+    state.get_problem_id()
+  )
 
   if #test_cases == 0 then
     test_cases = parse_test_cases_from_files(ctx.input_file, ctx.expected_file)
@@ -305,8 +309,11 @@ function M.load_test_cases(ctx, state)
 
   run_panel_state.test_cases = test_cases
   run_panel_state.current_index = 1
-  run_panel_state.constraints =
-    load_constraints_from_cache(state.platform, state.contest_id, state.problem_id)
+  run_panel_state.constraints = load_constraints_from_cache(
+    state.get_platform() or '',
+    state.get_contest_id() or '',
+    state.get_problem_id()
+  )
 
   local constraint_info = run_panel_state.constraints
       and string.format(

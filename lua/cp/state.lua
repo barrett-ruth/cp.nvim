@@ -1,8 +1,8 @@
 local M = {}
 
 local state = {
-  platform = '',
-  contest_id = '',
+  platform = nil,
+  contest_id = nil,
   problem_id = nil,
   test_cases = nil,
   run_panel_active = false,
@@ -66,12 +66,12 @@ function M.get_context()
 end
 
 function M.has_context()
-  return state.platform ~= '' and state.contest_id ~= ''
+  return state.platform and state.contest_id
 end
 
 function M.reset()
-  state.platform = ''
-  state.contest_id = ''
+  state.platform = nil
+  state.contest_id = nil
   state.problem_id = nil
   state.test_cases = nil
   state.run_panel_active = false

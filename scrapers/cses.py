@@ -9,6 +9,7 @@ import backoff
 import requests
 from bs4 import BeautifulSoup, Tag
 
+from .base import BaseScraper
 from .models import (
     ContestListResult,
     ContestSummary,
@@ -322,6 +323,111 @@ def scrape(url: str) -> list[TestCase]:
         return []
 
 
+class CSESScraper(BaseScraper):
+    @property
+    def platform_name(self) -> str:
+        return "cses"
+
+    def scrape_contest_metadata(self, contest_id: str) -> MetadataResult:
+        return self._safe_execute("metadata", self._scrape_metadata_impl, contest_id)
+
+    def scrape_problem_tests(self, contest_id: str, problem_id: str) -> TestsResult:
+        return self._safe_execute(
+            "tests", self._scrape_tests_impl, contest_id, problem_id
+        )
+
+    def scrape_contest_list(self) -> ContestListResult:
+        return self._safe_execute("contests", self._scrape_contests_impl)
+
+    def _safe_execute(self, operation: str, func, *args):
+        try:
+            return func(*args)
+        except Exception as e:
+            error_msg = f"{self.platform_name}: {str(e)}"
+
+            if operation == "metadata":
+                return MetadataResult(success=False, error=error_msg)
+            elif operation == "tests":
+                return TestsResult(
+                    success=False,
+                    error=error_msg,
+                    problem_id="",
+                    url="",
+                    tests=[],
+                    timeout_ms=0,
+                    memory_mb=0,
+                )
+            elif operation == "contests":
+                return ContestListResult(success=False, error=error_msg)
+
+    def _scrape_metadata_impl(self, category_id: str) -> MetadataResult:
+        problems = scrape_category_problems(category_id)
+        if not problems:
+            return MetadataResult(
+                success=False,
+                error=f"{self.platform_name}: No problems found for category: {category_id}",
+            )
+        return MetadataResult(
+            success=True, error="", contest_id=category_id, problems=problems
+        )
+
+    def _scrape_tests_impl(self, category: str, problem_id: str) -> TestsResult:
+        url = parse_problem_url(problem_id)
+        if not url:
+            return TestsResult(
+                success=False,
+                error=f"{self.platform_name}: Invalid problem input: {problem_id}. Use either problem ID (e.g., 1068) or full URL",
+                problem_id=problem_id if problem_id.isdigit() else "",
+                url="",
+                tests=[],
+                timeout_ms=0,
+                memory_mb=0,
+            )
+
+        tests = scrape(url)
+        actual_problem_id = (
+            problem_id if problem_id.isdigit() else problem_id.split("/")[-1]
+        )
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        timeout_ms, memory_mb = extract_problem_limits(soup)
+
+        if not tests:
+            return TestsResult(
+                success=False,
+                error=f"{self.platform_name}: No tests found for {problem_id}",
+                problem_id=actual_problem_id,
+                url=url,
+                tests=[],
+                timeout_ms=timeout_ms,
+                memory_mb=memory_mb,
+            )
+
+        return TestsResult(
+            success=True,
+            error="",
+            problem_id=actual_problem_id,
+            url=url,
+            tests=tests,
+            timeout_ms=timeout_ms,
+            memory_mb=memory_mb,
+        )
+
+    def _scrape_contests_impl(self) -> ContestListResult:
+        categories = scrape_categories()
+        if not categories:
+            return ContestListResult(
+                success=False, error=f"{self.platform_name}: No contests found"
+            )
+        return ContestListResult(success=True, error="", contests=categories)
+
+
 def main() -> None:
     if len(sys.argv) < 2:
         result = MetadataResult(
@@ -332,6 +438,7 @@ def main() -> None:
         sys.exit(1)
 
     mode: str = sys.argv[1]
+    scraper = CSESScraper()
 
     if mode == "metadata":
         if len(sys.argv) != 3:
@@ -343,18 +450,10 @@ def main() -> None:
             sys.exit(1)
 
         category_id = sys.argv[2]
-        problems = scrape_category_problems(category_id)
-
-        if not problems:
-            result = MetadataResult(
-                success=False,
-                error=f"No problems found for category: {category_id}",
-            )
-            print(json.dumps(asdict(result)))
-            return
-
-        result = MetadataResult(success=True, error="", problems=problems)
+        result = scraper.scrape_contest_metadata(category_id)
         print(json.dumps(asdict(result)))
+        if not result.success:
+            sys.exit(1)
 
     elif mode == "tests":
         if len(sys.argv) != 4:
@@ -370,73 +469,12 @@ def main() -> None:
             print(json.dumps(asdict(tests_result)))
             sys.exit(1)
 
-        problem_input: str = sys.argv[3]
-        url: str | None = parse_problem_url(problem_input)
-
-        if not url:
-            tests_result = TestsResult(
-                success=False,
-                error=f"Invalid problem input: {problem_input}. Use either problem ID (e.g., 1068) or full URL",
-                problem_id=problem_input if problem_input.isdigit() else "",
-                url="",
-                tests=[],
-                timeout_ms=0,
-                memory_mb=0,
-            )
-            print(json.dumps(asdict(tests_result)))
-            sys.exit(1)
-
-        tests: list[TestCase] = scrape(url)
-
-        problem_id: str = (
-            problem_input if problem_input.isdigit() else problem_input.split("/")[-1]
-        )
-
-        try:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            }
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, "html.parser")
-            timeout_ms, memory_mb = extract_problem_limits(soup)
-        except Exception as e:
-            tests_result = TestsResult(
-                success=False,
-                error=f"Failed to extract constraints: {e}",
-                problem_id=problem_id,
-                url=url,
-                tests=[],
-                timeout_ms=0,
-                memory_mb=0,
-            )
-            print(json.dumps(asdict(tests_result)))
-            sys.exit(1)
-
-        if not tests:
-            tests_result = TestsResult(
-                success=False,
-                error=f"No tests found for {problem_input}",
-                problem_id=problem_id,
-                url=url,
-                tests=[],
-                timeout_ms=timeout_ms,
-                memory_mb=memory_mb,
-            )
-            print(json.dumps(asdict(tests_result)))
-            sys.exit(1)
-
-        test_cases = tests
-        tests_result = TestsResult(
-            success=True,
-            error="",
-            problem_id=problem_id,
-            url=url,
-            tests=test_cases,
-            timeout_ms=timeout_ms,
-            memory_mb=memory_mb,
-        )
+        category = sys.argv[2]
+        problem_id = sys.argv[3]
+        tests_result = scraper.scrape_problem_tests(category, problem_id)
         print(json.dumps(asdict(tests_result)))
+        if not tests_result.success:
+            sys.exit(1)
 
     elif mode == "contests":
         if len(sys.argv) != 2:
@@ -446,14 +484,10 @@ def main() -> None:
             print(json.dumps(asdict(contest_result)))
             sys.exit(1)
 
-        categories = scrape_categories()
-        if not categories:
-            contest_result = ContestListResult(success=False, error="No contests found")
-            print(json.dumps(asdict(contest_result)))
-            sys.exit(1)
-
-        contest_result = ContestListResult(success=True, error="", contests=categories)
+        contest_result = scraper.scrape_contest_list()
         print(json.dumps(asdict(contest_result)))
+        if not contest_result.success:
+            sys.exit(1)
 
     else:
         result = MetadataResult(
