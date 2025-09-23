@@ -4,6 +4,19 @@ describe('cp.cache', function()
 
   before_each(function()
     spec_helper.setup()
+
+    local mock_file_content = '{}'
+    vim.fn.filereadable = function()
+      return 1
+    end
+    vim.fn.readfile = function()
+      return { mock_file_content }
+    end
+    vim.fn.writefile = function(lines)
+      mock_file_content = table.concat(lines, '\n')
+    end
+    vim.fn.mkdir = function() end
+
     cache = require('cp.cache')
     cache.load()
   end)

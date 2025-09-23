@@ -20,7 +20,7 @@ describe('cp.async.setup', function()
           },
         })
       end,
-      scrape_problem_async = function(platform, contest_id, problem_id, callback)
+      scrape_problem_async = function(_, _, problem_id, callback)
         callback({
           success = true,
           problem_id = problem_id,
@@ -69,10 +69,15 @@ describe('cp.async.setup', function()
       end,
     }
 
-    vim.cmd = {
+    local cmd_methods = {
       e = function() end,
       only = function() end,
+      startinsert = function() end,
+      stopinsert = function() end,
     }
+    vim.cmd = setmetatable(function() end, {
+      __index = cmd_methods,
+    })
     vim.api.nvim_get_current_buf = function()
       return 1
     end
