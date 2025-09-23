@@ -75,15 +75,11 @@ describe('async integration', function()
       end,
     }
 
-    local cmd_methods = {
-      e = function() end,
-      only = function() end,
-      startinsert = function() end,
-      stopinsert = function() end,
-    }
-    vim.cmd = setmetatable(function() end, {
-      __index = cmd_methods,
-    })
+    vim.cmd = function() end
+    vim.cmd.e = function() end
+    vim.cmd.only = function() end
+    vim.cmd.startinsert = function() end
+    vim.cmd.stopinsert = function() end
     vim.api.nvim_get_current_buf = function()
       return 1
     end
@@ -183,7 +179,7 @@ describe('async integration', function()
     it('handles language flags correctly', function()
       local language_passed = nil
       local mock_async_setup = {
-        setup_contest_async = function(contest_id, language)
+        setup_contest_async = function(_, language)
           language_passed = language
         end,
       }

@@ -22,6 +22,7 @@ describe('cp command parsing', function()
       set_platform = function()
         return true
       end,
+      navigate_problem = function() end,
     }
     package.loaded['cp.setup'] = mock_setup
 

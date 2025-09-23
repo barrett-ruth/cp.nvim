@@ -69,15 +69,11 @@ describe('cp.async.setup', function()
       end,
     }
 
-    local cmd_methods = {
-      e = function() end,
-      only = function() end,
-      startinsert = function() end,
-      stopinsert = function() end,
-    }
-    vim.cmd = setmetatable(function() end, {
-      __index = cmd_methods,
-    })
+    vim.cmd = function() end
+    vim.cmd.e = function() end
+    vim.cmd.only = function() end
+    vim.cmd.startinsert = function() end
+    vim.cmd.stopinsert = function() end
     vim.api.nvim_get_current_buf = function()
       return 1
     end
@@ -126,7 +122,7 @@ describe('cp.async.setup', function()
     end)
 
     it('handles metadata scraping failure gracefully', function()
-      mock_scraper.scrape_contest_metadata_async = function(platform, contest_id, callback)
+      mock_scraper.scrape_contest_metadata_async = function(_, _, callback)
         callback({
           success = false,
           error = 'network error',
@@ -210,7 +206,7 @@ describe('cp.async.setup', function()
 
   describe('handle_full_setup_async', function()
     it('validates problem exists in contest', function()
-      mock_scraper.scrape_contest_metadata_async = function(platform, contest_id, callback)
+      mock_scraper.scrape_contest_metadata_async = function(_, _, callback)
         callback({
           success = true,
           problems = { { id = 'a' }, { id = 'b' } },
@@ -230,7 +226,7 @@ describe('cp.async.setup', function()
     end)
 
     it('proceeds with valid problem', function()
-      mock_scraper.scrape_contest_metadata_async = function(platform, contest_id, callback)
+      mock_scraper.scrape_contest_metadata_async = function(_, _, callback)
         callback({
           success = true,
           problems = { { id = 'a' }, { id = 'b' } },
