@@ -30,7 +30,7 @@ describe('Error boundary handling', function()
           test_count = 1,
         }
       end,
-      scrape_contest_metadata = function(platform, contest_id)
+      scrape_contest_metadata = function(_, contest_id)
         if contest_id == 'fail_metadata' then
           return {
             success = false,
@@ -87,7 +87,7 @@ describe('Error boundary handling', function()
     vim.cmd.e = function() end
     vim.cmd.only = function() end
     if not vim.system then
-      vim.system = function(cmd)
+      vim.system = function(_)
         return {
           wait = function()
             return { code = 0 }

@@ -40,7 +40,7 @@ local function setup_vim_mocks()
   vim.cmd.split = function() end
   vim.cmd.vsplit = function() end
   if not vim.system then
-    vim.system = function(cmd)
+    vim.system = function(_)
       return {
         wait = function()
           return { code = 0 }
@@ -87,7 +87,7 @@ function M.mock_scraper_success()
         test_count = 2,
       }
     end,
-    scrape_contest_metadata = function(platform, contest_id)
+    scrape_contest_metadata = function(_, _)
       return {
         success = true,
         problems = {
