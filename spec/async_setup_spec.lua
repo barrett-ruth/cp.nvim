@@ -11,7 +11,7 @@ describe('cp.async.setup', function()
     }
 
     mock_scraper = {
-      scrape_contest_metadata_async = function(platform, contest_id, callback)
+      scrape_contest_metadata_async = function(_, _, callback)
         callback({
           success = true,
           problems = {

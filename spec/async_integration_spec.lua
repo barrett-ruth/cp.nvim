@@ -140,7 +140,7 @@ describe('async integration', function()
     it('handles complete contest setup workflow', function()
       local setup_completed = false
       local mock_async_setup = {
-        setup_contest_async = function(contest_id, _)
+        setup_contest_async = function(contest_id)
           assert.equals('abc123', contest_id)
           setup_completed = true
         end,

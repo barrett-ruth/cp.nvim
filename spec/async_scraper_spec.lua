@@ -26,7 +26,7 @@ describe('cp.async.scraper', function()
       end,
     }
 
-    vim.system = function(cmd, opts, callback)
+    vim.system = function(cmd, _, callback)
       local result = { code = 0, stdout = '{}', stderr = '' }
       if cmd[1] == 'ping' then
         result = { code = 0 }
@@ -77,7 +77,7 @@ describe('cp.async.scraper', function()
     end)
 
     it('calls callback with error on network failure', function()
-      vim.system = function(cmd, opts, callback)
+      vim.system = function(cmd, _, callback)
         if cmd[1] == 'ping' then
           callback({ code = 1 })
         end
@@ -107,7 +107,7 @@ describe('cp.async.scraper', function()
     end)
 
     it('calls callback with error on subprocess failure', function()
-      vim.system = function(cmd, opts, callback)
+      vim.system = function(cmd, _, callback)
         if cmd[1] == 'ping' then
           callback({ code = 0 })
         else
@@ -125,7 +125,7 @@ describe('cp.async.scraper', function()
     end)
 
     it('calls callback with error on invalid JSON', function()
-      vim.system = function(cmd, opts, callback)
+      vim.system = function(cmd, _, callback)
         if cmd[1] == 'ping' then
           callback({ code = 0 })
         else
@@ -156,7 +156,7 @@ describe('cp.async.scraper', function()
     end)
 
     it('handles network failure gracefully', function()
-      vim.system = function(cmd, opts, callback)
+      vim.system = function(cmd, _, callback)
         if cmd[1] == 'ping' then
           callback({ code = 1 })
         end

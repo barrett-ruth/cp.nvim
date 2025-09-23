@@ -149,7 +149,7 @@ function M.setup_problem_async(contest_id, problem_id, language)
   async.finish_contest_operation()
 end
 
-function M.start_background_problem_scraping(contest_id, problems, config)
+function M.start_background_problem_scraping(contest_id, problems, _)
   cache.load()
   local platform = state.get_platform() or ''
   local missing_problems = {}

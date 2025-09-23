@@ -27,7 +27,7 @@ function M.kill_job(job_id)
 end
 
 function M.kill_all_jobs()
-  for job_id, job in pairs(current_jobs) do
+  for _, job in pairs(current_jobs) do
     job:kill(9)
   end
   current_jobs = {}
