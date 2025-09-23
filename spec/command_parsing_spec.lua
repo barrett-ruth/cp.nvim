@@ -63,7 +63,8 @@ describe('cp command parsing', function()
 
     local mock_restore = {
       restore_from_current_file = function()
-        error('No file is currently open')
+        logged_messages[#logged_messages + 1] =
+          { msg = 'No file is currently open', level = vim.log.levels.ERROR }
       end,
     }
     package.loaded['cp.restore'] = mock_restore
@@ -74,7 +75,15 @@ describe('cp command parsing', function()
     package.loaded['cp.commands.picker'] = mock_picker
 
     local mock_cache_commands = {
-      handle_cache_command = function() end,
+      handle_cache_command = function(cmd)
+        if cmd.subcommand == 'clear' then
+          if cmd.platform then
+            logged_messages[#logged_messages + 1] = { msg = 'cleared cache for ' .. cmd.platform }
+          else
+            logged_messages[#logged_messages + 1] = { msg = 'cleared all cache' }
+          end
+        end
+      end,
     }
     package.loaded['cp.commands.cache'] = mock_cache_commands
 

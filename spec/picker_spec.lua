@@ -183,10 +183,29 @@ describe('cp.picker', function()
 
     it('returns empty list when scraping fails', function()
       local cache = require('cp.cache')
+      local utils = require('cp.utils')
 
       cache.load = function() end
       cache.get_contest_data = function(_, _)
         return nil
+      end
+
+      utils.setup_python_env = function()
+        return true
+      end
+      utils.get_plugin_path = function()
+        return '/tmp'
+      end
+
+      vim.system = function()
+        return {
+          wait = function()
+            return {
+              code = 1,
+              stderr = 'Scraping failed',
+            }
+          end,
+        }
       end
 
       picker = spec_helper.fresh_require('cp.pickers', { 'cp.pickers.init' })

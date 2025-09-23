@@ -26,6 +26,15 @@ describe('Panel integration', function()
         state.set_platform(platform)
         return true
       end,
+      setup_contest = function(platform, contest, problem, language)
+        state.set_platform(platform)
+        state.set_contest_id(contest)
+        if problem then
+          state.set_problem_id(problem)
+        end
+      end,
+      setup_problem = function() end,
+      navigate_problem = function() end,
     }
     package.loaded['cp.setup'] = mock_setup
 
