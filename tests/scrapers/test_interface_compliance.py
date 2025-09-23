@@ -1,15 +1,21 @@
+import inspect
 from unittest.mock import Mock
 
 import pytest
 
-from scrapers import ALL_SCRAPERS, BaseScraper
+import scrapers
+from scrapers.base import BaseScraper
 from scrapers.models import ContestListResult, MetadataResult, TestsResult
 
-ALL_SCRAPER_CLASSES = list(ALL_SCRAPERS.values())
+SCRAPERS = [
+    cls
+    for name, cls in inspect.getmembers(scrapers, inspect.isclass)
+    if issubclass(cls, BaseScraper) and cls != BaseScraper
+]
 
 
 class TestScraperInterfaceCompliance:
-    @pytest.mark.parametrize("scraper_class", ALL_SCRAPER_CLASSES)
+    @pytest.mark.parametrize("scraper_class", SCRAPERS)
     def test_implements_base_interface(self, scraper_class):
         scraper = scraper_class()
 
@@ -19,7 +25,7 @@ class TestScraperInterfaceCompliance:
         assert hasattr(scraper, "scrape_problem_tests")
         assert hasattr(scraper, "scrape_contest_list")
 
-    @pytest.mark.parametrize("scraper_class", ALL_SCRAPER_CLASSES)
+    @pytest.mark.parametrize("scraper_class", SCRAPERS)
     def test_platform_name_is_string(self, scraper_class):
         scraper = scraper_class()
         platform_name = scraper.platform_name
@@ -28,7 +34,7 @@ class TestScraperInterfaceCompliance:
         assert len(platform_name) > 0
         assert platform_name.islower()  # Convention: lowercase platform names
 
-    @pytest.mark.parametrize("scraper_class", ALL_SCRAPER_CLASSES)
+    @pytest.mark.parametrize("scraper_class", SCRAPERS)
     def test_metadata_method_signature(self, scraper_class, mocker):
         scraper = scraper_class()
 
@@ -53,7 +59,7 @@ class TestScraperInterfaceCompliance:
         assert isinstance(result.success, bool)
         assert isinstance(result.error, str)
 
-    @pytest.mark.parametrize("scraper_class", ALL_SCRAPER_CLASSES)
+    @pytest.mark.parametrize("scraper_class", SCRAPERS)
     def test_problem_tests_method_signature(self, scraper_class, mocker):
         scraper = scraper_class()
 
@@ -85,7 +91,7 @@ class TestScraperInterfaceCompliance:
         assert isinstance(result.success, bool)
         assert isinstance(result.error, str)
 
-    @pytest.mark.parametrize("scraper_class", ALL_SCRAPER_CLASSES)
+    @pytest.mark.parametrize("scraper_class", SCRAPERS)
     def test_contest_list_method_signature(self, scraper_class, mocker):
         scraper = scraper_class()
 
@@ -111,7 +117,7 @@ class TestScraperInterfaceCompliance:
         assert isinstance(result.success, bool)
         assert isinstance(result.error, str)
 
-    @pytest.mark.parametrize("scraper_class", ALL_SCRAPER_CLASSES)
+    @pytest.mark.parametrize("scraper_class", SCRAPERS)
     def test_error_message_format(self, scraper_class, mocker):
         scraper = scraper_class()
         platform_name = scraper.platform_name
@@ -148,7 +154,7 @@ class TestScraperInterfaceCompliance:
         assert not result.success
         assert result.error.startswith(f"{platform_name}: ")
 
-    @pytest.mark.parametrize("scraper_class", ALL_SCRAPER_CLASSES)
+    @pytest.mark.parametrize("scraper_class", SCRAPERS)
     def test_scraper_instantiation(self, scraper_class):
         scraper1 = scraper_class()
         assert isinstance(scraper1, BaseScraper)

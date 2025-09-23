@@ -19,69 +19,6 @@ from .models import (
 )
 
 
-class CodeforcesScraper(BaseScraper):
-    @property
-    def platform_name(self) -> str:
-        return "codeforces"
-
-    def scrape_contest_metadata(self, contest_id: str) -> MetadataResult:
-        return self._safe_execute(
-            "metadata", self._scrape_contest_metadata_impl, contest_id
-        )
-
-    def scrape_problem_tests(self, contest_id: str, problem_id: str) -> TestsResult:
-        return self._safe_execute(
-            "tests", self._scrape_problem_tests_impl, contest_id, problem_id
-        )
-
-    def scrape_contest_list(self) -> ContestListResult:
-        return self._safe_execute("contests", self._scrape_contest_list_impl)
-
-    def _scrape_contest_metadata_impl(self, contest_id: str) -> MetadataResult:
-        problems = scrape_contest_problems(contest_id)
-        if not problems:
-            return self._create_metadata_error(
-                f"No problems found for contest {contest_id}", contest_id
-            )
-        return MetadataResult(
-            success=True, error="", contest_id=contest_id, problems=problems
-        )
-
-    def _scrape_problem_tests_impl(
-        self, contest_id: str, problem_letter: str
-    ) -> TestsResult:
-        problem_id = contest_id + problem_letter.lower()
-        url = parse_problem_url(contest_id, problem_letter)
-        tests = scrape_sample_tests(url)
-
-        scraper = cloudscraper.create_scraper()
-        response = scraper.get(url, timeout=self.config.timeout_seconds)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
-        timeout_ms, memory_mb = extract_problem_limits(soup)
-
-        if not tests:
-            return self._create_tests_error(
-                f"No tests found for {contest_id} {problem_letter}", problem_id, url
-            )
-
-        return TestsResult(
-            success=True,
-            error="",
-            problem_id=problem_id,
-            url=url,
-            tests=tests,
-            timeout_ms=timeout_ms,
-            memory_mb=memory_mb,
-        )
-
-    def _scrape_contest_list_impl(self) -> ContestListResult:
-        contests = scrape_contests()
-        if not contests:
-            return self._create_contests_error("No contests found")
-        return ContestListResult(success=True, error="", contests=contests)
-
-
 def scrape(url: str) -> list[TestCase]:
     try:
         scraper = cloudscraper.create_scraper()
@@ -303,6 +240,69 @@ def scrape_contests() -> list[ContestSummary]:
         contests.append(ContestSummary(id=contest_id, name=name, display_name=name))
 
     return contests
+
+
+class CodeforcesScraper(BaseScraper):
+    @property
+    def platform_name(self) -> str:
+        return "codeforces"
+
+    def scrape_contest_metadata(self, contest_id: str) -> MetadataResult:
+        return self._safe_execute(
+            "metadata", self._scrape_contest_metadata_impl, contest_id
+        )
+
+    def scrape_problem_tests(self, contest_id: str, problem_id: str) -> TestsResult:
+        return self._safe_execute(
+            "tests", self._scrape_problem_tests_impl, contest_id, problem_id
+        )
+
+    def scrape_contest_list(self) -> ContestListResult:
+        return self._safe_execute("contests", self._scrape_contest_list_impl)
+
+    def _scrape_contest_metadata_impl(self, contest_id: str) -> MetadataResult:
+        problems = scrape_contest_problems(contest_id)
+        if not problems:
+            return self._create_metadata_error(
+                f"No problems found for contest {contest_id}", contest_id
+            )
+        return MetadataResult(
+            success=True, error="", contest_id=contest_id, problems=problems
+        )
+
+    def _scrape_problem_tests_impl(
+        self, contest_id: str, problem_letter: str
+    ) -> TestsResult:
+        problem_id = contest_id + problem_letter.lower()
+        url = parse_problem_url(contest_id, problem_letter)
+        tests = scrape_sample_tests(url)
+
+        scraper = cloudscraper.create_scraper()
+        response = scraper.get(url, timeout=self.config.timeout_seconds)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        timeout_ms, memory_mb = extract_problem_limits(soup)
+
+        if not tests:
+            return self._create_tests_error(
+                f"No tests found for {contest_id} {problem_letter}", problem_id, url
+            )
+
+        return TestsResult(
+            success=True,
+            error="",
+            problem_id=problem_id,
+            url=url,
+            tests=tests,
+            timeout_ms=timeout_ms,
+            memory_mb=memory_mb,
+        )
+
+    def _scrape_contest_list_impl(self) -> ContestListResult:
+        contests = scrape_contests()
+        if not contests:
+            return self._create_contests_error("No contests found")
+        return ContestListResult(success=True, error="", contests=contests)
 
 
 def main() -> None:
