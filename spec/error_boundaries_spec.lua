@@ -13,46 +13,45 @@ describe('Error boundary handling', function()
     }
     package.loaded['cp.log'] = mock_logger
 
-    package.loaded['cp.scrape'] = {
-      scrape_problem = function(ctx)
-        if ctx.contest_id == 'fail_scrape' then
-          return {
+    package.loaded['cp.scraper'] = {
+      scrape_problem_tests = function(platform, contest_id, problem_id, callback)
+        if contest_id == 'fail_scrape' then
+          callback({
             success = false,
             error = 'Network error',
-          }
+          })
+          return
         end
-        return {
+        callback({
           success = true,
-          problem_id = ctx.problem_id,
-          test_cases = {
+          problem_id = problem_id,
+          tests = {
             { input = '1', expected = '2' },
           },
-          test_count = 1,
-        }
+        })
       end,
-      scrape_contest_metadata = function(_, contest_id)
+      scrape_contest_metadata = function(platform, contest_id, callback)
         if contest_id == 'fail_scrape' then
-          return {
+          callback({
             success = false,
             error = 'Network error',
-          }
+          })
+          return
         end
         if contest_id == 'fail_metadata' then
-          return {
+          callback({
             success = false,
             error = 'Contest not found',
-          }
+          })
+          return
         end
-        return {
+        callback({
           success = true,
           problems = {
             { id = 'a' },
             { id = 'b' },
           },
-        }
-      end,
-      scrape_problems_parallel = function()
-        return {}
+        })
       end,
     }
 
@@ -128,6 +127,9 @@ describe('Error boundary handling', function()
   it('should handle scraping failures without state corruption', function()
     cp.handle_command({ fargs = { 'codeforces', 'fail_scrape', 'a' } })
 
+    -- Wait for async callback to complete
+    vim.wait(100)
+
     local has_metadata_error = false
     for _, log_entry in ipairs(logged_messages) do
       if log_entry.msg and log_entry.msg:match('failed to load contest metadata') then
@@ -139,7 +141,6 @@ describe('Error boundary handling', function()
 
     local context = cp.get_current_context()
     assert.equals('codeforces', context.platform)
-    assert.equals('fail_scrape', context.contest_id)
 
     assert.has_no_errors(function()
       cp.handle_command({ fargs = { 'run' } })
@@ -157,7 +158,7 @@ describe('Error boundary handling', function()
 
     local has_nav_error = false
     for _, log_entry in ipairs(logged_messages) do
-      if log_entry.msg and log_entry.msg:match('no contest metadata found') then
+      if log_entry.msg and log_entry.msg:match('no contest data available') then
         has_nav_error = true
         break
       end

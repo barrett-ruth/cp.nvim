@@ -18,6 +18,7 @@ describe('cp command parsing', function()
       end,
       setup_contest = function() end,
       navigate_problem = function() end,
+      setup_problem = function() end,
     }
     package.loaded['cp.setup'] = mock_setup
 
@@ -28,11 +29,53 @@ describe('cp command parsing', function()
       get_contest_id = function()
         return 'abc123'
       end,
+      get_problem_id = function()
+        return 'a'
+      end,
       is_run_panel_active = function()
         return false
       end,
+      set_platform = function() end,
+      set_contest_id = function() end,
+      set_problem_id = function() end,
+      set_run_panel_active = function() end,
     }
     package.loaded['cp.state'] = mock_state
+
+    local mock_ui_panel = {
+      toggle_run_panel = function() end,
+    }
+    package.loaded['cp.ui.panel'] = mock_ui_panel
+
+    local mock_cache = {
+      load = function() end,
+      get_contest_data = function(platform, contest_id)
+        return {
+          problems = {
+            { id = 'a', name = 'Problem A' },
+            { id = 'b', name = 'Problem B' },
+          },
+        }
+      end,
+    }
+    package.loaded['cp.cache'] = mock_cache
+
+    local mock_restore = {
+      restore_from_current_file = function()
+        error('No file is currently open')
+      end,
+    }
+    package.loaded['cp.restore'] = mock_restore
+
+    local mock_picker = {
+      handle_pick_action = function() end,
+    }
+    package.loaded['cp.commands.picker'] = mock_picker
+
+    local mock_cache_commands = {
+      handle_cache_command = function() end,
+    }
+    package.loaded['cp.commands.cache'] = mock_cache_commands
 
     cp = require('cp')
     cp.setup({
@@ -53,6 +96,11 @@ describe('cp command parsing', function()
     package.loaded['cp.log'] = nil
     package.loaded['cp.setup'] = nil
     package.loaded['cp.state'] = nil
+    package.loaded['cp.ui.panel'] = nil
+    package.loaded['cp.cache'] = nil
+    package.loaded['cp.restore'] = nil
+    package.loaded['cp.commands.picker'] = nil
+    package.loaded['cp.commands.cache'] = nil
   end)
 
   describe('empty arguments', function()

@@ -147,14 +147,14 @@ describe('cp.picker', function()
         return nil
       end
 
-      package.loaded['cp.scrape'] = {
-        scrape_contest_metadata = function(_, _)
-          return {
+      package.loaded['cp.scraper'] = {
+        scrape_contest_metadata = function(platform, contest_id, callback)
+          callback({
             success = true,
             problems = {
               { id = 'x', name = 'Problem X' },
             },
-          }
+          })
         end,
       }
 
