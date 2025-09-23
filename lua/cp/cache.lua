@@ -40,9 +40,9 @@ local cache_data = {}
 local loaded = false
 
 local CONTEST_LIST_TTL = {
-  cses = 7 * 24 * 60 * 60, -- 1 week
-  codeforces = 24 * 60 * 60, -- 1 day
-  atcoder = 24 * 60 * 60, -- 1 day
+  cses = 7 * 24 * 60 * 60,
+  codeforces = 24 * 60 * 60,
+  atcoder = 24 * 60 * 60,
 }
 
 ---@param contest_data ContestData
@@ -316,7 +316,7 @@ function M.set_contest_list(platform, contests)
     cache_data.contest_lists = {}
   end
 
-  local ttl = CONTEST_LIST_TTL[platform] or (24 * 60 * 60) -- Default 1 day
+  local ttl = CONTEST_LIST_TTL[platform] or (24 * 60 * 60)
   cache_data.contest_lists[platform] = {
     contests = contests,
     cached_at = os.time(),

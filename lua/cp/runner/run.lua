@@ -90,7 +90,6 @@ local function parse_test_cases_from_files(input_file, expected_file)
   local base_name = vim.fn.fnamemodify(input_file, ':r')
   local test_cases = {}
 
-  -- Try numbered files first (created by scraper)
   local i = 1
   while true do
     local individual_input_file = base_name .. '.' .. i .. '.cpin'
