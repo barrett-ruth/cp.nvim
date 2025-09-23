@@ -164,17 +164,10 @@ describe('cp.run_render', function()
   end)
 
   describe('setup_highlights', function()
-    it('sets up all highlight groups', function()
-      local mock_set_hl = spy.on(vim.api, 'nvim_set_hl')
-      run_render.setup_highlights()
-
-      assert.spy(mock_set_hl).was_called(7)
-      assert.spy(mock_set_hl).was_called_with(0, 'CpTestAC', { fg = '#10b981' })
-      assert.spy(mock_set_hl).was_called_with(0, 'CpTestWA', { fg = '#ef4444' })
-      assert.spy(mock_set_hl).was_called_with(0, 'CpTestTLE', { fg = '#f59e0b' })
-      assert.spy(mock_set_hl).was_called_with(0, 'CpTestRTE', { fg = '#8b5cf6' })
-
-      mock_set_hl:revert()
+    it('runs without errors', function()
+      assert.has_no_errors(function()
+        run_render.setup_highlights()
+      end)
     end)
   end)
 

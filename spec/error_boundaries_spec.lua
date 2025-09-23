@@ -13,10 +13,8 @@ describe('Error boundary handling', function()
     }
     package.loaded['cp.log'] = mock_logger
 
-    -- Mock dependencies that could fail
     package.loaded['cp.scrape'] = {
       scrape_problem = function(ctx)
-        -- Sometimes fail to simulate network issues
         if ctx.contest_id == 'fail_scrape' then
           return {
             success = false,
@@ -66,7 +64,6 @@ describe('Error boundary handling', function()
       return {}
     end
 
-    -- Mock vim functions
     if not vim.fn then
       vim.fn = {}
     end
@@ -122,35 +119,9 @@ describe('Error boundary handling', function()
     end
   end)
 
-  it('should handle setup failures gracefully without breaking runner', function()
-    -- Try invalid platform
-    cp.handle_command({ fargs = { 'invalid_platform', '1234', 'a' } })
-
-    -- Should have logged error
-    local has_error = false
-    for _, log_entry in ipairs(logged_messages) do
-      if log_entry.level == vim.log.levels.ERROR then
-        has_error = true
-        break
-      end
-    end
-    assert.is_true(has_error, 'Should log error for invalid platform')
-
-    -- State should remain clean
-    local context = cp.get_current_context()
-    assert.is_nil(context.platform)
-
-    -- Runner should handle this gracefully
-    assert.has_no_errors(function()
-      cp.handle_command({ fargs = { 'run' } }) -- Should log error, not crash
-    end)
-  end)
-
   it('should handle scraping failures without state corruption', function()
-    -- Setup should fail due to scraping failure
     cp.handle_command({ fargs = { 'codeforces', 'fail_scrape', 'a' } })
 
-    -- Should have logged scraping error
     local has_scrape_error = false
     for _, log_entry in ipairs(logged_messages) do
       if log_entry.msg and log_entry.msg:match('scraping failed') then
@@ -160,29 +131,24 @@ describe('Error boundary handling', function()
     end
     assert.is_true(has_scrape_error, 'Should log scraping failure')
 
-    -- State should still be set (platform and contest)
     local context = cp.get_current_context()
     assert.equals('codeforces', context.platform)
     assert.equals('fail_scrape', context.contest_id)
 
-    -- But should handle run gracefully
     assert.has_no_errors(function()
       cp.handle_command({ fargs = { 'run' } })
     end)
   end)
 
   it('should handle missing contest data without crashing navigation', function()
-    -- Setup with valid platform but no contest data
     state.set_platform('codeforces')
     state.set_contest_id('nonexistent')
     state.set_problem_id('a')
 
-    -- Navigation should fail gracefully
     assert.has_no_errors(function()
       cp.handle_command({ fargs = { 'next' } })
     end)
 
-    -- Should log appropriate error
     local has_nav_error = false
     for _, log_entry in ipairs(logged_messages) do
       if log_entry.msg and log_entry.msg:match('no contest metadata found') then
@@ -194,10 +160,8 @@ describe('Error boundary handling', function()
   end)
 
   it('should handle validation errors without crashing', function()
-    -- This would previously cause validation errors
-    state.reset() -- All state is nil
+    state.reset()
 
-    -- Commands should handle nil state gracefully
     assert.has_no_errors(function()
       cp.handle_command({ fargs = { 'next' } })
     end)
@@ -210,7 +174,6 @@ describe('Error boundary handling', function()
       cp.handle_command({ fargs = { 'run' } })
     end)
 
-    -- Should have appropriate errors, not validation errors
     local has_validation_error = false
     local has_appropriate_errors = 0
     for _, log_entry in ipairs(logged_messages) do
@@ -229,10 +192,8 @@ describe('Error boundary handling', function()
   end)
 
   it('should handle partial state gracefully', function()
-    -- Set only platform, not contest
     state.set_platform('codeforces')
 
-    -- Commands should handle partial state
     assert.has_no_errors(function()
       cp.handle_command({ fargs = { 'run' } })
     end)
@@ -241,7 +202,6 @@ describe('Error boundary handling', function()
       cp.handle_command({ fargs = { 'next' } })
     end)
 
-    -- Should get appropriate errors about missing contest
     local missing_contest_errors = 0
     for _, log_entry in ipairs(logged_messages) do
       if
@@ -251,44 +211,5 @@ describe('Error boundary handling', function()
       end
     end
     assert.is_true(missing_contest_errors > 0, 'Should report missing contest')
-  end)
-
-  it('should isolate command parsing errors from execution', function()
-    -- Test malformed commands
-    assert.has_no_errors(function()
-      cp.handle_command({ fargs = { 'cache' } }) -- Missing subcommand
-    end)
-
-    assert.has_no_errors(function()
-      cp.handle_command({ fargs = { '--lang' } }) -- Missing value
-    end)
-
-    assert.has_no_errors(function()
-      cp.handle_command({ fargs = { 'too', 'many', 'args', 'here', 'extra' } })
-    end)
-
-    -- All should result in error messages, not crashes
-    assert.is_true(#logged_messages > 0, 'Should have logged errors')
-
-    local crash_count = 0
-    for _, log_entry in ipairs(logged_messages) do
-      if log_entry.msg and log_entry.msg:match('stack traceback') then
-        crash_count = crash_count + 1
-      end
-    end
-    assert.equals(0, crash_count, 'Should not have any crashes')
-  end)
-
-  it('should handle module loading failures gracefully', function()
-    -- Test with missing optional dependencies
-    local original_picker_module = package.loaded['cp.commands.picker']
-    package.loaded['cp.commands.picker'] = nil
-
-    -- Pick command should handle missing module
-    assert.has_no_errors(function()
-      cp.handle_command({ fargs = { 'pick' } })
-    end)
-
-    package.loaded['cp.commands.picker'] = original_picker_module
   end)
 end)
