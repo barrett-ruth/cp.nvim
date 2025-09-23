@@ -42,6 +42,16 @@ _REGISTRY_FUNCTIONS = [
 
 __all__ = _BASE_EXPORTS + _SCRAPER_CLASSES + _REGISTRY_FUNCTIONS
 
+_exported_types = (
+    ScraperConfig,
+    ContestListResult,
+    ContestSummary,
+    MetadataResult,
+    ProblemSummary,
+    TestCase,
+    TestsResult,
+)
+
 
 def get_scraper(platform: str) -> type[BaseScraper]:
     if platform not in ALL_SCRAPERS:

@@ -135,17 +135,17 @@ class TestScraperInterfaceCompliance:
 
         # Test metadata error format
         result = scraper.scrape_contest_metadata("test")
-        assert result.success == False
+        assert not result.success
         assert result.error.startswith(f"{platform_name}: ")
 
         # Test problem tests error format
         result = scraper.scrape_problem_tests("test", "A")
-        assert result.success == False
+        assert not result.success
         assert result.error.startswith(f"{platform_name}: ")
 
         # Test contest list error format
         result = scraper.scrape_contest_list()
-        assert result.success == False
+        assert not result.success
         assert result.error.startswith(f"{platform_name}: ")
 
     @pytest.mark.parametrize("scraper_class", ALL_SCRAPER_CLASSES)
