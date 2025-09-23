@@ -1,14 +1,17 @@
+import inspect
 from unittest.mock import Mock
 
 import pytest
 
-from scrapers.atcoder import AtCoderScraper
+import scrapers
 from scrapers.base import BaseScraper
-from scrapers.codeforces import CodeforcesScraper
-from scrapers.cses import CSESScraper
 from scrapers.models import ContestListResult, MetadataResult, TestsResult
 
-SCRAPERS = [AtCoderScraper, CodeforcesScraper, CSESScraper]
+SCRAPERS = [
+    cls
+    for name, cls in inspect.getmembers(scrapers, inspect.isclass)
+    if issubclass(cls, BaseScraper) and cls != BaseScraper
+]
 
 
 class TestScraperInterfaceCompliance:
