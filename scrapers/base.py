@@ -1,8 +1,5 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Protocol
-
-import requests
 
 from .models import ContestListResult, MetadataResult, TestsResult
 
@@ -15,22 +12,13 @@ class ScraperConfig:
     rate_limit_delay: float = 1.0
 
 
-class HttpClient(Protocol):
-    def get(self, url: str, **kwargs) -> requests.Response: ...
-    def close(self) -> None: ...
-
-
 class BaseScraper(ABC):
     def __init__(self, config: ScraperConfig | None = None):
         self.config = config or ScraperConfig()
-        self._client: HttpClient | None = None
 
     @property
     @abstractmethod
     def platform_name(self) -> str: ...
-
-    @abstractmethod
-    def _create_client(self) -> HttpClient: ...
 
     @abstractmethod
     def scrape_contest_metadata(self, contest_id: str) -> MetadataResult: ...
@@ -40,17 +28,6 @@ class BaseScraper(ABC):
 
     @abstractmethod
     def scrape_contest_list(self) -> ContestListResult: ...
-
-    @property
-    def client(self) -> HttpClient:
-        if self._client is None:
-            self._client = self._create_client()
-        return self._client
-
-    def close(self) -> None:
-        if self._client is not None:
-            self._client.close()
-            self._client = None
 
     def _create_metadata_error(
         self, error_msg: str, contest_id: str = ""

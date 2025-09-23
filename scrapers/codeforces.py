@@ -5,10 +5,10 @@ import re
 import sys
 from dataclasses import asdict
 
+import cloudscraper
 from bs4 import BeautifulSoup, Tag
 
-from .base import BaseScraper, HttpClient
-from .clients import CloudScraperClient
+from .base import BaseScraper
 from .models import (
     ContestListResult,
     ContestSummary,
@@ -24,9 +24,6 @@ class CodeforcesScraper(BaseScraper):
     def platform_name(self) -> str:
         return "codeforces"
 
-    def _create_client(self) -> HttpClient:
-        return CloudScraperClient(self.config)
-
     def scrape_contest_metadata(self, contest_id: str) -> MetadataResult:
         return self._safe_execute(
             "metadata", self._scrape_contest_metadata_impl, contest_id
@@ -41,7 +38,7 @@ class CodeforcesScraper(BaseScraper):
         return self._safe_execute("contests", self._scrape_contest_list_impl)
 
     def _scrape_contest_metadata_impl(self, contest_id: str) -> MetadataResult:
-        problems = scrape_contest_problems(contest_id, self.client)
+        problems = scrape_contest_problems(contest_id)
         if not problems:
             return self._create_metadata_error(
                 f"No problems found for contest {contest_id}", contest_id
@@ -55,9 +52,11 @@ class CodeforcesScraper(BaseScraper):
     ) -> TestsResult:
         problem_id = contest_id + problem_letter.lower()
         url = parse_problem_url(contest_id, problem_letter)
-        tests = scrape_sample_tests(url, self.client)
+        tests = scrape_sample_tests(url)
 
-        response = self.client.get(url)
+        scraper = cloudscraper.create_scraper()
+        response = scraper.get(url, timeout=self.config.timeout_seconds)
+        response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
         timeout_ms, memory_mb = extract_problem_limits(soup)
 
@@ -77,15 +76,17 @@ class CodeforcesScraper(BaseScraper):
         )
 
     def _scrape_contest_list_impl(self) -> ContestListResult:
-        contests = scrape_contests(self.client)
+        contests = scrape_contests()
         if not contests:
             return self._create_contests_error("No contests found")
         return ContestListResult(success=True, error="", contests=contests)
 
 
-def scrape(url: str, client: HttpClient) -> list[TestCase]:
+def scrape(url: str) -> list[TestCase]:
     try:
-        response = client.get(url)
+        scraper = cloudscraper.create_scraper()
+        response = scraper.get(url, timeout=10)
+        response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
         input_sections = soup.find_all("div", class_="input")
@@ -239,12 +240,12 @@ def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, float]:
     return timeout_ms, memory_mb
 
 
-def scrape_contest_problems(
-    contest_id: str, client: HttpClient
-) -> list[ProblemSummary]:
+def scrape_contest_problems(contest_id: str) -> list[ProblemSummary]:
     try:
         contest_url: str = f"https://codeforces.com/contest/{contest_id}"
-        response = client.get(contest_url)
+        scraper = cloudscraper.create_scraper()
+        response = scraper.get(contest_url, timeout=10)
+        response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
         problems: list[ProblemSummary] = []
@@ -280,13 +281,15 @@ def scrape_contest_problems(
         return []
 
 
-def scrape_sample_tests(url: str, client: HttpClient) -> list[TestCase]:
+def scrape_sample_tests(url: str) -> list[TestCase]:
     print(f"Scraping: {url}", file=sys.stderr)
-    return scrape(url, client)
+    return scrape(url)
 
 
-def scrape_contests(client: HttpClient) -> list[ContestSummary]:
-    response = client.get("https://codeforces.com/api/contest.list")
+def scrape_contests() -> list[ContestSummary]:
+    scraper = cloudscraper.create_scraper()
+    response = scraper.get("https://codeforces.com/api/contest.list", timeout=10)
+    response.raise_for_status()
 
     data = response.json()
     if data["status"] != "OK":
@@ -363,8 +366,6 @@ def main() -> None:
         )
         print(json.dumps(asdict(result)))
         sys.exit(1)
-
-    scraper.close()
 
 
 if __name__ == "__main__":

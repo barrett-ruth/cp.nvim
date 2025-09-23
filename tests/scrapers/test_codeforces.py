@@ -5,14 +5,16 @@ from scrapers.models import ContestSummary, ProblemSummary
 
 
 def test_scrape_success(mocker, mock_codeforces_html):
-    mock_client = Mock()
+    mock_scraper = Mock()
     mock_response = Mock()
     mock_response.text = mock_codeforces_html
-    mock_client.get.return_value = mock_response
+    mock_scraper.get.return_value = mock_response
+
+    mocker.patch(
+        "scrapers.codeforces.cloudscraper.create_scraper", return_value=mock_scraper
+    )
 
     scraper = CodeforcesScraper()
-    mocker.patch.object(scraper, "_create_client", return_value=mock_client)
-
     result = scraper.scrape_problem_tests("1900", "A")
 
     assert result.success == True
@@ -22,17 +24,19 @@ def test_scrape_success(mocker, mock_codeforces_html):
 
 
 def test_scrape_contest_problems(mocker):
-    mock_client = Mock()
+    mock_scraper = Mock()
     mock_response = Mock()
     mock_response.text = """
     <a href="/contest/1900/problem/A">A. Problem A</a>
     <a href="/contest/1900/problem/B">B. Problem B</a>
     """
-    mock_client.get.return_value = mock_response
+    mock_scraper.get.return_value = mock_response
+
+    mocker.patch(
+        "scrapers.codeforces.cloudscraper.create_scraper", return_value=mock_scraper
+    )
 
     scraper = CodeforcesScraper()
-    mocker.patch.object(scraper, "_create_client", return_value=mock_client)
-
     result = scraper.scrape_contest_metadata("1900")
 
     assert result.success == True
@@ -42,12 +46,14 @@ def test_scrape_contest_problems(mocker):
 
 
 def test_scrape_network_error(mocker):
-    mock_client = Mock()
-    mock_client.get.side_effect = Exception("Network error")
+    mock_scraper = Mock()
+    mock_scraper.get.side_effect = Exception("Network error")
+
+    mocker.patch(
+        "scrapers.codeforces.cloudscraper.create_scraper", return_value=mock_scraper
+    )
 
     scraper = CodeforcesScraper()
-    mocker.patch.object(scraper, "_create_client", return_value=mock_client)
-
     result = scraper.scrape_problem_tests("1900", "A")
 
     assert result.success == False
@@ -55,7 +61,7 @@ def test_scrape_network_error(mocker):
 
 
 def test_scrape_contests_success(mocker):
-    mock_client = Mock()
+    mock_scraper = Mock()
     mock_response = Mock()
     mock_response.json.return_value = {
         "status": "OK",
@@ -65,11 +71,13 @@ def test_scrape_contests_success(mocker):
             {"id": 1949, "name": "Codeforces Global Round 26"},
         ],
     }
-    mock_client.get.return_value = mock_response
+    mock_scraper.get.return_value = mock_response
+
+    mocker.patch(
+        "scrapers.codeforces.cloudscraper.create_scraper", return_value=mock_scraper
+    )
 
     scraper = CodeforcesScraper()
-    mocker.patch.object(scraper, "_create_client", return_value=mock_client)
-
     result = scraper.scrape_contest_list()
 
     assert result.success == True
@@ -92,14 +100,16 @@ def test_scrape_contests_success(mocker):
 
 
 def test_scrape_contests_api_error(mocker):
-    mock_client = Mock()
+    mock_scraper = Mock()
     mock_response = Mock()
     mock_response.json.return_value = {"status": "FAILED", "result": []}
-    mock_client.get.return_value = mock_response
+    mock_scraper.get.return_value = mock_response
+
+    mocker.patch(
+        "scrapers.codeforces.cloudscraper.create_scraper", return_value=mock_scraper
+    )
 
     scraper = CodeforcesScraper()
-    mocker.patch.object(scraper, "_create_client", return_value=mock_client)
-
     result = scraper.scrape_contest_list()
 
     assert result.success == False
@@ -107,12 +117,14 @@ def test_scrape_contests_api_error(mocker):
 
 
 def test_scrape_contests_network_error(mocker):
-    mock_client = Mock()
-    mock_client.get.side_effect = Exception("Network error")
+    mock_scraper = Mock()
+    mock_scraper.get.side_effect = Exception("Network error")
+
+    mocker.patch(
+        "scrapers.codeforces.cloudscraper.create_scraper", return_value=mock_scraper
+    )
 
     scraper = CodeforcesScraper()
-    mocker.patch.object(scraper, "_create_client", return_value=mock_client)
-
     result = scraper.scrape_contest_list()
 
     assert result.success == False
