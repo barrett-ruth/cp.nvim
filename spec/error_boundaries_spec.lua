@@ -31,6 +31,12 @@ describe('Error boundary handling', function()
         }
       end,
       scrape_contest_metadata = function(_, contest_id)
+        if contest_id == 'fail_scrape' then
+          return {
+            success = false,
+            error = 'Network error',
+          }
+        end
         if contest_id == 'fail_metadata' then
           return {
             success = false,
@@ -122,14 +128,14 @@ describe('Error boundary handling', function()
   it('should handle scraping failures without state corruption', function()
     cp.handle_command({ fargs = { 'codeforces', 'fail_scrape', 'a' } })
 
-    local has_error = false
+    local has_metadata_error = false
     for _, log_entry in ipairs(logged_messages) do
-      if log_entry.level == vim.log.levels.ERROR then
-        has_error = true
+      if log_entry.msg and log_entry.msg:match('failed to load contest metadata') then
+        has_metadata_error = true
         break
       end
     end
-    assert.is_true(has_error, 'Should log error for failed scraping')
+    assert.is_true(has_metadata_error, 'Should log contest metadata failure')
 
     local context = cp.get_current_context()
     assert.equals('codeforces', context.platform)

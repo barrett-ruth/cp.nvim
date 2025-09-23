@@ -68,6 +68,7 @@ index 1234567..abcdefg 100644
     end)
 
     it('handles valid highlight data without errors', function()
+      vim.api.nvim_buf_set_lines(1, 0, -1, false, { 'hello world test line' })
       local highlights = {
         {
           line = 0,
