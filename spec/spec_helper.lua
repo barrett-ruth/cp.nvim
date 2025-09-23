@@ -105,7 +105,7 @@ end
 
 function M.mock_async_scraper_success()
   package.loaded['cp.async.scraper'] = {
-    scrape_contest_metadata_async = function(platform, contest_id, callback)
+    scrape_contest_metadata_async = function(_, _, callback)
       vim.schedule(function()
         callback({
           success = true,
@@ -117,7 +117,7 @@ function M.mock_async_scraper_success()
         })
       end)
     end,
-    scrape_problem_async = function(platform, contest_id, problem_id, callback)
+    scrape_problem_async = function(_, _, problem_id, callback)
       vim.schedule(function()
         callback({
           success = true,
@@ -138,7 +138,7 @@ end
 
 function M.mock_async_scraper_failure()
   package.loaded['cp.async.scraper'] = {
-    scrape_contest_metadata_async = function(platform, contest_id, callback)
+    scrape_contest_metadata_async = function(_, _, callback)
       vim.schedule(function()
         callback({
           success = false,
@@ -146,7 +146,7 @@ function M.mock_async_scraper_failure()
         })
       end)
     end,
-    scrape_problem_async = function(platform, contest_id, problem_id, callback)
+    scrape_problem_async = function(_, _, problem_id, callback)
       vim.schedule(function()
         callback({
           success = false,

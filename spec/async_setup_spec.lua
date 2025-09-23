@@ -2,11 +2,8 @@ describe('cp.async.setup', function()
   local setup
   local spec_helper = require('spec.spec_helper')
   local mock_async, mock_scraper, mock_state
-  local callback_calls = {}
-
   before_each(function()
     spec_helper.setup()
-    callback_calls = {}
 
     mock_async = {
       start_contest_operation = function() end,
@@ -184,7 +181,7 @@ describe('cp.async.setup', function()
 
     it('starts background test scraping if not cached', function()
       local scraping_started = false
-      mock_scraper.scrape_problem_async = function(platform, contest_id, problem_id, callback)
+      mock_scraper.scrape_problem_async = function(_, _, problem_id, callback)
         scraping_started = true
         callback({ success = true, problem_id = problem_id, test_cases = {} })
       end
@@ -248,7 +245,7 @@ describe('cp.async.setup', function()
       local problems = { { id = 'a' }, { id = 'b' }, { id = 'c' } }
       local scraping_calls = {}
 
-      mock_scraper.scrape_problem_async = function(platform, contest_id, problem_id, callback)
+      mock_scraper.scrape_problem_async = function(_, _, problem_id, callback)
         scraping_calls[#scraping_calls + 1] = problem_id
         callback({ success = true, problem_id = problem_id })
       end
@@ -270,13 +267,13 @@ describe('cp.async.setup', function()
       local problems = { { id = 'a' }, { id = 'b' } }
       local scraping_calls = {}
 
-      mock_scraper.scrape_problem_async = function(platform, contest_id, problem_id, callback)
+      mock_scraper.scrape_problem_async = function(_, _, problem_id, callback)
         scraping_calls[#scraping_calls + 1] = problem_id
         callback({ success = true, problem_id = problem_id })
       end
 
       local mock_cache = require('cp.cache')
-      mock_cache.get_test_cases = function(platform, contest_id, problem_id)
+      mock_cache.get_test_cases = function(_, _, problem_id)
         return problem_id == 'a' and { { input = '1', expected = '1' } } or nil
       end
 
