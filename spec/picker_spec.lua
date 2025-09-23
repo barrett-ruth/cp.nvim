@@ -141,22 +141,37 @@ describe('cp.picker', function()
 
     it('falls back to scraping when cache miss', function()
       local cache = require('cp.cache')
+      local utils = require('cp.utils')
 
       cache.load = function() end
       cache.get_contest_data = function(_, _)
         return nil
       end
+      cache.set_contest_data = function() end
 
-      package.loaded['cp.scraper'] = {
-        scrape_contest_metadata = function(platform, contest_id, callback)
-          callback({
-            success = true,
-            problems = {
-              { id = 'x', name = 'Problem X' },
-            },
-          })
-        end,
-      }
+      utils.setup_python_env = function()
+        return true
+      end
+      utils.get_plugin_path = function()
+        return '/tmp'
+      end
+
+      -- Mock vim.system to return success with problems
+      vim.system = function(cmd, opts)
+        return {
+          wait = function()
+            return {
+              code = 0,
+              stdout = vim.json.encode({
+                success = true,
+                problems = {
+                  { id = 'x', name = 'Problem X' },
+                },
+              }),
+            }
+          end,
+        }
+      end
 
       picker = spec_helper.fresh_require('cp.pickers', { 'cp.pickers.init' })
 
