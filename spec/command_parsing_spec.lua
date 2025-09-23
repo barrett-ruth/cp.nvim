@@ -78,7 +78,13 @@ describe('cp command parsing', function()
       handle_cache_command = function(cmd)
         if cmd.subcommand == 'clear' then
           if cmd.platform then
-            logged_messages[#logged_messages + 1] = { msg = 'cleared cache for ' .. cmd.platform }
+            local constants = require('cp.constants')
+            if vim.tbl_contains(constants.PLATFORMS, cmd.platform) then
+              logged_messages[#logged_messages + 1] = { msg = 'cleared cache for ' .. cmd.platform }
+            else
+              logged_messages[#logged_messages + 1] =
+                { msg = 'unknown platform: ' .. cmd.platform, level = vim.log.levels.ERROR }
+            end
           else
             logged_messages[#logged_messages + 1] = { msg = 'cleared all cache' }
           end
