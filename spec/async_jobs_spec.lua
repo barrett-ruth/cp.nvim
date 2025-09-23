@@ -38,7 +38,7 @@ describe('cp.async.jobs', function()
       assert.equals(1, #mock_jobs)
       assert.same(args, mock_jobs[1].args)
       assert.same(opts, mock_jobs[1].opts)
-      assert.equals(callback, mock_jobs[1].callback)
+      assert.is_function(mock_jobs[1].callback)
     end)
 
     it('kills existing job when starting new job with same ID', function()

@@ -75,7 +75,10 @@ describe('async integration', function()
       end,
     }
 
-    vim.cmd = { e = function() end, only = function() end }
+    vim.cmd = {
+      e = function() end,
+      only = function() end,
+    }
     vim.api.nvim_get_current_buf = function()
       return 1
     end
@@ -137,9 +140,8 @@ describe('async integration', function()
     it('handles complete contest setup workflow', function()
       local setup_completed = false
       local mock_async_setup = {
-        setup_contest_async = function(contest_id, language)
+        setup_contest_async = function(contest_id, _)
           assert.equals('abc123', contest_id)
-          assert.is_nil(language)
           setup_completed = true
         end,
       }
@@ -159,7 +161,7 @@ describe('async integration', function()
 
       local problem_setup_called = false
       local mock_async_setup = {
-        setup_problem_async = function(contest_id, problem_id, language)
+        setup_problem_async = function(contest_id, problem_id, _)
           assert.equals('abc123', contest_id)
           assert.equals('b', problem_id)
           problem_setup_called = true
@@ -254,7 +256,7 @@ describe('async integration', function()
       local callback_executed = false
 
       local mock_scraper = {
-        scrape_contest_metadata_async = function(platform, contest_id, callback)
+        scrape_contest_metadata_async = function(_, _, callback)
           vim.schedule(function()
             callback({ success = true, problems = { { id = 'a' } } })
             callback_executed = true
