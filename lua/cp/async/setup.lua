@@ -98,7 +98,7 @@ function M.setup_problem_async(contest_id, problem_id, language)
     state.set_test_cases(nil)
   end
 
-  vim.cmd('silent only')
+  vim.cmd.only({ mods = { silent = true } })
   state.set_run_panel_active(false)
   state.set_contest_id(contest_id)
   state.set_problem_id(problem_id)

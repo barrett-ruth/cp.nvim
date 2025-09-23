@@ -26,7 +26,7 @@ describe('cp.async.scraper', function()
       end,
     }
 
-    vim.system = function(cmd, _, callback)
+    vim.system = function(cmd, opts, callback)
       local result = { code = 0, stdout = '{}', stderr = '' }
       if cmd[1] == 'ping' then
         result = { code = 0 }
@@ -36,7 +36,17 @@ describe('cp.async.scraper', function()
         result.stdout =
           '{"success": true, "tests": [{"input": "1 2", "expected": "3"}], "timeout_ms": 2000, "memory_mb": 256.0, "url": "https://example.com"}'
       end
-      callback(result)
+
+      if callback then
+        callback(result)
+      else
+        -- Return object with :wait() for sync calls
+        return {
+          wait = function()
+            return result
+          end,
+        }
+      end
     end
 
     vim.fn.mkdir = function() end

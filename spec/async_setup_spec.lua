@@ -69,11 +69,12 @@ describe('cp.async.setup', function()
       end,
     }
 
-    vim.cmd = function() end
-    vim.cmd.e = function() end
-    vim.cmd.only = function() end
-    vim.cmd.startinsert = function() end
-    vim.cmd.stopinsert = function() end
+    vim.cmd = {
+      e = function() end,
+      only = function() end,
+      startinsert = function() end,
+      stopinsert = function() end,
+    }
     vim.api.nvim_get_current_buf = function()
       return 1
     end

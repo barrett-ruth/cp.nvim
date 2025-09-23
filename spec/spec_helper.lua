@@ -35,10 +35,14 @@ local function setup_vim_mocks()
   if not vim.cmd then
     vim.cmd = {}
   end
-  vim.cmd.e = function() end
-  vim.cmd.only = function() end
-  vim.cmd.split = function() end
-  vim.cmd.vsplit = function() end
+  vim.cmd = {
+    only = function() end,
+    e = function() end,
+    split = function() end,
+    vsplit = function() end,
+    startinsert = function() end,
+    stopinsert = function() end,
+  }
   if not vim.system then
     vim.system = function(_)
       return {
