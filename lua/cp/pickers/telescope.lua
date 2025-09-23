@@ -39,7 +39,8 @@ local function problem_picker(opts, platform, contest_id)
           actions.close(prompt_bufnr)
 
           if selection then
-            picker_utils.setup_problem(platform, contest_id, selection.value.id)
+            local cp = require('cp')
+            cp.handle_command({ fargs = { platform, contest_id, selection.value.id } })
           end
         end)
         return true

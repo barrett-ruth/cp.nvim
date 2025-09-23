@@ -36,7 +36,8 @@ local function problem_picker(platform, contest_id)
         end
 
         if problem then
-          picker_utils.setup_problem(platform, contest_id, problem.id)
+          local cp = require('cp')
+          cp.handle_command({ fargs = { platform, contest_id, problem.id } })
         end
       end,
     },

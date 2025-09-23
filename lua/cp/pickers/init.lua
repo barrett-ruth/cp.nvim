@@ -45,22 +45,55 @@ local function get_contests_for_platform(platform)
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   logger.log(('Loading %s contests...'):format(platform_display_name), vim.log.levels.INFO, true)
 
-  scraper.scrape_contest_list(platform, function(result)
-    if result.success then
-      logger.log(
-        ('Loaded %d contests for %s'):format(#(result.contests or {}), platform_display_name),
-        vim.log.levels.INFO,
-        true
-      )
-    else
-      logger.log(
-        ('Failed to load contests for %s: %s'):format(platform, result.error or 'unknown error'),
-        vim.log.levels.ERROR
-      )
-    end
-  end)
+  if not utils.setup_python_env() then
+    return {}
+  end
 
-  return {}
+  local plugin_path = utils.get_plugin_path()
+  local cmd = {
+    'uv',
+    'run',
+    '--directory',
+    plugin_path,
+    '-m',
+    'scrapers.' .. platform,
+    'contests',
+  }
+
+  local result = vim
+    .system(cmd, {
+      cwd = plugin_path,
+      text = true,
+      timeout = 30000,
+    })
+    :wait()
+
+  if result.code ~= 0 then
+    logger.log(
+      ('Failed to load contests: %s'):format(result.stderr or 'unknown error'),
+      vim.log.levels.ERROR
+    )
+    return {}
+  end
+
+  local ok, data = pcall(vim.json.decode, result.stdout)
+  if not ok or not data.success then
+    logger.log('Failed to parse contest data', vim.log.levels.ERROR)
+    return {}
+  end
+
+  local contests = {}
+  for _, contest in ipairs(data.contests or {}) do
+    table.insert(contests, {
+      id = contest.id,
+      name = contest.name,
+      display_name = contest.display_name,
+    })
+  end
+
+  cache.set_contest_list(platform, contests)
+  logger.log(('Loaded %d contests'):format(#contests), vim.log.levels.INFO)
+  return contests
 end
 
 ---@param platform string Platform identifier
@@ -82,27 +115,60 @@ local function get_problems_for_contest(platform, contest_id)
     return problems
   end
 
+  if not utils.setup_python_env() then
+    return problems
+  end
+
   local constants = require('cp.constants')
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   logger.log(
-    ('Scraping %s %s for problems, this may take a few seconds...'):format(
-      platform_display_name,
-      contest_id
-    ),
+    ('Scraping %s %s for problems...'):format(platform_display_name, contest_id),
     vim.log.levels.INFO,
     true
   )
 
-  local cached_data = cache.get_contest_data(platform, contest_id)
-  if not cached_data or not cached_data.problems then
+  local plugin_path = utils.get_plugin_path()
+  local cmd = {
+    'uv',
+    'run',
+    '--directory',
+    plugin_path,
+    '-m',
+    'scrapers.' .. platform,
+    'metadata',
+    contest_id,
+  }
+
+  local result = vim
+    .system(cmd, {
+      cwd = plugin_path,
+      text = true,
+      timeout = 30000,
+    })
+    :wait()
+
+  if result.code ~= 0 then
     logger.log(
-      'No cached contest data found. Run :CP first to scrape contest metadata.',
-      vim.log.levels.WARN
+      ('Failed to scrape contest: %s'):format(result.stderr or 'unknown error'),
+      vim.log.levels.ERROR
     )
     return problems
   end
 
-  for _, problem in ipairs(cached_data.problems) do
+  local ok, data = pcall(vim.json.decode, result.stdout)
+  if not ok or not data.success then
+    logger.log('Failed to parse contest data', vim.log.levels.ERROR)
+    return problems
+  end
+
+  if not data.problems or #data.problems == 0 then
+    logger.log('Contest has no problems available', vim.log.levels.WARN)
+    return problems
+  end
+
+  cache.set_contest_data(platform, contest_id, data.problems)
+
+  for _, problem in ipairs(data.problems) do
     table.insert(problems, {
       id = problem.id,
       name = problem.name,
