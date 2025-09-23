@@ -99,8 +99,8 @@ function M.save()
 
   local encoded = vim.json.encode(cache_data)
   local lines = vim.split(encoded, '\n')
-  ok, err = pcall(vim.fn.writefile, lines, cache_file)
-  if not ok then
+  local write_ok, _ = pcall(vim.fn.writefile, lines, cache_file)
+  if not write_ok then
     vim.schedule(function()
       vim.fn.writefile(lines, cache_file)
     end)
