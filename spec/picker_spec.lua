@@ -141,20 +141,22 @@ describe('cp.picker', function()
 
     it('falls back to scraping when cache miss', function()
       local cache = require('cp.cache')
-      local scrape = require('cp.scrape')
 
       cache.load = function() end
       cache.get_contest_data = function(_, _)
         return nil
       end
-      scrape.scrape_contest_metadata = function(_, _)
-        return {
-          success = true,
-          problems = {
-            { id = 'x', name = 'Problem X' },
-          },
-        }
-      end
+
+      package.loaded['cp.scrape'] = {
+        scrape_contest_metadata = function(_, _)
+          return {
+            success = true,
+            problems = {
+              { id = 'x', name = 'Problem X' },
+            },
+          }
+        end,
+      }
 
       local problems = picker.get_problems_for_contest('test_platform', 'test_contest')
       assert.is_table(problems)
