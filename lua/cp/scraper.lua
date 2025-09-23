@@ -86,7 +86,6 @@ end
 function M.scrape_problem_tests(platform, contest_id, problem_id, callback)
   run_scraper(platform, 'tests', { contest_id, problem_id }, function(result)
     if result.success and result.tests then
-      -- Write test files
       vim.schedule(function()
         local mkdir_ok = pcall(vim.fn.mkdir, 'io', 'p')
         if mkdir_ok then
@@ -125,7 +124,6 @@ function M.scrape_problem_tests(platform, contest_id, problem_id, callback)
         end
       end)
 
-      -- Cache test cases
       local cached_tests = {}
       for i, test_case in ipairs(result.tests) do
         table.insert(cached_tests, {

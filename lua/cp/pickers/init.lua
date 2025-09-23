@@ -41,7 +41,6 @@ local function get_contests_for_platform(platform)
     return cached_contests
   end
 
-  -- No cache: start background scraping, return empty for now
   local constants = require('cp.constants')
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   logger.log(('Loading %s contests...'):format(platform_display_name), vim.log.levels.INFO, true)
@@ -64,7 +63,6 @@ local function get_contests_for_platform(platform)
   return {}
 end
 
----Get list of problems for a specific contest
 ---@param platform string Platform identifier
 ---@param contest_id string Contest identifier
 ---@return cp.ProblemItem[]
@@ -115,7 +113,6 @@ local function get_problems_for_contest(platform, contest_id)
   return problems
 end
 
----Set up a specific problem by calling the main CP handler
 ---@param platform string Platform identifier
 ---@param contest_id string Contest identifier
 ---@param problem_id string Problem identifier

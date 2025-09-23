@@ -61,11 +61,9 @@ function M.setup_contest(platform, contest_id, problem_id, language)
 
     logger.log(('found %d problems'):format(#problems))
 
-    -- Set up specified problem or first problem
     state.set_contest_id(contest_id)
     local target_problem = problem_id or problems[1].id
 
-    -- Validate problem exists if specified
     if problem_id then
       local problem_exists = false
       for _, prob in ipairs(problems) do
@@ -85,7 +83,6 @@ function M.setup_contest(platform, contest_id, problem_id, language)
 
     M.setup_problem(contest_id, target_problem, language)
 
-    -- Scrape remaining problems in background
     M.scrape_remaining_problems(platform, contest_id, problems)
   end)
 end
@@ -103,7 +100,6 @@ function M.setup_problem(contest_id, problem_id, language)
 
   local ctx = problem.create_context(platform, contest_id, problem_id, config, language)
 
-  -- Load test cases for current problem
   local cached_tests = cache.get_test_cases(platform, contest_id, problem_id)
   if cached_tests then
     state.set_test_cases(cached_tests)
@@ -134,12 +130,10 @@ function M.setup_problem(contest_id, problem_id, language)
     state.set_test_cases({})
   end
 
-  -- Update state immediately (safe in fast event)
   state.set_contest_id(contest_id)
   state.set_problem_id(problem_id)
   state.set_run_panel_active(false)
 
-  -- Schedule vim commands (required for fast event context)
   vim.schedule(function()
     local ok, err = pcall(function()
       vim.cmd.only({ mods = { silent = true } })
