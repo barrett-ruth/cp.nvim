@@ -109,7 +109,9 @@ local function parse_command(args)
 end
 
 function M.handle_command(opts)
+  logger.log(('command received: %s'):format(vim.inspect(opts.fargs)))
   local cmd = parse_command(opts.fargs)
+  logger.log(('parsed command: %s'):format(vim.inspect(cmd)))
 
   if cmd.type == 'error' then
     logger.log(cmd.message, vim.log.levels.ERROR)
@@ -123,14 +125,19 @@ function M.handle_command(opts)
   end
 
   if cmd.type == 'action' then
+    logger.log(('handling action: %s'):format(cmd.action))
     local setup = require('cp.setup')
     local ui = require('cp.ui.panel')
 
     if cmd.action == 'run' then
+      print('running')
+      logger.log('calling toggle_run_panel')
       ui.toggle_run_panel(cmd.debug)
     elseif cmd.action == 'next' then
+      logger.log('calling navigate_problem(1)')
       setup.navigate_problem(1, cmd.language)
     elseif cmd.action == 'prev' then
+      logger.log('calling navigate_problem(-1)')
       setup.navigate_problem(-1, cmd.language)
     elseif cmd.action == 'pick' then
       local picker = require('cp.commands.picker')
@@ -153,25 +160,23 @@ function M.handle_command(opts)
 
   if cmd.type == 'contest_setup' then
     local setup = require('cp.setup')
-    local async_setup = require('cp.async.setup')
     if setup.set_platform(cmd.platform) then
-      async_setup.setup_contest_async(cmd.contest, cmd.language)
+      setup.setup_contest(cmd.platform, cmd.contest, nil, cmd.language)
     end
     return
   end
 
   if cmd.type == 'full_setup' then
     local setup = require('cp.setup')
-    local async_setup = require('cp.async.setup')
     if setup.set_platform(cmd.platform) then
-      async_setup.handle_full_setup_async(cmd)
+      setup.setup_contest(cmd.platform, cmd.contest, cmd.problem, cmd.language)
     end
     return
   end
 
   if cmd.type == 'problem_switch' then
-    local async_setup = require('cp.async.setup')
-    async_setup.setup_problem_async(state.get_contest_id() or '', cmd.problem, cmd.language)
+    local setup = require('cp.setup')
+    setup.setup_problem(state.get_contest_id() or '', cmd.problem, cmd.language)
     return
   end
 end

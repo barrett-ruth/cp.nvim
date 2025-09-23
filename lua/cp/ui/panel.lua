@@ -11,8 +11,7 @@ local current_diff_layout = nil
 local current_mode = nil
 
 local function get_current_problem()
-  local setup_nav = require('cp.setup.navigation')
-  return setup_nav.get_current_problem()
+  return state.get_problem_id()
 end
 
 function M.toggle_run_panel(is_debug)
@@ -28,12 +27,15 @@ function M.toggle_run_panel(is_debug)
       state.saved_session = nil
     end
 
+    print('run panel was active, returning')
+
     state.set_run_panel_active(false)
     logger.log('test panel closed')
     return
   end
 
   if not state.get_platform() then
+    print('no panel active, returning')
     logger.log(
       'No contest configured. Use :CP <platform> <contest> <problem> to set up first.',
       vim.log.levels.ERROR
@@ -42,18 +44,28 @@ function M.toggle_run_panel(is_debug)
   end
 
   local problem_id = get_current_problem()
+  print(problem_id)
   if not problem_id then
+    logger.log('no current problem set', vim.log.levels.ERROR)
     return
   end
 
-  local config = config_module.get_config()
-  local ctx = problem.create_context(
-    state.get_platform() or '',
-    state.get_contest_id() or '',
-    state.get_problem_id(),
-    config
+  local platform = state.get_platform()
+  local contest_id = state.get_contest_id()
+
+  logger.log(
+    ('run panel: platform=%s, contest=%s, problem=%s'):format(
+      platform or 'nil',
+      contest_id or 'nil',
+      problem_id or 'nil'
+    )
   )
+
+  local config = config_module.get_config()
+  local ctx = problem.create_context(platform or '', contest_id or '', problem_id, config)
   local run = require('cp.runner.run')
+
+  logger.log(('run panel: checking test cases for %s'):format(ctx.input_file))
 
   if not run.load_test_cases(ctx, state) then
     logger.log('no test cases found', vim.log.levels.WARN)

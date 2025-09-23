@@ -89,9 +89,22 @@ function M.load()
 end
 
 function M.save()
-  vim.fn.mkdir(vim.fn.fnamemodify(cache_file, ':h'), 'p')
+  local ok, err = pcall(vim.fn.mkdir, vim.fn.fnamemodify(cache_file, ':h'), 'p')
+  if not ok then
+    vim.schedule(function()
+      vim.fn.mkdir(vim.fn.fnamemodify(cache_file, ':h'), 'p')
+    end)
+    return
+  end
+
   local encoded = vim.json.encode(cache_data)
-  vim.fn.writefile(vim.split(encoded, '\n'), cache_file)
+  local lines = vim.split(encoded, '\n')
+  ok, err = pcall(vim.fn.writefile, lines, cache_file)
+  if not ok then
+    vim.schedule(function()
+      vim.fn.writefile(lines, cache_file)
+    end)
+  end
 end
 
 ---@param platform string

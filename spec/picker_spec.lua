@@ -168,17 +168,10 @@ describe('cp.picker', function()
 
     it('returns empty list when scraping fails', function()
       local cache = require('cp.cache')
-      local scrape = require('cp.scrape')
 
       cache.load = function() end
       cache.get_contest_data = function(_, _)
         return nil
-      end
-      scrape.scrape_contest_metadata = function(_, _)
-        return {
-          success = false,
-          error = 'test error',
-        }
       end
 
       picker = spec_helper.fresh_require('cp.pickers', { 'cp.pickers.init' })
