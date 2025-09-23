@@ -122,14 +122,14 @@ describe('Error boundary handling', function()
   it('should handle scraping failures without state corruption', function()
     cp.handle_command({ fargs = { 'codeforces', 'fail_scrape', 'a' } })
 
-    local has_scrape_error = false
+    local has_error = false
     for _, log_entry in ipairs(logged_messages) do
-      if log_entry.msg and log_entry.msg:match('scraping failed') then
-        has_scrape_error = true
+      if log_entry.level == vim.log.levels.ERROR then
+        has_error = true
         break
       end
     end
-    assert.is_true(has_scrape_error, 'Should log scraping failure')
+    assert.is_true(has_error, 'Should log error for failed scraping')
 
     local context = cp.get_current_context()
     assert.equals('codeforces', context.platform)

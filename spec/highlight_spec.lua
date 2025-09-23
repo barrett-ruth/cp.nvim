@@ -61,8 +61,9 @@ index 1234567..abcdefg 100644
 
   describe('apply_highlights', function()
     it('handles empty highlights without errors', function()
+      local namespace = highlight.create_namespace()
       assert.has_no_errors(function()
-        highlight.apply_highlights(1, {}, 100)
+        highlight.apply_highlights(1, {}, namespace)
       end)
     end)
 
@@ -75,8 +76,9 @@ index 1234567..abcdefg 100644
           highlight_group = 'CpDiffAdded',
         },
       }
+      local namespace = highlight.create_namespace()
       assert.has_no_errors(function()
-        highlight.apply_highlights(1, highlights, 100)
+        highlight.apply_highlights(1, highlights, namespace)
       end)
     end)
   end)
@@ -90,12 +92,14 @@ index 1234567..abcdefg 100644
 
   describe('parse_and_apply_diff', function()
     it('returns content lines', function()
-      local result = highlight.parse_and_apply_diff(1, '+first\n+second', 100)
+      local namespace = highlight.create_namespace()
+      local result = highlight.parse_and_apply_diff(1, '+first\n+second', namespace)
       assert.same({ 'first', 'second' }, result)
     end)
 
     it('handles empty diff', function()
-      local result = highlight.parse_and_apply_diff(1, '', 100)
+      local namespace = highlight.create_namespace()
+      local result = highlight.parse_and_apply_diff(1, '', namespace)
       assert.same({}, result)
     end)
   end)
