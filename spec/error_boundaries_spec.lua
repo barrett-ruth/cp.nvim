@@ -118,7 +118,7 @@ describe('Error boundary handling', function()
 
   after_each(function()
     package.loaded['cp.log'] = nil
-    package.loaded['cp.scrape'] = nil
+    package.loaded['cp.scraper'] = nil
     if state then
       state.reset()
     end
@@ -127,7 +127,6 @@ describe('Error boundary handling', function()
   it('should handle scraping failures without state corruption', function()
     cp.handle_command({ fargs = { 'codeforces', 'fail_scrape', 'a' } })
 
-    -- Wait for async callback to complete
     vim.wait(100)
 
     local has_metadata_error = false
@@ -139,8 +138,7 @@ describe('Error boundary handling', function()
     end
     assert.is_true(has_metadata_error, 'Should log contest metadata failure')
 
-    local context = cp.get_current_context()
-    assert.equals('codeforces', context.platform)
+    assert.equals('codeforces', state.get_platform())
 
     assert.has_no_errors(function()
       cp.handle_command({ fargs = { 'run' } })

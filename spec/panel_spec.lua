@@ -51,10 +51,9 @@ describe('Panel integration', function()
   it('should handle run command with properly set contest context', function()
     cp.handle_command({ fargs = { 'codeforces', '2146', 'b' } })
 
-    local context = cp.get_current_context()
-    assert.equals('codeforces', context.platform)
-    assert.equals('2146', context.contest_id)
-    assert.equals('b', context.problem_id)
+    assert.equals('codeforces', state.get_platform())
+    assert.equals('2146', state.get_contest_id())
+    assert.equals('b', state.get_problem_id())
 
     assert.has_no_errors(function()
       cp.handle_command({ fargs = { 'run' } })

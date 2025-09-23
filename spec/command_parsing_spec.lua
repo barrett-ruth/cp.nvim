@@ -476,13 +476,13 @@ describe('cp command parsing', function()
 
         if num_args == 2 then
           local candidates = {}
-          local cp_mod = require('cp')
-          local context = cp_mod.get_current_context()
-          if context.platform and context.contest_id then
+          local state = require('cp.state')
+          if state.get_platform() and state.get_contest_id() then
             vim.list_extend(candidates, actions)
             local cache = require('cp.cache')
             cache.load()
-            local contest_data = cache.get_contest_data(context.platform, context.contest_id)
+            local contest_data =
+              cache.get_contest_data(state.get_platform(), state.get_contest_id())
             if contest_data and contest_data.problems then
               for _, problem in ipairs(contest_data.problems) do
                 table.insert(candidates, problem.id)
@@ -525,9 +525,12 @@ describe('cp command parsing', function()
         return {}
       end
 
-      package.loaded['cp'] = {
-        get_current_context = function()
-          return { platform = nil, contest_id = nil }
+      package.loaded['cp.state'] = {
+        get_platform = function()
+          return nil
+        end,
+        get_contest_id = function()
+          return nil
         end,
       }
 
@@ -596,9 +599,12 @@ describe('cp command parsing', function()
     end)
 
     it('completes all actions and problems when contest context exists', function()
-      package.loaded['cp'] = {
-        get_current_context = function()
-          return { platform = 'atcoder', contest_id = 'abc350' }
+      package.loaded['cp.state'] = {
+        get_platform = function()
+          return 'atcoder'
+        end,
+        get_contest_id = function()
+          return 'abc350'
         end,
       }
       package.loaded['cp.cache'] = {
