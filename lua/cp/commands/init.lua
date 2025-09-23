@@ -153,23 +153,25 @@ function M.handle_command(opts)
 
   if cmd.type == 'contest_setup' then
     local setup = require('cp.setup')
+    local async_setup = require('cp.async.setup')
     if setup.set_platform(cmd.platform) then
-      setup.setup_contest(cmd.contest, cmd.language)
+      async_setup.setup_contest_async(cmd.contest, cmd.language)
     end
     return
   end
 
   if cmd.type == 'full_setup' then
     local setup = require('cp.setup')
+    local async_setup = require('cp.async.setup')
     if setup.set_platform(cmd.platform) then
-      setup.handle_full_setup(cmd)
+      async_setup.handle_full_setup_async(cmd)
     end
     return
   end
 
   if cmd.type == 'problem_switch' then
-    local setup = require('cp.setup')
-    setup.setup_problem(state.get_contest_id() or '', cmd.problem, cmd.language)
+    local async_setup = require('cp.async.setup')
+    async_setup.setup_problem_async(state.get_contest_id() or '', cmd.problem, cmd.language)
     return
   end
 end
