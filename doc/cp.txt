@@ -109,12 +109,11 @@ Template Variables ~
 
     • {source}      Source file path (e.g. "abc324a.cpp")
     • {binary}      Output binary path (e.g. "build/abc324a.run")
-    • {version}     Language version when specified in config
     • {contest}     Contest identifier (e.g. "abc324", "1933")
     • {problem}     Problem identifier (e.g. "a", "b")
 
     Example template: >
-        compile = { 'g++', '{source}', '-o', '{binary}', '-std=c++{version}' }
+        compile = { 'g++', '{source}', '-o', '{binary}', '-std=c++17' }
 <    Would expand to: >
         g++ abc324a.cpp -o build/abc324a.run -std=c++17
 <
@@ -196,10 +195,9 @@ Here's an example configuration with lazy.nvim: >lua
                                                           *cp.LanguageConfig*
     Fields: ~
         {compile}       (string[], optional) Compile command template with
-                        {version}, {source}, {binary} placeholders.
+                        {source}, {binary} placeholders.
         {test}          (string[]) Test execution command template.
         {debug}         (string[], optional) Debug compile command template.
-        {version}       (number, optional) Language version (e.g. 20, 23 for C++).
         {extension}     (string) File extension (e.g. "cc", "py").
         {executable}    (string, optional) Executable name for interpreted languages.
 
@@ -236,32 +234,21 @@ Here's an example configuration with lazy.nvim: >lua
                                                                 *cp.Hooks*
     Fields: ~
         {before_run}    (function, optional) Called before test panel opens.
-                        function(ctx: ProblemContext)
+                        function(state: cp.State)
         {before_debug}  (function, optional) Called before debug compilation.
-                        function(ctx: ProblemContext)
+                        function(state: cp.State)
         {setup_code}    (function, optional) Called after source file is opened.
                         Good for configuring buffer settings.
-                        function(ctx: ProblemContext)
+                        function(state: cp.State)
 
-                                                         *ProblemContext*
-    Context object passed to hook functions containing problem information.
-
-    Fields: ~
-        {contest}       (string) Platform name (e.g. "atcoder", "codeforces")
-        {contest_id}    (string) Contest ID (e.g. "abc123", "1933")
-        {problem_id}    (string, optional) Problem ID (e.g. "a", "b") - nil for CSES
-        {source_file}   (string) Source filename (e.g. "abc123a.cpp")
-        {binary_file}   (string) Binary output path (e.g. "build/abc123a.run")
-        {input_file}    (string) Test input path (e.g. "io/abc123a.cpin")
-        {output_file}   (string) Program output path (e.g. "io/abc123a.cpout")
-        {expected_file} (string) Expected output path (e.g. "io/abc123a.expected")
-        {problem_name}  (string) Display name (e.g. "abc123a")
+    Hook functions receive the cp.nvim state object (cp.State). See the state
+    module documentation for available methods and fields.
 
     Example usage in hook: >lua
         hooks = {
-          setup_code = function(ctx)
-            print("Setting up " .. ctx.problem_name)
-            print("Source file: " .. ctx.source_file)
+          setup_code = function(state)
+            print("Setting up " .. state.get_base_name())
+            print("Source file: " .. state.get_source_file())
           end
         }
 <

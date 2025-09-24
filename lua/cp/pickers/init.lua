@@ -34,15 +34,16 @@ end
 ---@param platform string Platform identifier (e.g. "codeforces", "atcoder")
 ---@return cp.ContestItem[]
 local function get_contests_for_platform(platform)
+  local constants = require('cp.constants')
+  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
+
+  logger.log(('loading %s contests...'):format(platform_display_name), vim.log.levels.INFO, true)
+
   cache.load()
   local cached_contests = cache.get_contest_list(platform)
   if cached_contests then
     return cached_contests
   end
-
-  local constants = require('cp.constants')
-  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
-  logger.progress(('loading %s contests...'):format(platform_display_name))
 
   if not utils.setup_python_env() then
     return {}
@@ -59,8 +60,6 @@ local function get_contests_for_platform(platform)
     'contests',
   }
 
-  logger.progress(('running: %s'):format(table.concat(cmd, ' ')))
-
   local result = vim
     .system(cmd, {
       cwd = plugin_path,
@@ -69,9 +68,9 @@ local function get_contests_for_platform(platform)
     })
     :wait()
 
-  logger.progress(('exit code: %d, stdout length: %d'):format(result.code, #(result.stdout or '')))
+  logger.log(('exit code: %d, stdout length: %d'):format(result.code, #(result.stdout or '')))
   if result.stderr and #result.stderr > 0 then
-    logger.progress(('stderr: %s'):format(result.stderr:sub(1, 200)))
+    logger.log(('stderr: %s'):format(result.stderr:sub(1, 200)))
   end
 
   if result.code ~= 0 then
@@ -82,7 +81,7 @@ local function get_contests_for_platform(platform)
     return {}
   end
 
-  logger.progress(('stdout preview: %s'):format(result.stdout:sub(1, 100)))
+  logger.log(('stdout preview: %s'):format(result.stdout:sub(1, 100)))
 
   local ok, data = pcall(vim.json.decode, result.stdout)
   if not ok then
@@ -107,7 +106,7 @@ local function get_contests_for_platform(platform)
   end
 
   cache.set_contest_list(platform, contests)
-  logger.progress(('loaded %d contests'):format(#contests))
+  logger.log(('loaded %d contests'):format(#contests))
   return contests
 end
 
@@ -115,6 +114,8 @@ end
 ---@param contest_id string Contest identifier
 ---@return cp.ProblemItem[]
 local function get_problems_for_contest(platform, contest_id)
+  local constants = require('cp.constants')
+  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   local problems = {}
 
   cache.load()
@@ -130,13 +131,15 @@ local function get_problems_for_contest(platform, contest_id)
     return problems
   end
 
+  logger.log(
+    ('loading %s %s problems...'):format(platform_display_name, contest_id),
+    vim.log.levels.INFO,
+    true
+  )
+
   if not utils.setup_python_env() then
     return problems
   end
-
-  local constants = require('cp.constants')
-  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
-  logger.progress(('loading %s %s problems...'):format(platform_display_name, contest_id))
 
   local plugin_path = utils.get_plugin_path()
   local cmd = {

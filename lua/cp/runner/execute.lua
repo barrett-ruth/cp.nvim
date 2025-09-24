@@ -203,17 +203,22 @@ local function format_output(exec_result, expected_file, is_debug)
   return table.concat(output_lines, '') .. '\n' .. table.concat(metadata_lines, '\n')
 end
 
----@param ctx ProblemContext
 ---@param contest_config ContestConfig
 ---@param is_debug? boolean
 ---@return {success: boolean, output: string?}
-function M.compile_problem(ctx, contest_config, is_debug)
+function M.compile_problem(contest_config, is_debug)
   vim.validate({
-    ctx = { ctx, 'table' },
     contest_config = { contest_config, 'table' },
   })
 
-  local language = get_language_from_file(ctx.source_file, contest_config)
+  local state = require('cp.state')
+  local source_file = state.get_source_file()
+  if not source_file then
+    logger.log('No source file found', vim.log.levels.ERROR)
+    return { success = false, output = 'No source file found' }
+  end
+
+  local language = get_language_from_file(source_file, contest_config)
   local language_config = contest_config[language]
 
   if not language_config then
@@ -221,10 +226,10 @@ function M.compile_problem(ctx, contest_config, is_debug)
     return { success = false, output = 'No configuration for language: ' .. language }
   end
 
+  local binary_file = state.get_binary_file()
   local substitutions = {
-    source = ctx.source_file,
-    binary = ctx.binary_file,
-    version = tostring(language_config.version),
+    source = source_file,
+    binary = binary_file,
   }
 
   local compile_cmd = (is_debug and language_config.debug) and language_config.debug
@@ -244,53 +249,71 @@ function M.compile_problem(ctx, contest_config, is_debug)
   return { success = true, output = nil }
 end
 
-function M.run_problem(ctx, contest_config, is_debug)
+function M.run_problem(contest_config, is_debug)
   vim.validate({
-    ctx = { ctx, 'table' },
     contest_config = { contest_config, 'table' },
     is_debug = { is_debug, 'boolean' },
   })
 
-  vim.system({ 'mkdir', '-p', 'build', 'io' }):wait()
+  local state = require('cp.state')
+  local source_file = state.get_source_file()
+  local output_file = state.get_output_file()
 
-  local language = get_language_from_file(ctx.source_file, contest_config)
-  local language_config = contest_config[language]
-
-  if not language_config then
-    vim.fn.writefile({ 'Error: No configuration for language: ' .. language }, ctx.output_file)
+  if not source_file or not output_file then
+    logger.log('Missing required file paths', vim.log.levels.ERROR)
     return
   end
 
+  vim.system({ 'mkdir', '-p', 'build', 'io' }):wait()
+
+  local language = get_language_from_file(source_file, contest_config)
+  local language_config = contest_config[language]
+
+  if not language_config then
+    vim.fn.writefile({ 'Error: No configuration for language: ' .. language }, output_file)
+    return
+  end
+
+  local binary_file = state.get_binary_file()
   local substitutions = {
-    source = ctx.source_file,
-    binary = ctx.binary_file,
-    version = tostring(language_config.version),
+    source = source_file,
+    binary = binary_file,
   }
 
   local compile_cmd = is_debug and language_config.debug or language_config.compile
   if compile_cmd then
     local compile_result = M.compile_generic(language_config, substitutions)
     if compile_result.code ~= 0 then
-      vim.fn.writefile({ compile_result.stderr }, ctx.output_file)
+      vim.fn.writefile({ compile_result.stderr }, output_file)
       return
     end
   end
 
+  local input_file = state.get_input_file()
   local input_data = ''
-  if vim.fn.filereadable(ctx.input_file) == 1 then
-    input_data = table.concat(vim.fn.readfile(ctx.input_file), '\n') .. '\n'
+  if input_file and vim.fn.filereadable(input_file) == 1 then
+    input_data = table.concat(vim.fn.readfile(input_file), '\n') .. '\n'
   end
 
   local cache = require('cp.cache')
   cache.load()
-  local timeout_ms, _ = cache.get_constraints(ctx.contest, ctx.contest_id, ctx.problem_id)
+  local platform = state.get_platform()
+  local contest_id = state.get_contest_id()
+  local problem_id = state.get_problem_id()
+  local expected_file = state.get_expected_file()
+
+  if not platform or not contest_id or not expected_file then
+    logger.log('configure a contest before running a problem', vim.log.levels.ERROR)
+    return
+  end
+  local timeout_ms, _ = cache.get_constraints(platform, contest_id, problem_id)
   timeout_ms = timeout_ms or 2000
 
   local run_cmd = build_command(language_config.test, language_config.executable, substitutions)
   local exec_result = execute_command(run_cmd, input_data, timeout_ms)
-  local formatted_output = format_output(exec_result, ctx.expected_file, is_debug)
+  local formatted_output = format_output(exec_result, expected_file, is_debug)
 
-  local output_buf = vim.fn.bufnr(ctx.output_file)
+  local output_buf = vim.fn.bufnr(output_file)
   if output_buf ~= -1 then
     local was_modifiable = vim.api.nvim_get_option_value('modifiable', { buf = output_buf })
     local was_readonly = vim.api.nvim_get_option_value('readonly', { buf = output_buf })
@@ -303,7 +326,7 @@ function M.run_problem(ctx, contest_config, is_debug)
       vim.cmd.write()
     end)
   else
-    vim.fn.writefile(vim.split(formatted_output, '\n'), ctx.output_file)
+    vim.fn.writefile(vim.split(formatted_output, '\n'), output_file)
   end
 end
 

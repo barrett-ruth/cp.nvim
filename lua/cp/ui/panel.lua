@@ -4,7 +4,6 @@ local buffer_utils = require('cp.utils.buffer')
 local config_module = require('cp.config')
 local layouts = require('cp.ui.layouts')
 local logger = require('cp.log')
-local problem = require('cp.problem')
 local state = require('cp.state')
 
 local current_diff_layout = nil
@@ -57,12 +56,12 @@ function M.toggle_run_panel(is_debug)
   )
 
   local config = config_module.get_config()
-  local ctx = problem.create_context(platform or '', contest_id or '', problem_id, config)
   local run = require('cp.runner.run')
 
-  logger.log(('run panel: checking test cases for %s'):format(ctx.input_file))
+  local input_file = state.get_input_file()
+  logger.log(('run panel: checking test cases for %s'):format(input_file or 'none'))
 
-  if not run.load_test_cases(ctx, state) then
+  if not run.load_test_cases(state) then
     logger.log('no test cases found', vim.log.levels.WARN)
     return
   end
@@ -170,18 +169,18 @@ function M.toggle_run_panel(is_debug)
   setup_keybindings_for_buffer(test_buffers.tab_buf)
 
   if config.hooks and config.hooks.before_run then
-    config.hooks.before_run(ctx)
+    config.hooks.before_run(state)
   end
 
   if is_debug and config.hooks and config.hooks.before_debug then
-    config.hooks.before_debug(ctx)
+    config.hooks.before_debug(state)
   end
 
   local execute = require('cp.runner.execute')
   local contest_config = config.contests[state.get_platform() or '']
-  local compile_result = execute.compile_problem(ctx, contest_config, is_debug)
+  local compile_result = execute.compile_problem(contest_config, is_debug)
   if compile_result.success then
-    run.run_all_test_cases(ctx, contest_config, config)
+    run.run_all_test_cases(contest_config, config)
   else
     run.handle_compilation_failure(compile_result.output)
   end

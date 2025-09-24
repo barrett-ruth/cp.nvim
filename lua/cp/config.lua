@@ -11,7 +11,6 @@
 ---@field test? string[] Test execution command template
 ---@field debug? string[] Debug command template
 ---@field executable? string Executable name
----@field version? number Language version
 ---@field extension? string File extension
 
 ---@class ContestConfig
@@ -25,9 +24,9 @@
 ---@field default_language? string
 
 ---@class Hooks
----@field before_run? fun(ctx: ProblemContext)
----@field before_debug? fun(ctx: ProblemContext)
----@field setup_code? fun(ctx: ProblemContext)
+---@field before_run? fun(state: cp.State)
+---@field before_debug? fun(state: cp.State)
+---@field setup_code? fun(state: cp.State)
 
 ---@class RunPanelConfig
 ---@field ansi boolean Enable ANSI color parsing and highlighting
