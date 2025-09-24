@@ -1,4 +1,3 @@
-# Lazy imports to avoid module loading conflicts when running scrapers with -m
 def __getattr__(name):
     if name == "AtCoderScraper":
         from .atcoder import AtCoderScraper

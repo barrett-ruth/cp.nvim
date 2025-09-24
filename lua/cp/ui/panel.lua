@@ -9,10 +9,6 @@ local state = require('cp.state')
 local current_diff_layout = nil
 local current_mode = nil
 
-local function get_current_problem()
-  return state.get_problem_id()
-end
-
 function M.toggle_run_panel(is_debug)
   if state.is_run_panel_active() then
     if current_diff_layout then
@@ -39,7 +35,7 @@ function M.toggle_run_panel(is_debug)
     return
   end
 
-  local problem_id = get_current_problem()
+  local problem_id = state.get_problem_id()
   if not problem_id then
     return
   end
@@ -49,9 +45,9 @@ function M.toggle_run_panel(is_debug)
 
   logger.log(
     ('run panel: platform=%s, contest=%s, problem=%s'):format(
-      platform or 'nil',
-      contest_id or 'nil',
-      problem_id or 'nil'
+      tostring(platform),
+      tostring(contest_id),
+      tostring(problem_id)
     )
   )
 
@@ -124,12 +120,7 @@ function M.toggle_run_panel(is_debug)
       return
     end
 
-    test_state.current_index = test_state.current_index + delta
-    if test_state.current_index < 1 then
-      test_state.current_index = #test_state.test_cases
-    elseif test_state.current_index > #test_state.test_cases then
-      test_state.current_index = 1
-    end
+    test_state.current_index = (test_state.current_index + delta) % #test_state.test_cases
 
     refresh_run_panel()
   end

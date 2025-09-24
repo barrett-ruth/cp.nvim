@@ -136,7 +136,7 @@ function M.setup_problem(contest_id, problem_id, language)
 
       local source_file = state.get_source_file(language)
       if not source_file then
-        error('Failed to generate source file path')
+        return
       end
       vim.cmd.e(source_file)
       local source_buf = vim.api.nvim_get_current_buf()
