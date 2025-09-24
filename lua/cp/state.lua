@@ -80,6 +80,22 @@ function M.set_saved_session(session)
   state.saved_session = session
 end
 
+function M.get_base_name()
+  local platform, contest_id, problem_id = M.get_platform(), M.get_contest_id(), M.get_problem_id()
+  if not platform or not contest_id or not problem_id then
+    return nil
+  end
+
+  local config_module = require('cp.config')
+  local config = config_module.get_config()
+
+  if config.filename then
+    return config.filename(platform, contest_id, problem_id, config)
+  else
+    return config_module.default_filename(contest_id, problem_id)
+  end
+end
+
 function M.get_context()
   return {
     platform = state.platform,
@@ -88,29 +104,14 @@ function M.get_context()
   }
 end
 
-function M.get_base_name()
-  if not state.contest_id then
-    return nil
-  end
-
-  local config_module = require('cp.config')
-  local config = config_module.get_config()
-
-  if config.filename then
-    return config.filename(state.platform or '', state.contest_id, state.problem_id, config)
-  else
-    return config_module.default_filename(state.contest_id, state.problem_id)
-  end
-end
-
 function M.get_source_file(language)
   local base_name = M.get_base_name()
-  if not base_name or not state.platform then
+  if not base_name or not M.get_platform() then
     return nil
   end
 
   local config = require('cp.config').get_config()
-  local contest_config = config.contests[state.platform]
+  local contest_config = config.contests[M.get_platform()]
   if not contest_config then
     return nil
   end
