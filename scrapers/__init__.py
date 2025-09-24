@@ -29,12 +29,12 @@ def __getattr__(name):
         "TestsResult",
     ]:
         from .models import (
-            ContestListResult,
-            ContestSummary,
-            MetadataResult,
-            ProblemSummary,
-            TestCase,
-            TestsResult,
+            ContestListResult,  # noqa: F401
+            ContestSummary,  # noqa: F401
+            MetadataResult,  # noqa: F401
+            ProblemSummary,  # noqa: F401
+            TestCase,  # noqa: F401
+            TestsResult,  # noqa: F401
         )
 
         return locals()[name]

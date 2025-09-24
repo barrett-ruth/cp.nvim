@@ -1,53 +1,5 @@
 local picker_utils = require('cp.pickers')
 
-local function problem_picker(platform, contest_id)
-  local constants = require('cp.constants')
-  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
-  local fzf = require('fzf-lua')
-  local problems = picker_utils.get_problems_for_contest(platform, contest_id)
-
-  if #problems == 0 then
-    vim.notify(
-      ("Contest %s %s hasn't started yet or has no available problems"):format(
-        platform_display_name,
-        contest_id
-      ),
-      vim.log.levels.WARN
-    )
-    contest_picker(platform)
-    return
-  end
-
-  local entries = vim.tbl_map(function(problem)
-    return problem.display_name
-  end, problems)
-
-  return fzf.fzf_exec(entries, {
-    prompt = ('Select Problem (%s %s)> '):format(platform_display_name, contest_id),
-    actions = {
-      ['default'] = function(selected)
-        if not selected or #selected == 0 then
-          return
-        end
-
-        local selected_name = selected[1]
-        local problem = nil
-        for _, p in ipairs(problems) do
-          if p.display_name == selected_name then
-            problem = p
-            break
-          end
-        end
-
-        if problem then
-          local cp = require('cp')
-          cp.handle_command({ fargs = { platform, contest_id, problem.id } })
-        end
-      end,
-    },
-  })
-end
-
 local function contest_picker(platform)
   local constants = require('cp.constants')
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
@@ -94,6 +46,54 @@ local function contest_picker(platform)
         local cache = require('cp.cache')
         cache.clear_contest_list(platform)
         contest_picker(platform)
+      end,
+    },
+  })
+end
+
+local function problem_picker(platform, contest_id)
+  local constants = require('cp.constants')
+  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
+  local fzf = require('fzf-lua')
+  local problems = picker_utils.get_problems_for_contest(platform, contest_id)
+
+  if #problems == 0 then
+    vim.notify(
+      ("Contest %s %s hasn't started yet or has no available problems"):format(
+        platform_display_name,
+        contest_id
+      ),
+      vim.log.levels.WARN
+    )
+    contest_picker(platform)
+    return
+  end
+
+  local entries = vim.tbl_map(function(problem)
+    return problem.display_name
+  end, problems)
+
+  return fzf.fzf_exec(entries, {
+    prompt = ('Select Problem (%s %s)> '):format(platform_display_name, contest_id),
+    actions = {
+      ['default'] = function(selected)
+        if not selected or #selected == 0 then
+          return
+        end
+
+        local selected_name = selected[1]
+        local problem = nil
+        for _, p in ipairs(problems) do
+          if p.display_name == selected_name then
+            problem = p
+            break
+          end
+        end
+
+        if problem then
+          local cp = require('cp')
+          cp.handle_command({ fargs = { platform, contest_id, problem.id } })
+        end
       end,
     },
   })
