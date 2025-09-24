@@ -9,6 +9,9 @@ describe('Error boundary handling', function()
       log = function(msg, level)
         table.insert(logged_messages, { msg = msg, level = level })
       end,
+      progress = function(msg)
+        table.insert(logged_messages, { msg = msg, level = vim.log.levels.INFO })
+      end,
       set_config = function() end,
     }
     package.loaded['cp.log'] = mock_logger
