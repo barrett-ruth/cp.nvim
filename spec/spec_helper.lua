@@ -6,6 +6,9 @@ local mock_logger = {
   log = function(msg, level)
     table.insert(M.logged_messages, { msg = msg, level = level })
   end,
+  progress = function(msg)
+    table.insert(M.logged_messages, { msg = msg, level = vim.log.levels.INFO })
+  end,
   set_config = function() end,
 }
 
