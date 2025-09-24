@@ -10,6 +10,34 @@ describe('Panel integration', function()
     state = require('cp.state')
     state.reset()
 
+    local mock_async_setup = {
+      setup_contest_async = function() end,
+      handle_full_setup_async = function(cmd)
+        state.set_platform(cmd.platform)
+        state.set_contest_id(cmd.contest)
+        state.set_problem_id(cmd.problem)
+      end,
+      setup_problem_async = function() end,
+    }
+    package.loaded['cp.async.setup'] = mock_async_setup
+
+    local mock_setup = {
+      set_platform = function(platform)
+        state.set_platform(platform)
+        return true
+      end,
+      setup_contest = function(platform, contest, problem, _)
+        state.set_platform(platform)
+        state.set_contest_id(contest)
+        if problem then
+          state.set_problem_id(problem)
+        end
+      end,
+      setup_problem = function() end,
+      navigate_problem = function() end,
+    }
+    package.loaded['cp.setup'] = mock_setup
+
     cp = require('cp')
     cp.setup({
       contests = {
@@ -32,10 +60,9 @@ describe('Panel integration', function()
   it('should handle run command with properly set contest context', function()
     cp.handle_command({ fargs = { 'codeforces', '2146', 'b' } })
 
-    local context = cp.get_current_context()
-    assert.equals('codeforces', context.platform)
-    assert.equals('2146', context.contest_id)
-    assert.equals('b', context.problem_id)
+    assert.equals('codeforces', state.get_platform())
+    assert.equals('2146', state.get_contest_id())
+    assert.equals('b', state.get_problem_id())
 
     assert.has_no_errors(function()
       cp.handle_command({ fargs = { 'run' } })

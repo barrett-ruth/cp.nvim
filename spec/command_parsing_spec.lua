@@ -12,6 +12,87 @@ describe('cp command parsing', function()
     }
     package.loaded['cp.log'] = mock_logger
 
+    local mock_setup = {
+      set_platform = function()
+        return true
+      end,
+      setup_contest = function() end,
+      navigate_problem = function() end,
+      setup_problem = function() end,
+      scrape_remaining_problems = function() end,
+    }
+    package.loaded['cp.setup'] = mock_setup
+
+    local mock_state = {
+      get_platform = function()
+        return 'atcoder'
+      end,
+      get_contest_id = function()
+        return 'abc123'
+      end,
+      get_problem_id = function()
+        return 'a'
+      end,
+      is_run_panel_active = function()
+        return false
+      end,
+      set_platform = function() end,
+      set_contest_id = function() end,
+      set_problem_id = function() end,
+      set_run_panel_active = function() end,
+    }
+    package.loaded['cp.state'] = mock_state
+
+    local mock_ui_panel = {
+      toggle_run_panel = function() end,
+    }
+    package.loaded['cp.ui.panel'] = mock_ui_panel
+
+    local mock_cache = {
+      load = function() end,
+      get_contest_data = function()
+        return {
+          problems = {
+            { id = 'a', name = 'Problem A' },
+            { id = 'b', name = 'Problem B' },
+          },
+        }
+      end,
+    }
+    package.loaded['cp.cache'] = mock_cache
+
+    local mock_restore = {
+      restore_from_current_file = function()
+        logged_messages[#logged_messages + 1] =
+          { msg = 'No file is currently open', level = vim.log.levels.ERROR }
+      end,
+    }
+    package.loaded['cp.restore'] = mock_restore
+
+    local mock_picker = {
+      handle_pick_action = function() end,
+    }
+    package.loaded['cp.commands.picker'] = mock_picker
+
+    local mock_cache_commands = {
+      handle_cache_command = function(cmd)
+        if cmd.subcommand == 'clear' then
+          if cmd.platform then
+            local constants = require('cp.constants')
+            if vim.tbl_contains(constants.PLATFORMS, cmd.platform) then
+              logged_messages[#logged_messages + 1] = { msg = 'cleared cache for ' .. cmd.platform }
+            else
+              logged_messages[#logged_messages + 1] =
+                { msg = 'unknown platform: ' .. cmd.platform, level = vim.log.levels.ERROR }
+            end
+          else
+            logged_messages[#logged_messages + 1] = { msg = 'cleared all cache' }
+          end
+        end
+      end,
+    }
+    package.loaded['cp.commands.cache'] = mock_cache_commands
+
     cp = require('cp')
     cp.setup({
       contests = {
@@ -29,6 +110,15 @@ describe('cp command parsing', function()
 
   after_each(function()
     package.loaded['cp.log'] = nil
+    package.loaded['cp.setup'] = nil
+    package.loaded['cp.state'] = nil
+    package.loaded['cp.ui.panel'] = nil
+    package.loaded['cp.cache'] = nil
+    package.loaded['cp.restore'] = nil
+    package.loaded['cp.commands.picker'] = nil
+    package.loaded['cp.commands.cache'] = nil
+    package.loaded['cp'] = nil
+    package.loaded['cp.commands.init'] = nil
   end)
 
   describe('empty arguments', function()
@@ -401,13 +491,13 @@ describe('cp command parsing', function()
 
         if num_args == 2 then
           local candidates = {}
-          local cp_mod = require('cp')
-          local context = cp_mod.get_current_context()
-          if context.platform and context.contest_id then
+          local state = require('cp.state')
+          if state.get_platform() and state.get_contest_id() then
             vim.list_extend(candidates, actions)
             local cache = require('cp.cache')
             cache.load()
-            local contest_data = cache.get_contest_data(context.platform, context.contest_id)
+            local contest_data =
+              cache.get_contest_data(state.get_platform(), state.get_contest_id())
             if contest_data and contest_data.problems then
               for _, problem in ipairs(contest_data.problems) do
                 table.insert(candidates, problem.id)
@@ -450,9 +540,12 @@ describe('cp command parsing', function()
         return {}
       end
 
-      package.loaded['cp'] = {
-        get_current_context = function()
-          return { platform = nil, contest_id = nil }
+      package.loaded['cp.state'] = {
+        get_platform = function()
+          return nil
+        end,
+        get_contest_id = function()
+          return nil
         end,
       }
 
@@ -521,9 +614,12 @@ describe('cp command parsing', function()
     end)
 
     it('completes all actions and problems when contest context exists', function()
-      package.loaded['cp'] = {
-        get_current_context = function()
-          return { platform = 'atcoder', contest_id = 'abc350' }
+      package.loaded['cp.state'] = {
+        get_platform = function()
+          return 'atcoder'
+        end,
+        get_contest_id = function()
+          return 'abc350'
         end,
       }
       package.loaded['cp.cache'] = {

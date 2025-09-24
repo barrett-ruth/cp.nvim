@@ -1,4 +1,3 @@
-import inspect
 from unittest.mock import Mock
 
 import pytest
@@ -8,9 +7,9 @@ from scrapers.base import BaseScraper
 from scrapers.models import ContestListResult, MetadataResult, TestsResult
 
 SCRAPERS = [
-    cls
-    for name, cls in inspect.getmembers(scrapers, inspect.isclass)
-    if issubclass(cls, BaseScraper) and cls != BaseScraper
+    scrapers.AtCoderScraper,
+    scrapers.CodeforcesScraper,
+    scrapers.CSESScraper,
 ]
 
 

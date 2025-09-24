@@ -40,9 +40,9 @@ local cache_data = {}
 local loaded = false
 
 local CONTEST_LIST_TTL = {
-  cses = 7 * 24 * 60 * 60, -- 1 week
-  codeforces = 24 * 60 * 60, -- 1 day
-  atcoder = 24 * 60 * 60, -- 1 day
+  cses = 7 * 24 * 60 * 60,
+  codeforces = 24 * 60 * 60,
+  atcoder = 24 * 60 * 60,
 }
 
 ---@param contest_data ContestData
@@ -89,9 +89,22 @@ function M.load()
 end
 
 function M.save()
-  vim.fn.mkdir(vim.fn.fnamemodify(cache_file, ':h'), 'p')
+  local ok, _ = pcall(vim.fn.mkdir, vim.fn.fnamemodify(cache_file, ':h'), 'p')
+  if not ok then
+    vim.schedule(function()
+      vim.fn.mkdir(vim.fn.fnamemodify(cache_file, ':h'), 'p')
+    end)
+    return
+  end
+
   local encoded = vim.json.encode(cache_data)
-  vim.fn.writefile(vim.split(encoded, '\n'), cache_file)
+  local lines = vim.split(encoded, '\n')
+  local write_ok, _ = pcall(vim.fn.writefile, lines, cache_file)
+  if not write_ok then
+    vim.schedule(function()
+      vim.fn.writefile(lines, cache_file)
+    end)
+  end
 end
 
 ---@param platform string
@@ -303,7 +316,7 @@ function M.set_contest_list(platform, contests)
     cache_data.contest_lists = {}
   end
 
-  local ttl = CONTEST_LIST_TTL[platform] or (24 * 60 * 60) -- Default 1 day
+  local ttl = CONTEST_LIST_TTL[platform] or (24 * 60 * 60)
   cache_data.contest_lists[platform] = {
     contests = contests,
     cached_at = os.time(),

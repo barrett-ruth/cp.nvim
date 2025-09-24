@@ -141,22 +141,37 @@ describe('cp.picker', function()
 
     it('falls back to scraping when cache miss', function()
       local cache = require('cp.cache')
+      local utils = require('cp.utils')
 
       cache.load = function() end
       cache.get_contest_data = function(_, _)
         return nil
       end
+      cache.set_contest_data = function() end
 
-      package.loaded['cp.scrape'] = {
-        scrape_contest_metadata = function(_, _)
-          return {
-            success = true,
-            problems = {
-              { id = 'x', name = 'Problem X' },
-            },
-          }
-        end,
-      }
+      utils.setup_python_env = function()
+        return true
+      end
+      utils.get_plugin_path = function()
+        return '/tmp'
+      end
+
+      -- Mock vim.system to return success with problems
+      vim.system = function()
+        return {
+          wait = function()
+            return {
+              code = 0,
+              stdout = vim.json.encode({
+                success = true,
+                problems = {
+                  { id = 'x', name = 'Problem X' },
+                },
+              }),
+            }
+          end,
+        }
+      end
 
       picker = spec_helper.fresh_require('cp.pickers', { 'cp.pickers.init' })
 
@@ -168,16 +183,28 @@ describe('cp.picker', function()
 
     it('returns empty list when scraping fails', function()
       local cache = require('cp.cache')
-      local scrape = require('cp.scrape')
+      local utils = require('cp.utils')
 
       cache.load = function() end
       cache.get_contest_data = function(_, _)
         return nil
       end
-      scrape.scrape_contest_metadata = function(_, _)
+
+      utils.setup_python_env = function()
+        return true
+      end
+      utils.get_plugin_path = function()
+        return '/tmp'
+      end
+
+      vim.system = function()
         return {
-          success = false,
-          error = 'test error',
+          wait = function()
+            return {
+              code = 1,
+              stderr = 'Scraping failed',
+            }
+          end,
         }
       end
 

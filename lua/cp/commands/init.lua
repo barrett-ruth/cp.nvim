@@ -154,7 +154,7 @@ function M.handle_command(opts)
   if cmd.type == 'contest_setup' then
     local setup = require('cp.setup')
     if setup.set_platform(cmd.platform) then
-      setup.setup_contest(cmd.contest, cmd.language)
+      setup.setup_contest(cmd.platform, cmd.contest, nil, cmd.language)
     end
     return
   end
@@ -162,7 +162,7 @@ function M.handle_command(opts)
   if cmd.type == 'full_setup' then
     local setup = require('cp.setup')
     if setup.set_platform(cmd.platform) then
-      setup.handle_full_setup(cmd)
+      setup.setup_contest(cmd.platform, cmd.contest, cmd.problem, cmd.language)
     end
     return
   end

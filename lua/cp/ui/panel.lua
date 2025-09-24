@@ -11,12 +11,11 @@ local current_diff_layout = nil
 local current_mode = nil
 
 local function get_current_problem()
-  local setup_nav = require('cp.setup.navigation')
-  return setup_nav.get_current_problem()
+  return state.get_problem_id()
 end
 
 function M.toggle_run_panel(is_debug)
-  if state.run_panel_active then
+  if state.is_run_panel_active() then
     if current_diff_layout then
       current_diff_layout.cleanup()
       current_diff_layout = nil
@@ -46,14 +45,22 @@ function M.toggle_run_panel(is_debug)
     return
   end
 
-  local config = config_module.get_config()
-  local ctx = problem.create_context(
-    state.get_platform() or '',
-    state.get_contest_id() or '',
-    state.get_problem_id(),
-    config
+  local platform = state.get_platform()
+  local contest_id = state.get_contest_id()
+
+  logger.log(
+    ('run panel: platform=%s, contest=%s, problem=%s'):format(
+      platform or 'nil',
+      contest_id or 'nil',
+      problem_id or 'nil'
+    )
   )
+
+  local config = config_module.get_config()
+  local ctx = problem.create_context(platform or '', contest_id or '', problem_id, config)
   local run = require('cp.runner.run')
+
+  logger.log(('run panel: checking test cases for %s'):format(ctx.input_file))
 
   if not run.load_test_cases(ctx, state) then
     logger.log('no test cases found', vim.log.levels.WARN)
@@ -193,7 +200,7 @@ function M.toggle_run_panel(is_debug)
 
   vim.api.nvim_set_current_win(test_windows.tab_win)
 
-  state.run_panel_active = true
+  state.set_run_panel_active(true)
   state.test_buffers = test_buffers
   state.test_windows = test_windows
   local test_state = run.get_run_panel_state()

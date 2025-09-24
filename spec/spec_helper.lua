@@ -6,6 +6,9 @@ local mock_logger = {
   log = function(msg, level)
     table.insert(M.logged_messages, { msg = msg, level = level })
   end,
+  progress = function(msg)
+    table.insert(M.logged_messages, { msg = msg, level = vim.log.levels.INFO })
+  end,
   set_config = function() end,
 }
 
@@ -35,10 +38,14 @@ local function setup_vim_mocks()
   if not vim.cmd then
     vim.cmd = {}
   end
-  vim.cmd.e = function() end
-  vim.cmd.only = function() end
-  vim.cmd.split = function() end
-  vim.cmd.vsplit = function() end
+  vim.cmd = {
+    only = function() end,
+    e = function() end,
+    split = function() end,
+    vsplit = function() end,
+    startinsert = function() end,
+    stopinsert = function() end,
+  }
   if not vim.system then
     vim.system = function(_)
       return {
@@ -103,6 +110,61 @@ function M.mock_scraper_success()
   }
 end
 
+function M.mock_async_scraper_success()
+  package.loaded['cp.async.scraper'] = {
+    scrape_contest_metadata_async = function(_, _, callback)
+      vim.schedule(function()
+        callback({
+          success = true,
+          problems = {
+            { id = 'a' },
+            { id = 'b' },
+            { id = 'c' },
+          },
+        })
+      end)
+    end,
+    scrape_problem_async = function(_, _, problem_id, callback)
+      vim.schedule(function()
+        callback({
+          success = true,
+          problem_id = problem_id,
+          test_cases = {
+            { input = '1 2', expected = '3' },
+            { input = '3 4', expected = '7' },
+          },
+          test_count = 2,
+          timeout_ms = 2000,
+          memory_mb = 256.0,
+          url = 'https://example.com',
+        })
+      end)
+    end,
+  }
+end
+
+function M.mock_async_scraper_failure()
+  package.loaded['cp.async.scraper'] = {
+    scrape_contest_metadata_async = function(_, _, callback)
+      vim.schedule(function()
+        callback({
+          success = false,
+          error = 'mock network error',
+        })
+      end)
+    end,
+    scrape_problem_async = function(_, _, problem_id, callback)
+      vim.schedule(function()
+        callback({
+          success = false,
+          problem_id = problem_id,
+          error = 'mock scraping failed',
+        })
+      end)
+    end,
+  }
+end
+
 function M.has_error_logged()
   for _, log_entry in ipairs(M.logged_messages) do
     if log_entry.level == vim.log.levels.ERROR then
@@ -135,6 +197,10 @@ end
 function M.teardown()
   package.loaded['cp.log'] = nil
   package.loaded['cp.scrape'] = nil
+  package.loaded['cp.async.scraper'] = nil
+  package.loaded['cp.async.jobs'] = nil
+  package.loaded['cp.async.setup'] = nil
+  package.loaded['cp.async'] = nil
   M.logged_messages = {}
 end
 

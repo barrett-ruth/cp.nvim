@@ -290,6 +290,10 @@ Usage examples: >
                                 for multi-test case problems commonly found
                                 in contests.
 
+                                AtCoder Heuristic Contests (AHC) are excluded
+                                from the contest list as they don't have
+                                standard sample test cases.
+
 Codeforces ~
                                                           *cp-codeforces*
 URL format: https://codeforces.com/contest/1234/problem/A

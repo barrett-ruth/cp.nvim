@@ -84,17 +84,12 @@ local function parse_test_cases_from_cache(platform, contest_id, problem_id)
 end
 
 ---@param input_file string
----@param expected_file string
 ---@return TestCase[]
-local function parse_test_cases_from_files(input_file, expected_file)
-  if vim.fn.filereadable(input_file) == 0 or vim.fn.filereadable(expected_file) == 0 then
-    return {}
-  end
-
+local function parse_test_cases_from_files(input_file, _)
   local base_name = vim.fn.fnamemodify(input_file, ':r')
   local test_cases = {}
-  local i = 1
 
+  local i = 1
   while true do
     local individual_input_file = base_name .. '.' .. i .. '.cpin'
     local individual_expected_file = base_name .. '.' .. i .. '.cpout'
@@ -111,12 +106,6 @@ local function parse_test_cases_from_files(input_file, expected_file)
     else
       break
     end
-  end
-
-  if #test_cases == 0 then
-    local input_content = table.concat(vim.fn.readfile(input_file), '\n')
-    local expected_content = table.concat(vim.fn.readfile(expected_file), '\n')
-    return { create_test_case(1, input_content, expected_content) }
   end
 
   return test_cases
