@@ -130,12 +130,22 @@ local function load_constraints_from_cache(platform, contest_id, problem_id)
   return nil
 end
 
----@param ctx ProblemContext
 ---@param contest_config ContestConfig
 ---@param test_case TestCase
 ---@return table
-local function run_single_test_case(ctx, contest_config, cp_config, test_case)
-  local language = vim.fn.fnamemodify(ctx.source_file, ':e')
+local function run_single_test_case(contest_config, cp_config, test_case)
+  local state = require('cp.state')
+  local source_file = state.get_source_file()
+  if not source_file then
+    return {
+      status = 'fail',
+      actual = '',
+      error = 'No source file found',
+      time_ms = 0,
+    }
+  end
+
+  local language = vim.fn.fnamemodify(source_file, ':e')
   local language_name = constants.filetype_to_language[language] or contest_config.default_language
   local language_config = contest_config[language_name]
 
@@ -168,13 +178,14 @@ local function run_single_test_case(ctx, contest_config, cp_config, test_case)
     return cmd
   end
 
+  local binary_file = state.get_binary_file()
   local substitutions = {
-    source = ctx.source_file,
-    binary = ctx.binary_file,
+    source = source_file,
+    binary = binary_file,
     version = tostring(language_config.version or ''),
   }
 
-  if language_config.compile and vim.fn.filereadable(ctx.binary_file) == 0 then
+  if language_config.compile and vim.fn.filereadable(binary_file) == 0 then
     logger.log('binary not found, compiling first...')
     local compile_cmd = substitute_template(language_config.compile, substitutions)
     local redirected_cmd = vim.deepcopy(compile_cmd)
@@ -282,10 +293,9 @@ local function run_single_test_case(ctx, contest_config, cp_config, test_case)
   }
 end
 
----@param ctx ProblemContext
 ---@param state table
 ---@return boolean
-function M.load_test_cases(ctx, state)
+function M.load_test_cases(state)
   local test_cases = parse_test_cases_from_cache(
     state.get_platform() or '',
     state.get_contest_id() or '',
@@ -293,7 +303,9 @@ function M.load_test_cases(ctx, state)
   )
 
   if #test_cases == 0 then
-    test_cases = parse_test_cases_from_files(ctx.input_file, ctx.expected_file)
+    local input_file = state.get_input_file()
+    local expected_file = state.get_expected_file()
+    test_cases = parse_test_cases_from_files(input_file, expected_file)
   end
 
   run_panel_state.test_cases = test_cases
@@ -315,11 +327,10 @@ function M.load_test_cases(ctx, state)
   return #test_cases > 0
 end
 
----@param ctx ProblemContext
 ---@param contest_config ContestConfig
 ---@param index number
 ---@return boolean
-function M.run_test_case(ctx, contest_config, cp_config, index)
+function M.run_test_case(contest_config, cp_config, index)
   local test_case = run_panel_state.test_cases[index]
   if not test_case then
     return false
@@ -327,7 +338,7 @@ function M.run_test_case(ctx, contest_config, cp_config, index)
 
   test_case.status = 'running'
 
-  local result = run_single_test_case(ctx, contest_config, cp_config, test_case)
+  local result = run_single_test_case(contest_config, cp_config, test_case)
 
   test_case.status = result.status
   test_case.actual = result.actual
@@ -343,13 +354,13 @@ function M.run_test_case(ctx, contest_config, cp_config, index)
   return true
 end
 
----@param ctx ProblemContext
 ---@param contest_config ContestConfig
+---@param cp_config cp.Config
 ---@return TestCase[]
-function M.run_all_test_cases(ctx, contest_config, cp_config)
+function M.run_all_test_cases(contest_config, cp_config)
   local results = {}
   for i, _ in ipairs(run_panel_state.test_cases) do
-    M.run_test_case(ctx, contest_config, cp_config, i)
+    M.run_test_case(contest_config, cp_config, i)
     table.insert(results, run_panel_state.test_cases[i])
   end
   return results

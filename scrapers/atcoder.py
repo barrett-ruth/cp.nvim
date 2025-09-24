@@ -272,8 +272,9 @@ def scrape_contests() -> list[ContestSummary]:
                 r"[\uff01-\uff5e]", lambda m: chr(ord(m.group()) - 0xFEE0), name
             )
 
-            # Skip AtCoder Heuristic Contests (AHC) as they don't have standard sample tests
-            if not contest_id.startswith("ahc"):
+            if not (
+                contest_id.startswith("ahc") or name.lower().find("heuristic") != -1
+            ):
                 contests.append(
                     ContestSummary(id=contest_id, name=name, display_name=name)
                 )

@@ -3,7 +3,6 @@ local M = {}
 local cache = require('cp.cache')
 local config_module = require('cp.config')
 local logger = require('cp.log')
-local problem = require('cp.problem')
 local scraper = require('cp.scraper')
 local state = require('cp.state')
 
@@ -42,7 +41,7 @@ function M.setup_contest(platform, contest_id, problem_id, language)
     return
   end
 
-  logger.progress(('fetching contest %s %s...'):format(platform, contest_id))
+  logger.log(('fetching contest %s %s...'):format(platform, contest_id))
 
   scraper.scrape_contest_metadata(platform, contest_id, function(result)
     if not result.success then
@@ -59,7 +58,7 @@ function M.setup_contest(platform, contest_id, problem_id, language)
       return
     end
 
-    logger.progress(('found %d problems'):format(#problems))
+    logger.log(('found %d problems'):format(#problems))
 
     state.set_contest_id(contest_id)
     local target_problem = problem_id or problems[1].id
@@ -96,16 +95,17 @@ function M.setup_problem(contest_id, problem_id, language)
   local config = config_module.get_config()
   local platform = state.get_platform() or ''
 
-  logger.progress(('setting up problem %s%s...'):format(contest_id, problem_id or ''))
+  logger.log(('setting up problem %s%s...'):format(contest_id, problem_id or ''))
 
-  local ctx = problem.create_context(platform, contest_id, problem_id, config, language)
+  state.set_contest_id(contest_id)
+  state.set_problem_id(problem_id)
 
   local cached_tests = cache.get_test_cases(platform, contest_id, problem_id)
   if cached_tests then
     state.set_test_cases(cached_tests)
     logger.log(('using cached test cases (%d)'):format(#cached_tests))
   elseif vim.tbl_contains(config.scrapers, platform) then
-    logger.progress('loading test cases...')
+    logger.log('loading test cases...')
 
     scraper.scrape_problem_tests(platform, contest_id, problem_id, function(result)
       if result.success then
@@ -128,15 +128,17 @@ function M.setup_problem(contest_id, problem_id, language)
     state.set_test_cases({})
   end
 
-  state.set_contest_id(contest_id)
-  state.set_problem_id(problem_id)
   state.set_run_panel_active(false)
 
   vim.schedule(function()
     local ok, err = pcall(function()
       vim.cmd.only({ mods = { silent = true } })
 
-      vim.cmd.e(ctx.source_file)
+      local source_file = state.get_source_file(language)
+      if not source_file then
+        error('Failed to generate source file path')
+      end
+      vim.cmd.e(source_file)
       local source_buf = vim.api.nvim_get_current_buf()
 
       if vim.api.nvim_buf_get_lines(source_buf, 0, -1, true)[1] == '' then
@@ -166,12 +168,12 @@ function M.setup_problem(contest_id, problem_id, language)
       end
 
       if config.hooks and config.hooks.setup_code then
-        config.hooks.setup_code(ctx)
+        config.hooks.setup_code(state)
       end
 
       cache.set_file_state(vim.fn.expand('%:p'), platform, contest_id, problem_id, language)
 
-      logger.progress(('ready - problem %s'):format(ctx.problem_name))
+      logger.log(('ready - problem %s'):format(state.get_base_name()))
     end)
 
     if not ok then
@@ -196,7 +198,7 @@ function M.scrape_remaining_problems(platform, contest_id, problems)
     return
   end
 
-  logger.progress(('caching %d remaining problems...'):format(#missing_problems))
+  logger.log(('caching %d remaining problems...'):format(#missing_problems))
 
   for _, prob in ipairs(missing_problems) do
     scraper.scrape_problem_tests(platform, contest_id, prob.id, function(result)

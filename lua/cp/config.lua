@@ -25,9 +25,9 @@
 ---@field default_language? string
 
 ---@class Hooks
----@field before_run? fun(ctx: ProblemContext)
----@field before_debug? fun(ctx: ProblemContext)
----@field setup_code? fun(ctx: ProblemContext)
+---@field before_run? fun(state: cp.State)
+---@field before_debug? fun(state: cp.State)
+---@field setup_code? fun(state: cp.State)
 
 ---@class RunPanelConfig
 ---@field ansi boolean Enable ANSI color parsing and highlighting

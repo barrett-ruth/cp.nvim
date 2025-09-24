@@ -236,32 +236,21 @@ Here's an example configuration with lazy.nvim: >lua
                                                                 *cp.Hooks*
     Fields: ~
         {before_run}    (function, optional) Called before test panel opens.
-                        function(ctx: ProblemContext)
+                        function(state: cp.State)
         {before_debug}  (function, optional) Called before debug compilation.
-                        function(ctx: ProblemContext)
+                        function(state: cp.State)
         {setup_code}    (function, optional) Called after source file is opened.
                         Good for configuring buffer settings.
-                        function(ctx: ProblemContext)
+                        function(state: cp.State)
 
-                                                         *ProblemContext*
-    Context object passed to hook functions containing problem information.
-
-    Fields: ~
-        {contest}       (string) Platform name (e.g. "atcoder", "codeforces")
-        {contest_id}    (string) Contest ID (e.g. "abc123", "1933")
-        {problem_id}    (string, optional) Problem ID (e.g. "a", "b") - nil for CSES
-        {source_file}   (string) Source filename (e.g. "abc123a.cpp")
-        {binary_file}   (string) Binary output path (e.g. "build/abc123a.run")
-        {input_file}    (string) Test input path (e.g. "io/abc123a.cpin")
-        {output_file}   (string) Program output path (e.g. "io/abc123a.cpout")
-        {expected_file} (string) Expected output path (e.g. "io/abc123a.expected")
-        {problem_name}  (string) Display name (e.g. "abc123a")
+    Hook functions receive the cp.nvim state object (cp.State). See the state
+    module documentation for available methods and fields.
 
     Example usage in hook: >lua
         hooks = {
-          setup_code = function(ctx)
-            print("Setting up " .. ctx.problem_name)
-            print("Source file: " .. ctx.source_file)
+          setup_code = function(state)
+            print("Setting up " .. state.get_base_name())
+            print("Source file: " .. state.get_source_file())
           end
         }
 <

@@ -6,9 +6,6 @@ local mock_logger = {
   log = function(msg, level)
     table.insert(M.logged_messages, { msg = msg, level = level })
   end,
-  progress = function(msg)
-    table.insert(M.logged_messages, { msg = msg, level = vim.log.levels.INFO })
-  end,
   set_config = function() end,
 }
 
@@ -83,10 +80,11 @@ end
 
 function M.mock_scraper_success()
   package.loaded['cp.scrape'] = {
-    scrape_problem = function(ctx)
+    scrape_problem = function()
+      local state = require('cp.state')
       return {
         success = true,
-        problem_id = ctx.problem_id,
+        problem_id = state.get_problem_id(),
         test_cases = {
           { input = '1 2', expected = '3' },
           { input = '3 4', expected = '7' },
