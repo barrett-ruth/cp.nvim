@@ -11,7 +11,6 @@
 ---@field test? string[] Test execution command template
 ---@field debug? string[] Debug command template
 ---@field executable? string Executable name
----@field version? number Language version
 ---@field extension? string File extension
 
 ---@class ContestConfig

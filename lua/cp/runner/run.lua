@@ -182,10 +182,9 @@ local function run_single_test_case(contest_config, cp_config, test_case)
   local substitutions = {
     source = source_file,
     binary = binary_file,
-    version = tostring(language_config.version or ''),
   }
 
-  if language_config.compile and vim.fn.filereadable(binary_file) == 0 then
+  if language_config.compile and binary_file and vim.fn.filereadable(binary_file) == 0 then
     logger.log('binary not found, compiling first...')
     local compile_cmd = substitute_template(language_config.compile, substitutions)
     local redirected_cmd = vim.deepcopy(compile_cmd)

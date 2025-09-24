@@ -230,7 +230,6 @@ function M.compile_problem(contest_config, is_debug)
   local substitutions = {
     source = source_file,
     binary = binary_file,
-    version = tostring(language_config.version),
   }
 
   local compile_cmd = (is_debug and language_config.debug) and language_config.debug
@@ -279,7 +278,6 @@ function M.run_problem(contest_config, is_debug)
   local substitutions = {
     source = source_file,
     binary = binary_file,
-    version = tostring(language_config.version),
   }
 
   local compile_cmd = is_debug and language_config.debug or language_config.compile
@@ -302,6 +300,11 @@ function M.run_problem(contest_config, is_debug)
   local platform = state.get_platform()
   local contest_id = state.get_contest_id()
   local problem_id = state.get_problem_id()
+
+  if not platform or not contest_id then
+    logger.log('configure a contest before running a problem', vim.log.levels.ERROR)
+    return
+  end
   local timeout_ms, _ = cache.get_constraints(platform, contest_id, problem_id)
   timeout_ms = timeout_ms or 2000
 
