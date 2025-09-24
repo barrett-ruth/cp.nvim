@@ -6,7 +6,9 @@ local actions = require('telescope.actions')
 
 local picker_utils = require('cp.pickers')
 
-local function contest_picker(opts, platform)
+local contest_picker, problem_picker
+
+function contest_picker(opts, platform)
   local constants = require('cp.constants')
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   local contests = picker_utils.get_contests_for_platform(platform)
@@ -57,7 +59,7 @@ local function contest_picker(opts, platform)
     :find()
 end
 
-local function problem_picker(opts, platform, contest_id)
+function problem_picker(opts, platform, contest_id)
   local constants = require('cp.constants')
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   local problems = picker_utils.get_problems_for_contest(platform, contest_id)

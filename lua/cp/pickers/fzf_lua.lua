@@ -1,6 +1,8 @@
 local picker_utils = require('cp.pickers')
 
-local function contest_picker(platform)
+local contest_picker, problem_picker
+
+function contest_picker(platform)
   local constants = require('cp.constants')
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   local fzf = require('fzf-lua')
@@ -51,7 +53,7 @@ local function contest_picker(platform)
   })
 end
 
-local function problem_picker(platform, contest_id)
+function problem_picker(platform, contest_id)
   local constants = require('cp.constants')
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   local fzf = require('fzf-lua')
