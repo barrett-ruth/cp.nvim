@@ -59,6 +59,8 @@ local function get_contests_for_platform(platform)
     'contests',
   }
 
+  logger.progress(('running: %s'):format(table.concat(cmd, ' ')))
+
   local result = vim
     .system(cmd, {
       cwd = plugin_path,
@@ -66,6 +68,11 @@ local function get_contests_for_platform(platform)
       timeout = 30000,
     })
     :wait()
+
+  logger.progress(('exit code: %d, stdout length: %d'):format(result.code, #(result.stdout or '')))
+  if result.stderr and #result.stderr > 0 then
+    logger.progress(('stderr: %s'):format(result.stderr:sub(1, 200)))
+  end
 
   if result.code ~= 0 then
     logger.log(
@@ -75,9 +82,18 @@ local function get_contests_for_platform(platform)
     return {}
   end
 
+  logger.progress(('stdout preview: %s'):format(result.stdout:sub(1, 100)))
+
   local ok, data = pcall(vim.json.decode, result.stdout)
-  if not ok or not data.success then
-    logger.log('Failed to parse contest data', vim.log.levels.ERROR)
+  if not ok then
+    logger.log(('JSON parse error: %s'):format(tostring(data)), vim.log.levels.ERROR)
+    return {}
+  end
+  if not data.success then
+    logger.log(
+      ('Scraper returned success=false: %s'):format(data.error or 'no error message'),
+      vim.log.levels.ERROR
+    )
     return {}
   end
 
@@ -151,8 +167,12 @@ local function get_problems_for_contest(platform, contest_id)
   end
 
   local ok, data = pcall(vim.json.decode, result.stdout)
-  if not ok or not data.success then
+  if not ok then
     logger.log('Failed to parse contest data', vim.log.levels.ERROR)
+    return problems
+  end
+  if not data.success then
+    logger.log(data.error or 'Contest scraping failed', vim.log.levels.ERROR)
     return problems
   end
 

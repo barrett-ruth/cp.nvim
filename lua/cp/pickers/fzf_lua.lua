@@ -8,9 +8,13 @@ local function problem_picker(platform, contest_id)
 
   if #problems == 0 then
     vim.notify(
-      ('No problems found for contest: %s %s'):format(platform_display_name, contest_id),
+      ("Contest %s %s hasn't started yet or has no available problems"):format(
+        platform_display_name,
+        contest_id
+      ),
       vim.log.levels.WARN
     )
+    contest_picker(platform)
     return
   end
 
