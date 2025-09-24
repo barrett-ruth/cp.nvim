@@ -89,7 +89,7 @@ describe('Panel integration', function()
     state.set_problem_id('b')
 
     local config_module = require('cp.config')
-    local processed_config = config_module.setup({
+    config_module.setup({
       contests = { codeforces = { cpp = { extension = 'cpp' } } },
     })
     local cp_state = require('cp.state')

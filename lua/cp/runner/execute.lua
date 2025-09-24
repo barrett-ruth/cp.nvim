@@ -300,8 +300,9 @@ function M.run_problem(contest_config, is_debug)
   local platform = state.get_platform()
   local contest_id = state.get_contest_id()
   local problem_id = state.get_problem_id()
+  local expected_file = state.get_expected_file()
 
-  if not platform or not contest_id then
+  if not platform or not contest_id or not expected_file then
     logger.log('configure a contest before running a problem', vim.log.levels.ERROR)
     return
   end
@@ -310,7 +311,6 @@ function M.run_problem(contest_config, is_debug)
 
   local run_cmd = build_command(language_config.test, language_config.executable, substitutions)
   local exec_result = execute_command(run_cmd, input_data, timeout_ms)
-  local expected_file = state.get_expected_file()
   local formatted_output = format_output(exec_result, expected_file, is_debug)
 
   local output_buf = vim.fn.bufnr(output_file)
