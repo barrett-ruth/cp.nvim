@@ -266,12 +266,7 @@ function M.get_contest_list(platform)
     return nil
   end
 
-  local contest_list_data = cache_data.contest_lists[platform]
-  if os.time() >= contest_list_data.expires_at then
-    return nil
-  end
-
-  return contest_list_data.contests
+  return cache_data.contest_lists[platform].contests
 end
 
 ---@param platform string

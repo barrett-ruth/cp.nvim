@@ -85,7 +85,6 @@ describe('cp.cache', function()
 
       local result = cache.get_contest_data('cses', 'test_contest')
       assert.is_not_nil(result)
-      assert.is_not_nil(result.expires_at)
     end)
   end)
 
