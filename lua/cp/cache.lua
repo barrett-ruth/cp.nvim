@@ -12,12 +12,10 @@
 ---@class ContestListData
 ---@field contests table[]
 ---@field cached_at number
----@field expires_at number
 
 ---@class ContestData
 ---@field problems Problem[]
 ---@field scraped_at string
----@field expires_at? number
 ---@field test_cases? CachedTestCase[]
 ---@field test_cases_cached_at? number
 ---@field timeout_ms? number
@@ -38,28 +36,6 @@ local M = {}
 local cache_file = vim.fn.stdpath('data') .. '/cp-nvim.json'
 local cache_data = {}
 local loaded = false
-
-local CONTEST_LIST_TTL = {
-  cses = 7 * 24 * 60 * 60,
-  codeforces = 24 * 60 * 60,
-  atcoder = 24 * 60 * 60,
-}
-
----@param contest_data ContestData
----@param platform string
----@return boolean
-local function is_cache_valid(contest_data, platform)
-  vim.validate({
-    contest_data = { contest_data, 'table' },
-    platform = { platform, 'string' },
-  })
-
-  if contest_data.expires_at and os.time() >= contest_data.expires_at then
-    return false
-  end
-
-  return true
-end
 
 function M.load()
   if loaded then
@@ -125,10 +101,6 @@ function M.get_contest_data(platform, contest_id)
     return nil
   end
 
-  if not is_cache_valid(contest_data, platform) then
-    return nil
-  end
-
   return contest_data
 end
 
@@ -146,11 +118,9 @@ function M.set_contest_data(platform, contest_id, problems)
     cache_data[platform] = {}
   end
 
-  local ttl = CONTEST_LIST_TTL[platform] or (24 * 60 * 60)
   cache_data[platform][contest_id] = {
     problems = problems,
     scraped_at = os.date('%Y-%m-%d'),
-    expires_at = os.time() + ttl,
   }
 
   M.save()
@@ -316,11 +286,9 @@ function M.set_contest_list(platform, contests)
     cache_data.contest_lists = {}
   end
 
-  local ttl = CONTEST_LIST_TTL[platform] or (24 * 60 * 60)
   cache_data.contest_lists[platform] = {
     contests = contests,
     cached_at = os.time(),
-    expires_at = os.time() + ttl,
   }
 
   M.save()
