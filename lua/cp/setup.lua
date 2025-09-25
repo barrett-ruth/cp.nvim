@@ -41,7 +41,7 @@ function M.setup_contest(platform, contest_id, problem_id, language)
     return
   end
 
-  logger.log(('fetching contest %s %s...'):format(platform, contest_id))
+  logger.log('fetching contests problems...', vim.log.levels.INFO, true)
 
   scraper.scrape_contest_metadata(platform, contest_id, function(result)
     if not result.success then
@@ -99,35 +99,6 @@ function M.setup_problem(contest_id, problem_id, language)
 
   state.set_contest_id(contest_id)
   state.set_problem_id(problem_id)
-
-  local cached_tests = cache.get_test_cases(platform, contest_id, problem_id)
-  if cached_tests then
-    state.set_test_cases(cached_tests)
-    logger.log(('using cached test cases (%d)'):format(#cached_tests))
-  elseif vim.tbl_contains(config.scrapers, platform) then
-    logger.log('loading test cases...')
-
-    scraper.scrape_problem_tests(platform, contest_id, problem_id, function(result)
-      if result.success then
-        logger.log(('loaded %d test cases for %s'):format(#(result.tests or {}), problem_id))
-        if state.get_problem_id() == problem_id then
-          state.set_test_cases(result.tests)
-        end
-      else
-        logger.log(
-          'failed to load tests: ' .. (result.error or 'unknown error'),
-          vim.log.levels.ERROR
-        )
-        if state.get_problem_id() == problem_id then
-          state.set_test_cases({})
-        end
-      end
-    end)
-  else
-    logger.log(('scraping disabled for %s'):format(platform))
-    state.set_test_cases({})
-  end
-
   state.set_run_panel_active(false)
 
   vim.schedule(function()
@@ -180,6 +151,34 @@ function M.setup_problem(contest_id, problem_id, language)
       logger.log(('setup error: %s'):format(err), vim.log.levels.ERROR)
     end
   end)
+
+  local cached_tests = cache.get_test_cases(platform, contest_id, problem_id)
+  if cached_tests then
+    state.set_test_cases(cached_tests)
+    logger.log(('using cached test cases (%d)'):format(#cached_tests))
+  elseif vim.tbl_contains(config.scrapers, platform) then
+    logger.log('loading test cases...')
+
+    scraper.scrape_problem_tests(platform, contest_id, problem_id, function(result)
+      if result.success then
+        logger.log(('loaded %d test cases for %s'):format(#(result.tests or {}), problem_id))
+        if state.get_problem_id() == problem_id then
+          state.set_test_cases(result.tests)
+        end
+      else
+        logger.log(
+          'failed to load tests: ' .. (result.error or 'unknown error'),
+          vim.log.levels.ERROR
+        )
+        if state.get_problem_id() == problem_id then
+          state.set_test_cases({})
+        end
+      end
+    end)
+  else
+    logger.log(('scraping disabled for %s'):format(platform))
+    state.set_test_cases({})
+  end
 end
 
 function M.scrape_remaining_problems(platform, contest_id, problems)
