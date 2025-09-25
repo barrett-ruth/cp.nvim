@@ -52,6 +52,14 @@ function M.toggle_run_panel(is_debug)
   )
 
   local config = config_module.get_config()
+  if config.hooks and config.hooks.before_run then
+    config.hooks.before_run(state)
+  end
+
+  if is_debug and config.hooks and config.hooks.before_debug then
+    config.hooks.before_debug(state)
+  end
+
   local run = require('cp.runner.run')
 
   local input_file = state.get_input_file()
@@ -158,14 +166,6 @@ function M.toggle_run_panel(is_debug)
   end, { buffer = test_buffers.tab_buf, silent = true })
 
   setup_keybindings_for_buffer(test_buffers.tab_buf)
-
-  if config.hooks and config.hooks.before_run then
-    config.hooks.before_run(state)
-  end
-
-  if is_debug and config.hooks and config.hooks.before_debug then
-    config.hooks.before_debug(state)
-  end
 
   local execute = require('cp.runner.execute')
   local contest_config = config.contests[state.get_platform() or '']
