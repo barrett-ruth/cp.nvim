@@ -117,8 +117,6 @@ end
 ---@param contest_id string Contest identifier
 ---@return cp.ProblemItem[]
 local function get_problems_for_contest(platform, contest_id)
-  local constants = require('cp.constants')
-  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   local problems = {}
 
   cache.load()
