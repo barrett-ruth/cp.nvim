@@ -323,6 +323,9 @@ def scrape(url: str) -> list[TestCase]:
         return []
 
 
+print("hi")
+
+
 class CSESScraper(BaseScraper):
     @property
     def platform_name(self) -> str:
