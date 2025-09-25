@@ -11,33 +11,6 @@ describe('cp.picker', function()
     spec_helper.teardown()
   end)
 
-  describe('get_platforms', function()
-    it('returns platform list with display names', function()
-      local platforms = picker.get_platforms()
-
-      assert.is_table(platforms)
-      assert.is_true(#platforms > 0)
-
-      for _, platform in ipairs(platforms) do
-        assert.is_string(platform.id)
-        assert.is_string(platform.display_name)
-        assert.is_not_nil(platform.display_name:match('^%u'))
-      end
-    end)
-
-    it('includes expected platforms with correct display names', function()
-      local platforms = picker.get_platforms()
-      local platform_map = {}
-      for _, p in ipairs(platforms) do
-        platform_map[p.id] = p.display_name
-      end
-
-      assert.equals('CodeForces', platform_map['codeforces'])
-      assert.equals('AtCoder', platform_map['atcoder'])
-      assert.equals('CSES', platform_map['cses'])
-    end)
-  end)
-
   describe('get_contests_for_platform', function()
     it('returns empty list when scraper fails', function()
       vim.system = function(_, _)

@@ -1,6 +1,7 @@
 local M = {}
 
 local cache = require('cp.cache')
+local config = require('cp.config').get_config()
 local logger = require('cp.log')
 local utils = require('cp.utils')
 
@@ -18,26 +19,28 @@ local utils = require('cp.utils')
 ---@field name string Problem name (e.g. "Two Permutations", "Painting Walls")
 ---@field display_name string Formatted display name for picker
 
----Get list of available competitive programming platforms
 ---@return cp.PlatformItem[]
 local function get_platforms()
   local constants = require('cp.constants')
-  return vim.tbl_map(function(platform)
-    return {
-      id = platform,
-      display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform,
-    }
-  end, constants.PLATFORMS)
+  local result = {}
+
+  for _, platform in ipairs(constants.PLATFORMS) do
+    if config.contests[platform] then
+      table.insert(result, {
+        id = platform,
+        display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform,
+      })
+    end
+  end
+
+  return result
 end
 
 ---Get list of contests for a specific platform
 ---@param platform string Platform identifier (e.g. "codeforces", "atcoder")
 ---@return cp.ContestItem[]
 local function get_contests_for_platform(platform)
-  local constants = require('cp.constants')
-  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
-
-  logger.log(('loading %s contests...'):format(platform_display_name), vim.log.levels.INFO, true)
+  logger.log('loading contests...', vim.log.levels.INFO, true)
 
   cache.load()
   local cached_contests = cache.get_contest_list(platform)
@@ -114,8 +117,6 @@ end
 ---@param contest_id string Contest identifier
 ---@return cp.ProblemItem[]
 local function get_problems_for_contest(platform, contest_id)
-  local constants = require('cp.constants')
-  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   local problems = {}
 
   cache.load()
@@ -131,11 +132,7 @@ local function get_problems_for_contest(platform, contest_id)
     return problems
   end
 
-  logger.log(
-    ('loading %s %s problems...'):format(platform_display_name, contest_id),
-    vim.log.levels.INFO,
-    true
-  )
+  logger.log('loading contest problems...', vim.log.levels.INFO, true)
 
   if not utils.setup_python_env() then
     return problems
