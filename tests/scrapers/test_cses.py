@@ -1,12 +1,12 @@
 from unittest.mock import Mock
 
 from scrapers.cses import (
-    denormalize_category_name,
     normalize_category_name,
     scrape,
     scrape_all_problems,
     scrape_categories,
     scrape_category_problems,
+    snake_to_title,
 )
 from scrapers.models import ContestSummary, ProblemSummary
 
@@ -68,10 +68,10 @@ def test_normalize_category_name():
     assert normalize_category_name("Graph Algorithms") == "graph_algorithms"
 
 
-def test_denormalize_category_name():
-    assert denormalize_category_name("sorting_and_searching") == "Sorting and Searching"
-    assert denormalize_category_name("dynamic_programming") == "Dynamic Programming"
-    assert denormalize_category_name("graph_algorithms") == "Graph Algorithms"
+def test_snake_to_title():
+    assert snake_to_title("sorting_and_searching") == "Sorting and Searching"
+    assert snake_to_title("dynamic_programming") == "Dynamic Programming"
+    assert snake_to_title("graph_algorithms") == "Graph Algorithms"
 
 
 def test_scrape_category_problems_success(mocker):

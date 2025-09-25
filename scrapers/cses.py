@@ -24,21 +24,38 @@ def normalize_category_name(category_name: str) -> str:
     return category_name.lower().replace(" ", "_").replace("&", "and")
 
 
-def denormalize_category_name(category_id: str) -> str:
-    category_map = {
-        "introductory_problems": "Introductory Problems",
-        "sorting_and_searching": "Sorting and Searching",
-        "dynamic_programming": "Dynamic Programming",
-        "graph_algorithms": "Graph Algorithms",
-        "range_queries": "Range Queries",
-        "tree_algorithms": "Tree Algorithms",
-        "mathematics": "Mathematics",
-        "string_algorithms": "String Algorithms",
-        "geometry": "Geometry",
-        "advanced_techniques": "Advanced Techniques",
+def snake_to_title(name: str) -> str:
+    small_words = {
+        "a",
+        "an",
+        "the",
+        "and",
+        "but",
+        "or",
+        "nor",
+        "for",
+        "so",
+        "yet",
+        "at",
+        "by",
+        "in",
+        "of",
+        "on",
+        "per",
+        "to",
+        "vs",
+        "via",
     }
 
-    return category_map.get(category_id, category_id.replace("_", " ").title())
+    words: list[str] = name.split("_")
+    n = len(words)
+
+    def fix_word(i_word):
+        i, word = i_word
+        lw = word.lower()
+        return lw.capitalize() if i == 0 or i == n - 1 or lw not in small_words else lw
+
+    return " ".join(map(fix_word, enumerate(words)))
 
 
 @backoff.on_exception(
@@ -67,7 +84,7 @@ def make_request(url: str, headers: dict) -> requests.Response:
 
 
 def scrape_category_problems(category_id: str) -> list[ProblemSummary]:
-    category_name = denormalize_category_name(category_id)
+    category_name = snake_to_title(category_id)
 
     try:
         problemset_url = "https://cses.fi/problemset/"
