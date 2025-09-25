@@ -373,11 +373,6 @@ Picker Controls ~
     <c-p> / <up>           Navigate to previous item
     /                      Start filtering/searching items
 
-Notes ~
-    • Contest lists are fetched dynamically using scrapers with a TTL of 1 day
-    • Use <c-r> to force refresh
-    • Large contest lists may take time to load
-
 ==============================================================================
 RUN PANEL                                                           *cp-run*
 
