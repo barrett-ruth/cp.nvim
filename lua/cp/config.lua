@@ -68,20 +68,27 @@
 local M = {}
 local constants = require('cp.constants')
 
-local default_cpp_config = {
+local default_contest_config = {
   cpp = {
     compile = { 'g++', '-std=c++17', '{source}', '-o', '{binary}' },
     debug = { 'g++', '-std=c++17', '-fsanitize=address,undefined', '{source}', '-o', '{binary}' },
-    extension = 'cpp',
+    test = { '{binary}' },
   },
+  python = {
+    test = { '{source}' },
+    debug = { '{source}' },
+    executable = 'python',
+    extension = 'py',
+  },
+  default_language = 'cpp',
 }
 
 ---@type cp.Config
 M.defaults = {
   contests = {
-    codeforces = default_cpp_config,
-    atcoder = default_cpp_config,
-    cses = default_cpp_config,
+    codeforces = default_contest_config,
+    atcoder = default_contest_config,
+    cses = default_contest_config,
   },
   snippets = {},
   hooks = {
