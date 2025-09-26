@@ -40,7 +40,7 @@ describe('cp command parsing', function()
     package.loaded['cp.state'] = mock_state
 
     local mock_ui_panel = {
-      close_run_panel = function() end,
+      toggle_run_panel = function() end,
     }
     package.loaded['cp.ui.panel'] = mock_ui_panel
 
