@@ -10,7 +10,7 @@ local current_diff_layout = nil
 local current_mode = nil
 
 function M.toggle_interactive()
-  if state.is_interactive_active then
+  if state.get_active_panel() == 'interactive' then
     if state.interactive_buf and vim.api.nvim_buf_is_valid(state.interactive_buf) then
       local job = vim.b[state.interactive_buf].terminal_job_id
       if job then
@@ -22,8 +22,13 @@ function M.toggle_interactive()
       vim.fn.delete(state.saved_interactive_session)
       state.saved_interactive_session = nil
     end
-    state.is_interactive_active = false
+    state.set_active_panel(nil)
     logger.log('interactive closed')
+    return
+  end
+
+  if state.get_active_panel() then
+    logger.log('another panel is already active', vim.log.levels.ERROR)
     return
   end
 
@@ -52,18 +57,18 @@ function M.toggle_interactive()
 
   vim.fn.chansend(vim.b.terminal_job_id, binary .. '\n')
 
-  vim.keymap.set('t', '<c-q>', function()
+  vim.keymap.set('t', config.run_panel.close_key, function()
     M.toggle_interactive()
   end, { buffer = term_buf, silent = true })
 
-  state.is_interactive_active = true
   state.interactive_buf = term_buf
   state.interactive_win = term_win
+  state.set_active_panel('interactive')
   logger.log(('interactive opened, running %s'):format(binary))
 end
 
 function M.toggle_run_panel(is_debug)
-  if state.is_run_panel_active() then
+  if state.get_active_panel() == 'run' then
     if current_diff_layout then
       current_diff_layout.cleanup()
       current_diff_layout = nil
@@ -74,9 +79,13 @@ function M.toggle_run_panel(is_debug)
       vim.fn.delete(state.saved_session)
       state.saved_session = nil
     end
-
-    state.set_run_panel_active(false)
+    state.set_active_panel(nil)
     logger.log('test panel closed')
+    return
+  end
+
+  if state.get_active_panel() then
+    logger.log('another panel is already active', vim.log.levels.ERROR)
     return
   end
 
@@ -108,13 +117,11 @@ function M.toggle_run_panel(is_debug)
   if config.hooks and config.hooks.before_run then
     config.hooks.before_run(state)
   end
-
   if is_debug and config.hooks and config.hooks.before_debug then
     config.hooks.before_debug(state)
   end
 
   local run = require('cp.runner.run')
-
   local input_file = state.get_input_file()
   logger.log(('run panel: checking test cases for %s'):format(input_file or 'none'))
 
@@ -125,7 +132,6 @@ function M.toggle_run_panel(is_debug)
 
   state.saved_session = vim.fn.tempname()
   vim.cmd(('mksession! %s'):format(state.saved_session))
-
   vim.cmd('silent only')
 
   local tab_buf = buffer_utils.create_buffer_with_options()
@@ -133,13 +139,8 @@ function M.toggle_run_panel(is_debug)
   vim.api.nvim_win_set_buf(main_win, tab_buf)
   vim.api.nvim_set_option_value('filetype', 'cptest', { buf = tab_buf })
 
-  local test_windows = {
-    tab_win = main_win,
-  }
-  local test_buffers = {
-    tab_buf = tab_buf,
-  }
-
+  local test_windows = { tab_win = main_win }
+  local test_buffers = { tab_buf = tab_buf }
   local test_list_namespace = vim.api.nvim_create_namespace('cp_test_list')
 
   local setup_keybindings_for_buffer
@@ -159,10 +160,8 @@ function M.toggle_run_panel(is_debug)
     if not test_buffers.tab_buf or not vim.api.nvim_buf_is_valid(test_buffers.tab_buf) then
       return
     end
-
     local run_render = require('cp.runner.run_render')
     run_render.setup_highlights()
-
     local test_state = run.get_run_panel_state()
     local tab_lines, tab_highlights = run_render.render_test_list(test_state)
     buffer_utils.update_buffer_content(
@@ -171,7 +170,6 @@ function M.toggle_run_panel(is_debug)
       tab_highlights,
       test_list_namespace
     )
-
     update_diff_panes()
   end
 
@@ -180,9 +178,7 @@ function M.toggle_run_panel(is_debug)
     if #test_state.test_cases == 0 then
       return
     end
-
     test_state.current_index = (test_state.current_index + delta) % #test_state.test_cases
-
     refresh_run_panel()
   end
 
@@ -242,10 +238,9 @@ function M.toggle_run_panel(is_debug)
   end)
 
   vim.api.nvim_set_current_win(test_windows.tab_win)
-
-  state.set_run_panel_active(true)
   state.test_buffers = test_buffers
   state.test_windows = test_windows
+  state.set_active_panel('run')
   local test_state = run.get_run_panel_state()
   logger.log(
     string.format('test panel opened (%d test cases)', #test_state.test_cases),
