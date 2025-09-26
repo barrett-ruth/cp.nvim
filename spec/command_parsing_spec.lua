@@ -41,6 +41,7 @@ describe('cp command parsing', function()
 
     local mock_ui_panel = {
       toggle_run_panel = function() end,
+      toggle_interactive = function() end,
     }
     package.loaded['cp.ui.panel'] = mock_ui_panel
 
