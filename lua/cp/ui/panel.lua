@@ -9,7 +9,54 @@ local state = require('cp.state')
 local current_diff_layout = nil
 local current_mode = nil
 
-function M.toggle_run_panel(is_debug)
+function M.toggle_interactive()
+  if state.is_interactive_active then
+    if state.saved_interactive_session then
+      vim.cmd(('source %s'):format(state.saved_interactive_session))
+      vim.fn.delete(state.saved_interactive_session)
+      state.saved_interactive_session = nil
+    end
+    state.is_interactive_active = false
+    logger.log('interactive closed')
+    return
+  end
+
+  state.saved_interactive_session = vim.fn.tempname()
+  vim.cmd(('mksession! %s'):format(state.saved_interactive_session))
+  vim.cmd('silent only')
+
+  local config = config_module.get_config()
+  local contest_config = config.contests[state.get_platform() or '']
+  local execute = require('cp.runner.execute')
+  local compile_result = execute.compile_problem(contest_config, false)
+  if not compile_result.success then
+    require('cp.runner.run').handle_compilation_failure(compile_result.output)
+    return
+  end
+
+  local binary = state.get_binary_file()
+  if not binary then
+    logger.log('no binary path found', vim.log.levels.ERROR)
+    return
+  end
+
+  vim.cmd('terminal')
+  local term_buf = vim.api.nvim_get_current_buf()
+  local term_win = vim.api.nvim_get_current_win()
+
+  vim.fn.chansend(vim.b.terminal_job_id, binary .. '\n')
+
+  vim.keymap.set('t', '<c-q>', function()
+    M.toggle_interactive()
+  end, { buffer = term_buf, silent = true })
+
+  state.is_interactive_active = true
+  state.interactive_buf = term_buf
+  state.interactive_win = term_win
+  logger.log(('interactive opened, running %s'):format(binary))
+end
+
+function M.close_run_panel(is_debug)
   if state.is_run_panel_active() then
     if current_diff_layout then
       current_diff_layout.cleanup()
@@ -134,8 +181,8 @@ function M.toggle_run_panel(is_debug)
   end
 
   setup_keybindings_for_buffer = function(buf)
-    vim.keymap.set('n', 'q', function()
-      M.toggle_run_panel()
+    vim.keymap.set('n', config.run_panel.close_key, function()
+      M.close_run_panel()
     end, { buffer = buf, silent = true })
     vim.keymap.set('n', config.run_panel.toggle_diff_key, function()
       local modes = { 'none', 'git', 'vim' }

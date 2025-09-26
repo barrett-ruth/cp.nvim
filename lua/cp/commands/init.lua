@@ -126,8 +126,10 @@ function M.handle_command(opts)
     local setup = require('cp.setup')
     local ui = require('cp.ui.panel')
 
-    if cmd.action == 'run' then
-      ui.toggle_run_panel(cmd.debug)
+    if cmd.action == 'interact' then
+      ui.toggle_interactive()
+    elseif cmd.action == 'run' then
+      ui.close_run_panel(cmd.debug)
     elseif cmd.action == 'next' then
       setup.navigate_problem(1, cmd.language)
     elseif cmd.action == 'prev' then
