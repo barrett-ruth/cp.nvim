@@ -62,7 +62,7 @@ function M.toggle_interactive()
   logger.log(('interactive opened, running %s'):format(binary))
 end
 
-function M.close_run_panel(is_debug)
+function M.toggle_run_panel(is_debug)
   if state.is_run_panel_active() then
     if current_diff_layout then
       current_diff_layout.cleanup()
@@ -188,7 +188,7 @@ function M.close_run_panel(is_debug)
 
   setup_keybindings_for_buffer = function(buf)
     vim.keymap.set('n', config.run_panel.close_key, function()
-      M.close_run_panel()
+      M.toggle_run_panel()
     end, { buffer = buf, silent = true })
     vim.keymap.set('n', config.run_panel.toggle_diff_key, function()
       local modes = { 'none', 'git', 'vim' }
