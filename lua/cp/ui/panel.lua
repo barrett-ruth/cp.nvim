@@ -11,6 +11,12 @@ local current_mode = nil
 
 function M.toggle_interactive()
   if state.is_interactive_active then
+    if state.interactive_buf and vim.api.nvim_buf_is_valid(state.interactive_buf) then
+      local job = vim.b[state.interactive_buf].terminal_job_id
+      if job then
+        vim.fn.jobstop(job)
+      end
+    end
     if state.saved_interactive_session then
       vim.cmd(('source %s'):format(state.saved_interactive_session))
       vim.fn.delete(state.saved_interactive_session)
