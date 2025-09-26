@@ -1,7 +1,7 @@
 local M = {}
 
 M.PLATFORMS = { 'atcoder', 'codeforces', 'cses' }
-M.ACTIONS = { 'run', 'next', 'prev', 'pick', 'cache' }
+M.ACTIONS = { 'run', 'next', 'prev', 'pick', 'cache', 'interact' }
 
 M.PLATFORM_DISPLAY_NAMES = {
   atcoder = 'AtCoder',

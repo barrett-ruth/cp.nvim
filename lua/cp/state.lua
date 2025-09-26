@@ -7,8 +7,6 @@
 ---@field set_problem_id fun(problem_id: string)
 ---@field get_test_cases fun(): table[]?
 ---@field set_test_cases fun(test_cases: table[])
----@field is_run_panel_active fun(): boolean
----@field set_run_panel_active fun(active: boolean)
 ---@field get_saved_session fun(): table?
 ---@field set_saved_session fun(session: table)
 ---@field get_context fun(): {platform: string?, contest_id: string?, problem_id: string?}
@@ -28,8 +26,8 @@ local state = {
   contest_id = nil,
   problem_id = nil,
   test_cases = nil,
-  run_panel_active = false,
   saved_session = nil,
+  active_panel = nil,
 }
 
 function M.get_platform()
@@ -62,14 +60,6 @@ end
 
 function M.set_test_cases(test_cases)
   state.test_cases = test_cases
-end
-
-function M.is_run_panel_active()
-  return state.run_panel_active
-end
-
-function M.set_run_panel_active(active)
-  state.run_panel_active = active
 end
 
 function M.get_saved_session()
@@ -147,6 +137,14 @@ end
 
 function M.has_context()
   return state.platform and state.contest_id
+end
+
+function M.get_active_panel()
+  return state.active_panel
+end
+
+function M.set_active_panel(panel)
+  state.active_panel = panel
 end
 
 function M.reset()

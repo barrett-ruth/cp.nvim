@@ -152,7 +152,7 @@ Here's an example configuration with lazy.nvim: >lua
                 diff_mode = 'vim',
                 next_test_key = '<c-n>',
                 prev_test_key = '<c-p>',
-                toggle_diff_key = 't',
+                toggle_diff_key = '<c-q>',
                 max_output_lines = 50,
             },
             diff = {
@@ -203,18 +203,19 @@ Here's an example configuration with lazy.nvim: >lua
 
                                                         *cp.RunPanelConfig*
     Fields: ~
-        {ansi}            (boolean, default: true) Enable ANSI color parsing and
-                          highlighting. When true, compiler output and test results
-                          display with colored syntax highlighting. When false,
-                          ANSI escape codes are stripped for plain text display.
-                          Requires vim.g.terminal_color_* to be configured for
-                          proper color display.
-        {diff_mode}       (string, default: "none") Diff backend: "none", "vim", or "git".
-                          "none" displays plain buffers without highlighting,
-                          "vim" uses built-in diff, "git" provides character-level precision.
-        {next_test_key}   (string, default: "<c-n>") Key to navigate to next test case.
-        {prev_test_key}   (string, default: "<c-p>") Key to navigate to previous test case.
-        {toggle_diff_key} (string, default: "t") Key to cycle through diff modes.
+        {ansi}             (boolean, default: true) Enable ANSI color parsing and
+                           highlighting. When true, compiler output and test results
+                           display with colored syntax highlighting. When false,
+                           ANSI escape codes are stripped for plain text display.
+                           Requires vim.g.terminal_color_* to be configured for
+                           proper color display.
+        {diff_mode}        (string, default: "none") Diff backend: "none", "vim", or "git".
+                           "none" displays plain buffers without highlighting,
+                           "vim" uses built-in diff, "git" provides character-level precision.
+        {next_test_key}    (string, default: "<c-n>") Key to navigate to next test case.
+        {prev_test_key}    (string, default: "<c-p>") Key to navigate to previous test case.
+        {toggle_diff_key}  (string, default: "<c-t>") Key to cycle through diff modes.
+        {close_key}        (string, default: "<c-q>") Close the run panel/interactive terminal
         {max_output_lines} (number, default: 50) Maximum lines of test output.
 
                                                             *cp.DiffConfig*
@@ -531,9 +532,9 @@ RUN PANEL KEYMAPS                                           *cp-test-keys*
                                 run_panel.next_test_key)
 <c-p>                           Navigate to previous test case (configurable via
                                 run_panel.prev_test_key)
-t                               Cycle through diff modes: none → git → vim (configurable
+<c-t>                           Cycle through diff modes: none → git → vim (configurable
                                 via run_panel.toggle_diff_key)
-q                               Exit test panel and restore layout
+<c-q>                           Exit run panel/interactive terminal and restore layout
 
 Diff Modes ~
 

@@ -34,6 +34,7 @@
 ---@field next_test_key string Key to navigate to next test case
 ---@field prev_test_key string Key to navigate to previous test case
 ---@field toggle_diff_key string Key to cycle through diff modes
+---@field close_key string Key to close panel/interactive terminal
 ---@field max_output_lines number Maximum lines of test output to display
 
 ---@class DiffGitConfig
@@ -103,7 +104,8 @@ M.defaults = {
     diff_mode = 'none',
     next_test_key = '<c-n>',
     prev_test_key = '<c-p>',
-    toggle_diff_key = 't',
+    toggle_diff_key = '<c-t>',
+    close_key = '<c-q>',
     max_output_lines = 50,
   },
   diff = {
@@ -228,6 +230,13 @@ function M.setup(user_config)
         return type(value) == 'string' and value ~= ''
       end,
       'toggle_diff_key must be a non-empty string',
+    },
+    close_key = {
+      config.run_panel.close_key,
+      function(value)
+        return type(value) == 'string' and value ~= ''
+      end,
+      'close_key must be a non-empty string',
     },
     max_output_lines = {
       config.run_panel.max_output_lines,

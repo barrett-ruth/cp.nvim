@@ -33,18 +33,15 @@ describe('cp command parsing', function()
       get_problem_id = function()
         return 'a'
       end,
-      is_run_panel_active = function()
-        return false
-      end,
       set_platform = function() end,
       set_contest_id = function() end,
       set_problem_id = function() end,
-      set_run_panel_active = function() end,
     }
     package.loaded['cp.state'] = mock_state
 
     local mock_ui_panel = {
       toggle_run_panel = function() end,
+      toggle_interactive = function() end,
     }
     package.loaded['cp.ui.panel'] = mock_ui_panel
 
