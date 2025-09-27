@@ -32,6 +32,44 @@ function M.toggle_interactive()
     return
   end
 
+  local platform, contest_id = state.get_platform(), state.get_contest_id()
+
+  if not platform then
+    logger.log(
+      'No platform %s configured. Use :CP <platform> <contest> [...] first.',
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
+  if not contest_id then
+    logger.log(
+      ('No contest %s configured for platform %s. Use :CP <platform> <contest> <problem> to set up first.'):format(
+        contest_id,
+        platform
+      ),
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
+  local problem_id = state.get_problem_id()
+  if not problem_id then
+    logger.log(('No problem found for the current problem id %s'):format(problem_id))
+    return
+  end
+
+  local cache = require('cp.cache')
+  cache.load()
+  local contest_data = cache.get_contest_data(platform, contest_id)
+  if contest_data and not contest_data.interactive then
+    logger.log(
+      'This is NOT an interactive problem. Use :CP run instead - aborting.',
+      vim.log.levels.WARN
+    )
+    return
+  end
+
   state.saved_interactive_session = vim.fn.tempname()
   vim.cmd(('mksession! %s'):format(state.saved_interactive_session))
   vim.cmd('silent only')
@@ -89,9 +127,22 @@ function M.toggle_run_panel(is_debug)
     return
   end
 
-  if not state.get_platform() then
+  local platform, contest_id = state.get_platform(), state.get_contest_id()
+
+  if not platform then
     logger.log(
-      'No contest configured. Use :CP <platform> <contest> <problem> to set up first.',
+      'No platform %s configured. Use :CP <platform> <contest> [...] first.',
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
+  if not contest_id then
+    logger.log(
+      ('No contest %s configured for platform %s. Use :CP <platform> <contest> <problem> to set up first.'):format(
+        contest_id,
+        platform
+      ),
       vim.log.levels.ERROR
     )
     return
@@ -99,11 +150,20 @@ function M.toggle_run_panel(is_debug)
 
   local problem_id = state.get_problem_id()
   if not problem_id then
+    logger.log(('No problem found for the current problem id %s'):format(problem_id))
     return
   end
 
-  local platform = state.get_platform()
-  local contest_id = state.get_contest_id()
+  local cache = require('cp.cache')
+  cache.load()
+  local contest_data = cache.get_contest_data(platform, contest_id)
+  if contest_data and contest_data.interactive then
+    logger.log(
+      'This is an interactive problem. Use :CP interact instead - aborting.',
+      vim.log.levels.WARN
+    )
+    return
+  end
 
   logger.log(
     ('run panel: platform=%s, contest=%s, problem=%s'):format(

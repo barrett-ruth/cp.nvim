@@ -99,7 +99,8 @@ function M.setup_problem(contest_id, problem_id, language)
 
   state.set_contest_id(contest_id)
   state.set_problem_id(problem_id)
-  state.set_run_panel_active(false)
+  -- TODO: why comment this out
+  -- state.set_active_panel('run')
 
   vim.schedule(function()
     local ok, err = pcall(function()

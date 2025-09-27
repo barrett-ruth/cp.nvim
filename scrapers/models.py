@@ -45,3 +45,4 @@ class TestsResult(ScrapingResult):
     tests: list[TestCase]
     timeout_ms: int
     memory_mb: float
+    interactive: bool = False

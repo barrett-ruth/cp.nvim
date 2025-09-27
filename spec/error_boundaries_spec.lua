@@ -210,7 +210,8 @@ describe('Error boundary handling', function()
     local missing_contest_errors = 0
     for _, log_entry in ipairs(logged_messages) do
       if
-        log_entry.msg and (log_entry.msg:match('no contest') or log_entry.msg:match('No contest'))
+        log_entry.msg
+        and (log_entry.msg:match('No problem found') or log_entry.msg:match('No contest'))
       then
         missing_contest_errors = missing_contest_errors + 1
       end
