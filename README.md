@@ -1,6 +1,6 @@
 # cp.nvim
 
-> ⚠️ **Warning**: as of 27/09/25, CodeForces upgraded their anti-scraping technology and is thus broken. I am actively researching a way around this.
+> ⚠️ **Warning**: as of 27/09/25, CodeForces upgraded their anti-scraping technology and support is thus (temporarily) broken. I am actively researching a way around this.
 
 **The definitive competitive programming environment for Neovim**
 
