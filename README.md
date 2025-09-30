@@ -4,8 +4,6 @@
 
 Scrape problems, run tests, and debug solutions across multiple platforms with zero configuration.
 
-> **Disclaimer**: cp.nvim webs crapes data from competitive programming platforms - use at your own risk.
-
 https://github.com/user-attachments/assets/50b19481-8e6d-47b4-bebc-15e16c61a9c9
 
 ## Features
