@@ -199,10 +199,10 @@ def scrape_contest_problems(contest_id: str) -> list[ProblemSummary]:
                 problem_letter: str = href.split("/")[-1].lower()
                 problem_name: str = link.get_text(strip=True)
 
-                if problem_letter and problem_name:
-                    problems.append(
-                        ProblemSummary(id=problem_letter, name=problem_name)
-                    )
+                if not (problem_letter and problem_name):
+                    continue
+
+                problems.append(ProblemSummary(id=problem_letter, name=problem_name))
 
         seen: set[str] = set()
         unique_problems: list[ProblemSummary] = []
@@ -283,6 +283,12 @@ class CodeforcesScraper(BaseScraper):
         soup = BeautifulSoup(response.text, "html.parser")
         timeout_ms, memory_mb = extract_problem_limits(soup)
 
+        problem_statement_div = soup.find("div", class_="problem-statement")
+        interactive = bool(
+            problem_statement_div
+            and "This is an interactive problem" in problem_statement_div.get_text()
+        )
+
         if not tests:
             return self._create_tests_error(
                 f"No tests found for {contest_id} {problem_letter}", problem_id, url
@@ -296,6 +302,7 @@ class CodeforcesScraper(BaseScraper):
             tests=tests,
             timeout_ms=timeout_ms,
             memory_mb=memory_mb,
+            interactive=interactive,
         )
 
     def _scrape_contest_list_impl(self) -> ContestListResult:

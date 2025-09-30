@@ -34,20 +34,6 @@ local function check_python_env()
   end
 end
 
-local function check_scrapers()
-  local plugin_path = utils.get_plugin_path()
-
-  local scrapers = { 'atcoder.py', 'codeforces.py', 'cses.py' }
-  for _, scraper in ipairs(scrapers) do
-    local scraper_path = plugin_path .. '/scrapers/' .. scraper
-    if vim.fn.filereadable(scraper_path) == 1 then
-      vim.health.ok('Scraper found: ' .. scraper)
-    else
-      vim.health.error('Missing scraper: ' .. scraper)
-    end
-  end
-end
-
 local function check_luasnip()
   local has_luasnip, luasnip = pcall(require, 'luasnip')
   if has_luasnip then
@@ -56,25 +42,6 @@ local function check_luasnip()
     vim.health.info('LuaSnip snippets loaded: ' .. snippet_count)
   else
     vim.health.info('LuaSnip not available - template expansion will be limited')
-  end
-end
-
-local function check_config()
-  vim.health.ok('Plugin ready')
-
-  local cp = require('cp')
-  local context = cp.get_current_context()
-  if context.platform then
-    local info = context.platform
-    if context.contest_id then
-      info = info .. ' ' .. context.contest_id
-      if context.problem_id then
-        info = info .. ' ' .. context.problem_id
-      end
-    end
-    vim.health.info('Current context: ' .. info)
-  else
-    vim.health.info('No contest context set')
   end
 end
 
@@ -87,9 +54,7 @@ function M.check()
   check_nvim_version()
   check_uv()
   check_python_env()
-  check_scrapers()
   check_luasnip()
-  check_config()
 end
 
 return M

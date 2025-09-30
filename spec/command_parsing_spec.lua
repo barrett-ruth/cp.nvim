@@ -559,7 +559,7 @@ describe('cp command parsing', function()
       package.loaded['cp.cache'] = nil
     end)
 
-    it('completes platforms and global actions when no contest context', function()
+    it('completes platforms and global actions without contest configuration', function()
       local result = complete_fn('', 'CP ', 3)
 
       assert.is_table(result)

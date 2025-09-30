@@ -20,6 +20,7 @@
 ---@field test_cases_cached_at? number
 ---@field timeout_ms? number
 ---@field memory_mb? number
+---@field interactive? boolean
 
 ---@class Problem
 ---@field id string
@@ -164,7 +165,16 @@ end
 ---@param test_cases CachedTestCase[]
 ---@param timeout_ms? number
 ---@param memory_mb? number
-function M.set_test_cases(platform, contest_id, problem_id, test_cases, timeout_ms, memory_mb)
+---@param interactive? boolean
+function M.set_test_cases(
+  platform,
+  contest_id,
+  problem_id,
+  test_cases,
+  timeout_ms,
+  memory_mb,
+  interactive
+)
   vim.validate({
     platform = { platform, 'string' },
     contest_id = { contest_id, 'string' },
@@ -172,6 +182,7 @@ function M.set_test_cases(platform, contest_id, problem_id, test_cases, timeout_
     test_cases = { test_cases, 'table' },
     timeout_ms = { timeout_ms, { 'number', 'nil' }, true },
     memory_mb = { memory_mb, { 'number', 'nil' }, true },
+    interactive = { interactive, { 'boolean', 'nil' }, true },
   })
 
   local problem_key = problem_id and (contest_id .. '_' .. problem_id) or contest_id

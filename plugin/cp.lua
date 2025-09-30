@@ -22,13 +22,13 @@ end, {
 
     if num_args == 2 then
       local candidates = {}
-      local cp = require('cp')
-      local context = cp.get_current_context()
-      if context.platform and context.contest_id then
+      local state = require('cp.state')
+      local platform, contest_id = state.get_platform(), state.get_contest_id()
+      if platform and contest_id then
         vim.list_extend(candidates, actions)
         local cache = require('cp.cache')
         cache.load()
-        local contest_data = cache.get_contest_data(context.platform, context.contest_id)
+        local contest_data = cache.get_contest_data(platform, contest_id)
         if contest_data and contest_data.problems then
           for _, problem in ipairs(contest_data.problems) do
             table.insert(candidates, problem.id)

@@ -121,9 +121,8 @@ Template Variables ~
 ==============================================================================
 CONFIGURATION                                                   *cp-config*
 
-cp.nvim works out of the box. No setup required.
-
 Here's an example configuration with lazy.nvim: >lua
+
     {
         'barrett-ruth/cp.nvim',
         cmd = 'CP',
@@ -165,6 +164,21 @@ Here's an example configuration with lazy.nvim: >lua
         }
     }
 <
+
+By default, all contests are configured to use C++ with the g++ compiler and ISO standard 
+17. Python is also configured with the system executable python as a non-default option. Consult lua/cp/config.lua for
+more information.
+
+For example, to run CodeForces contests with Python, only the following config
+is required:
+
+    {
+        contests = {
+            codeforces = {
+                default_langauge = 'python'
+            }
+        }
+    }
 
                                                                *cp.Config*
     Fields: ~
@@ -243,7 +257,7 @@ Here's an example configuration with lazy.nvim: >lua
                         function(state: cp.State)
 
     Hook functions receive the cp.nvim state object (cp.State). See the state
-    module documentation for available methods and fields.
+    module documentation (lua/cp/state.lua) for available methods and fields.
 
     Example usage in hook: >lua
         hooks = {
