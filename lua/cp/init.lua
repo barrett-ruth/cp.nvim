@@ -31,14 +31,6 @@ function M.setup(opts)
   end
 end
 
-function M.get_current_context()
-  return {
-    platform = state.get_platform(),
-    contest_id = state.get_contest_id(),
-    problem_id = state.get_problem_id(),
-  }
-end
-
 function M.is_initialized()
   return true
 end

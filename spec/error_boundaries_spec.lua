@@ -186,7 +186,7 @@ describe('Error boundary handling', function()
         has_validation_error = true
       elseif
         log_entry.msg
-        and (log_entry.msg:match('no contest set') or log_entry.msg:match('No contest configured'))
+        and (log_entry.msg:match('No platform ') or log_entry.msg:match('No contest '))
       then
         has_appropriate_errors = has_appropriate_errors + 1
       end

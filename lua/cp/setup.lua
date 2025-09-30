@@ -30,7 +30,8 @@ end
 
 function M.setup_contest(platform, contest_id, problem_id, language)
   if not state.get_platform() then
-    logger.log('no platform set', vim.log.levels.ERROR)
+    logger.log('No platform configured. Use :CP <platform> <contest> [...] first.')
+
     return
   end
 
@@ -215,7 +216,10 @@ function M.navigate_problem(direction, language)
   local current_problem_id = state.get_problem_id()
 
   if not platform or not contest_id or not current_problem_id then
-    logger.log('no contest context', vim.log.levels.ERROR)
+    logger.log(
+      'No platform configured. Use :CP <platform> <contest> [...] first.',
+      vim.log.levels.ERROR
+    )
     return
   end
 

@@ -36,7 +36,7 @@ function M.toggle_interactive()
 
   if not platform then
     logger.log(
-      'No platform %s configured. Use :CP <platform> <contest> [...] first.',
+      'No platform configured. Use :CP <platform> <contest> [...] first.',
       vim.log.levels.ERROR
     )
     return
@@ -131,7 +131,7 @@ function M.toggle_run_panel(is_debug)
 
   if not platform then
     logger.log(
-      'No platform %s configured. Use :CP <platform> <contest> [...] first.',
+      'No platform configured. Use :CP <platform> <contest> [...] first.',
       vim.log.levels.ERROR
     )
     return
