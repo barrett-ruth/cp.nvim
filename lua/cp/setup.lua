@@ -28,10 +28,10 @@ function M.set_platform(platform)
   return true
 end
 
+-- NOTE: this is backwards
 function M.setup_contest(platform, contest_id, problem_id, language)
   if not state.get_platform() then
     logger.log('No platform configured. Use :CP <platform> <contest> [...] first.')
-
     return
   end
 
@@ -42,6 +42,7 @@ function M.setup_contest(platform, contest_id, problem_id, language)
     return
   end
 
+  state.set_contest_id(contest_id)
   logger.log('fetching contests problems...', vim.log.levels.INFO, true)
 
   scraper.scrape_contest_metadata(platform, contest_id, function(result)
@@ -54,14 +55,13 @@ function M.setup_contest(platform, contest_id, problem_id, language)
     end
 
     local problems = result.problems
-    if not problems or #problems == 0 then
+    if vim.tbl_isempty(problems) then
       logger.log('no problems found in contest', vim.log.levels.ERROR)
       return
     end
 
     logger.log(('found %d problems'):format(#problems))
 
-    state.set_contest_id(contest_id)
     local target_problem = problem_id or problems[1].id
 
     if problem_id then
@@ -81,6 +81,7 @@ function M.setup_contest(platform, contest_id, problem_id, language)
       end
     end
 
+    -- NOTE: should setup buffer without a name, then save it with proper name later for immediate editing
     M.setup_problem(contest_id, target_problem, language)
 
     M.scrape_remaining_problems(platform, contest_id, problems)
@@ -161,6 +162,7 @@ function M.setup_problem(contest_id, problem_id, language)
   elseif vim.tbl_contains(config.scrapers, platform) then
     logger.log('loading test cases...')
 
+    -- TODO: caching should be here, not in scrpaer.lua
     scraper.scrape_problem_tests(platform, contest_id, problem_id, function(result)
       if result.success then
         logger.log(('loaded %d test cases for %s'):format(#(result.tests or {}), problem_id))
@@ -194,7 +196,7 @@ function M.scrape_remaining_problems(platform, contest_id, problems)
     end
   end
 
-  if #missing_problems == 0 then
+  if vim.tbl_isempty(missing_problems) then
     logger.log('all problems already cached')
     return
   end

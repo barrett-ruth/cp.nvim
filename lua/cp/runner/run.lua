@@ -66,9 +66,9 @@ end
 local function parse_test_cases_from_cache(platform, contest_id, problem_id)
   local cache = require('cp.cache')
   cache.load()
-  local cached_test_cases = cache.get_test_cases(platform, contest_id, problem_id)
+  local cached_test_cases = cache.get_test_cases(platform, contest_id, problem_id) or {}
 
-  if not cached_test_cases or #cached_test_cases == 0 then
+  if vim.tbl_isempty(cached_test_cases) then
     return {}
   end
 
@@ -299,9 +299,9 @@ function M.load_test_cases(state)
     state.get_platform() or '',
     state.get_contest_id() or '',
     state.get_problem_id()
-  )
+  ) or {}
 
-  if #test_cases == 0 then
+  if vim.tbl_isempty(test_cases) then
     local input_file = state.get_input_file()
     local expected_file = state.get_expected_file()
     test_cases = parse_test_cases_from_files(input_file, expected_file)

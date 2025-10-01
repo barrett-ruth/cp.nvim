@@ -12,7 +12,7 @@ describe('cp.execute', function()
 
     vim.system = function(cmd, opts)
       table.insert(mock_system_calls, { cmd = cmd, opts = opts })
-      if not cmd or #cmd == 0 then
+      if vim.tbl_isempty(cmd) then
         return {
           wait = function()
             return { code = 0, stdout = '', stderr = '' }

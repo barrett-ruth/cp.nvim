@@ -13,7 +13,7 @@ local function contest_picker(opts, platform)
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   local contests = picker_utils.get_contests_for_platform(platform)
 
-  if #contests == 0 then
+  if vim.tbl_isempty(contests) then
     vim.notify(
       ('No contests found for platform: %s'):format(platform_display_name),
       vim.log.levels.WARN

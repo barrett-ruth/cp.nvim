@@ -235,7 +235,7 @@ function M.toggle_run_panel(is_debug)
 
   local function navigate_test_case(delta)
     local test_state = run.get_run_panel_state()
-    if #test_state.test_cases == 0 then
+    if vim.tbl_isempty(test_state.test_cases) then
       return
     end
     test_state.current_index = (test_state.current_index + delta) % #test_state.test_cases

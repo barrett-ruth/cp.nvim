@@ -11,13 +11,10 @@
 
 ---@class ContestListData
 ---@field contests table[]
----@field cached_at number
 
 ---@class ContestData
 ---@field problems Problem[]
----@field scraped_at string
 ---@field test_cases? CachedTestCase[]
----@field test_cases_cached_at? number
 ---@field timeout_ms? number
 ---@field memory_mb? number
 ---@field interactive? boolean
@@ -121,7 +118,6 @@ function M.set_contest_data(platform, contest_id, problems)
 
   cache_data[platform][contest_id] = {
     problems = problems,
-    scraped_at = os.date('%Y-%m-%d'),
   }
 
   M.save()
@@ -194,7 +190,6 @@ function M.set_test_cases(
   end
 
   cache_data[platform][problem_key].test_cases = test_cases
-  cache_data[platform][problem_key].test_cases_cached_at = os.time()
   if timeout_ms then
     cache_data[platform][problem_key].timeout_ms = timeout_ms
   end
@@ -273,7 +268,6 @@ function M.set_contest_list(platform, contests)
 
   cache_data.contest_lists[platform] = {
     contests = contests,
-    cached_at = os.time(),
   }
 
   M.save()

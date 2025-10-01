@@ -270,7 +270,7 @@ function M.setup(user_config)
         end
       end
 
-      if #available_langs == 0 then
+      if vim.tbl_isemtpy(available_langs) then
         error('No language configurations found')
       end
 

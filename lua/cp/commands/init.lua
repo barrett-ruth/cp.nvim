@@ -8,7 +8,7 @@ local platforms = constants.PLATFORMS
 local actions = constants.ACTIONS
 
 local function parse_command(args)
-  if #args == 0 then
+  if vim.tbl_isempty(args) then
     return {
       type = 'restore_from_file',
     }
