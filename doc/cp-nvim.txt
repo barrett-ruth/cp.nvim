@@ -4,7 +4,7 @@ Author:  Barrett Ruth <br.barrettruth@gmail.com>
 License: Same terms as Vim itself (see |license|)
 
 ==============================================================================
-INTRODUCTION                                                    *cp* *cp.nvim*
+INTRODUCTION                                                        *cp.nvim*
 
 cp.nvim is a competitive programming plugin that automates problem setup,
 compilation, and testing workflow for online judges.
