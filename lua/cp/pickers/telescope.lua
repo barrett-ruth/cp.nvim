@@ -60,7 +60,7 @@ local function contest_picker(opts, platform)
     :find()
 end
 
-function M.picker(opts)
+function M.pick(opts)
   opts = opts or {}
 
   local platforms = picker_utils.get_platforms()

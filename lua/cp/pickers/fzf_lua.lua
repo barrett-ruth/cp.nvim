@@ -54,7 +54,7 @@ local function contest_picker(platform)
   })
 end
 
-function M.picker()
+function M.pick()
   local fzf = require('fzf-lua')
   local platforms = picker_utils.get_platforms()
   local entries = vim.tbl_map(function(platform)
