@@ -129,7 +129,6 @@ describe('cp.picker', function()
         return '/tmp'
       end
 
-      -- Mock vim.system to return success with problems
       vim.system = function()
         return {
           wait = function()
@@ -186,29 +185,6 @@ describe('cp.picker', function()
       local problems = picker.get_problems_for_contest('test_platform', 'test_contest')
       assert.is_table(problems)
       assert.equals(0, #problems)
-    end)
-  end)
-
-  describe('setup_problem', function()
-    it('calls cp.handle_command with correct arguments', function()
-      local cp = require('cp')
-      local called_with = nil
-
-      cp.handle_command = function(opts)
-        called_with = opts
-      end
-
-      picker.setup_problem('codeforces', '1951', 'a')
-
-      vim.wait(100, function()
-        return called_with ~= nil
-      end)
-
-      assert.is_table(called_with)
-      assert.is_table(called_with.fargs)
-      assert.equals('codeforces', called_with.fargs[1])
-      assert.equals('1951', called_with.fargs[2])
-      assert.equals('a', called_with.fargs[3])
     end)
   end)
 end)

@@ -6,9 +6,9 @@ local actions = require('telescope.actions')
 
 local picker_utils = require('cp.pickers')
 
-local contest_picker, problem_picker
+local M = {}
 
-function contest_picker(opts, platform)
+local function contest_picker(opts, platform)
   local constants = require('cp.constants')
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   local contests = picker_utils.get_contests_for_platform(platform)
@@ -24,7 +24,7 @@ function contest_picker(opts, platform)
   pickers
     .new(opts, {
       prompt_title = ('Select Contest (%s)'):format(platform_display_name),
-      results_title = '<C-r> refresh',
+      results_title = '<c-r> refresh',
       finder = finders.new_table({
         results = contests,
         entry_maker = function(entry)
@@ -42,11 +42,12 @@ function contest_picker(opts, platform)
           actions.close(prompt_bufnr)
 
           if selection then
-            problem_picker(opts, platform, selection.value.id)
+            local cp = require('cp')
+            cp.handle_command({ fargs = { platform, selection.value.id } })
           end
         end)
 
-        map('i', '<C-r>', function()
+        map('i', '<c-r>', function()
           local cache = require('cp.cache')
           cache.clear_contest_list(platform)
           actions.close(prompt_bufnr)
@@ -59,54 +60,7 @@ function contest_picker(opts, platform)
     :find()
 end
 
-function problem_picker(opts, platform, contest_id)
-  local constants = require('cp.constants')
-  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
-  local problems = picker_utils.get_problems_for_contest(platform, contest_id)
-
-  if #problems == 0 then
-    vim.notify(
-      ("Contest %s %s hasn't started yet or has no available problems"):format(
-        platform_display_name,
-        contest_id
-      ),
-      vim.log.levels.WARN
-    )
-    contest_picker(opts, platform)
-    return
-  end
-
-  pickers
-    .new(opts, {
-      prompt_title = ('Select Problem (%s %s)'):format(platform_display_name, contest_id),
-      finder = finders.new_table({
-        results = problems,
-        entry_maker = function(entry)
-          return {
-            value = entry,
-            display = entry.display_name,
-            ordinal = entry.display_name,
-          }
-        end,
-      }),
-      sorter = conf.generic_sorter(opts),
-      attach_mappings = function(prompt_bufnr)
-        actions.select_default:replace(function()
-          local selection = action_state.get_selected_entry()
-          actions.close(prompt_bufnr)
-
-          if selection then
-            local cp = require('cp')
-            cp.handle_command({ fargs = { platform, contest_id, selection.value.id } })
-          end
-        end)
-        return true
-      end,
-    })
-    :find()
-end
-
-local function platform_picker(opts)
+function M.pick(opts)
   opts = opts or {}
 
   local platforms = picker_utils.get_platforms()
@@ -140,6 +94,4 @@ local function platform_picker(opts)
     :find()
 end
 
-return {
-  platform_picker = platform_picker,
-}
+return M

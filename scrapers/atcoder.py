@@ -21,6 +21,44 @@ from .models import (
 )
 
 
+def _make_request(url: str, timeout: int = 10) -> requests.Response:
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
+
+    @backoff.on_exception(
+        backoff.expo,
+        (requests.exceptions.RequestException, requests.exceptions.HTTPError),
+        max_tries=5,
+        jitter=backoff.random_jitter,
+        on_backoff=lambda details: print(
+            f"Request error on {url} (attempt {details['tries']}), "
+            f"retrying in {details['wait']:.1f}s: {details['exception']}",
+            file=sys.stderr,
+        ),
+    )
+    @backoff.on_predicate(
+        backoff.expo,
+        lambda resp: resp.status_code == 429,
+        max_tries=5,
+        jitter=backoff.random_jitter,
+        on_backoff=lambda details: print(
+            f"Rate limited on {url}, retrying in {details['wait']:.1f}s",
+            file=sys.stderr,
+        ),
+    )
+    def _req():
+        return requests.get(url, headers=headers, timeout=timeout)
+
+    resp = _req()
+    resp.raise_for_status()
+    return resp
+
+
 def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, float]:
     timeout_ms = None
     memory_mb = None
@@ -82,12 +120,7 @@ def extract_problem_from_row(row, contest_id: str) -> ProblemSummary | None:
 def scrape_contest_problems(contest_id: str) -> list[ProblemSummary]:
     try:
         contest_url = f"https://atcoder.jp/contests/{contest_id}/tasks"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-
-        response = requests.get(contest_url, headers=headers, timeout=10)
-        response.raise_for_status()
+        response = _make_request(contest_url)
 
         soup = BeautifulSoup(response.text, "html.parser")
         task_table = soup.find("table", class_="table")
@@ -138,12 +171,7 @@ def extract_test_case_from_headers(sample_headers, i: int) -> tuple[str, str] | 
 
 def scrape(url: str) -> list[TestCase]:
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
+        response = _make_request(url)
 
         soup = BeautifulSoup(response.text, "html.parser")
         sample_headers = soup.find_all(
@@ -171,14 +199,7 @@ def scrape(url: str) -> list[TestCase]:
 def scrape_contests() -> list[ContestSummary]:
     def get_max_pages() -> int:
         try:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            }
-            response = requests.get(
-                "https://atcoder.jp/contests/archive", headers=headers, timeout=10
-            )
-            response.raise_for_status()
-
+            response = _make_request("https://atcoder.jp/contests/archive")
             soup = BeautifulSoup(response.text, "html.parser")
             pagination = soup.find("ul", class_="pagination")
             if not pagination or not isinstance(pagination, Tag):
@@ -196,37 +217,8 @@ def scrape_contests() -> list[ContestSummary]:
             return 15
 
     def scrape_page(page: int) -> list[ContestSummary]:
-        @backoff.on_exception(
-            backoff.expo,
-            (requests.exceptions.RequestException, requests.exceptions.HTTPError),
-            max_tries=4,
-            jitter=backoff.random_jitter,
-            on_backoff=lambda details: print(
-                f"Request failed on page {page} (attempt {details['tries']}), retrying in {details['wait']:.1f}s: {details['exception']}",
-                file=sys.stderr,
-            ),
-        )
-        @backoff.on_predicate(
-            backoff.expo,
-            lambda response: response.status_code == 429,
-            max_tries=4,
-            jitter=backoff.random_jitter,
-            on_backoff=lambda details: print(
-                f"Rate limited on page {page}, retrying in {details['wait']:.1f}s",
-                file=sys.stderr,
-            ),
-        )
-        def make_request() -> requests.Response:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            }
-            url = f"https://atcoder.jp/contests/archive?page={page}"
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
-            return response
-
         try:
-            response = make_request()
+            response = _make_request(f"https://atcoder.jp/contests/archive?page={page}")
         except Exception:
             return []
 
@@ -354,15 +346,7 @@ class AtCoderScraper(BaseScraper):
         url = parse_problem_url(contest_id, problem_letter)
         tests = scrape(url)
 
-        response = requests.get(
-            url,
-            headers={
-                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            },
-            timeout=10,
-        )
-        response.raise_for_status()
-
+        response = _make_request(url)
         soup = BeautifulSoup(response.text, "html.parser")
         timeout_ms, memory_mb = extract_problem_limits(soup)
 

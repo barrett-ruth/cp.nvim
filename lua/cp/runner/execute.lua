@@ -15,11 +15,6 @@ local filetype_to_language = constants.filetype_to_language
 ---@param contest_config table
 ---@return string
 local function get_language_from_file(source_file, contest_config)
-  vim.validate({
-    source_file = { source_file, 'string' },
-    contest_config = { contest_config, 'table' },
-  })
-
   local extension = vim.fn.fnamemodify(source_file, ':e')
   local language = filetype_to_language[extension] or contest_config.default_language
   return language
@@ -29,11 +24,6 @@ end
 ---@param substitutions table<string, string>
 ---@return string[]
 local function substitute_template(cmd_template, substitutions)
-  vim.validate({
-    cmd_template = { cmd_template, 'table' },
-    substitutions = { substitutions, 'table' },
-  })
-
   local result = {}
   for _, arg in ipairs(cmd_template) do
     local substituted = arg
@@ -50,12 +40,6 @@ end
 ---@param substitutions table<string, string>
 ---@return string[]
 local function build_command(cmd_template, executable, substitutions)
-  vim.validate({
-    cmd_template = { cmd_template, 'table' },
-    executable = { executable, { 'string', 'nil' }, true },
-    substitutions = { substitutions, 'table' },
-  })
-
   local cmd = substitute_template(cmd_template, substitutions)
   if executable then
     table.insert(cmd, 1, executable)
@@ -67,11 +51,6 @@ end
 ---@param substitutions table<string, string>
 ---@return {code: integer, stdout: string, stderr: string}
 function M.compile_generic(language_config, substitutions)
-  vim.validate({
-    language_config = { language_config, 'table' },
-    substitutions = { substitutions, 'table' },
-  })
-
   if not language_config.compile then
     logger.log('no compilation step required')
     return { code = 0, stderr = '' }
@@ -107,12 +86,6 @@ end
 ---@param timeout_ms number
 ---@return ExecuteResult
 local function execute_command(cmd, input_data, timeout_ms)
-  vim.validate({
-    cmd = { cmd, 'table' },
-    input_data = { input_data, 'string' },
-    timeout_ms = { timeout_ms, 'number' },
-  })
-
   local redirected_cmd = vim.deepcopy(cmd)
   if #redirected_cmd > 0 then
     redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
@@ -158,12 +131,6 @@ end
 ---@param is_debug boolean
 ---@return string
 local function format_output(exec_result, expected_file, is_debug)
-  vim.validate({
-    exec_result = { exec_result, 'table' },
-    expected_file = { expected_file, 'string' },
-    is_debug = { is_debug, 'boolean' },
-  })
-
   local output_lines = { exec_result.stdout }
   local metadata_lines = {}
 
@@ -207,10 +174,6 @@ end
 ---@param is_debug? boolean
 ---@return {success: boolean, output: string?}
 function M.compile_problem(contest_config, is_debug)
-  vim.validate({
-    contest_config = { contest_config, 'table' },
-  })
-
   local state = require('cp.state')
   local source_file = state.get_source_file()
   if not source_file then
@@ -249,12 +212,9 @@ function M.compile_problem(contest_config, is_debug)
   return { success = true, output = nil }
 end
 
+---@param contest_config ContestConfig
+---@param is_debug boolean
 function M.run_problem(contest_config, is_debug)
-  vim.validate({
-    contest_config = { contest_config, 'table' },
-    is_debug = { is_debug, 'boolean' },
-  })
-
   local state = require('cp.state')
   local source_file = state.get_source_file()
   local output_file = state.get_output_file()

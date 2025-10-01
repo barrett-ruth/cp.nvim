@@ -14,6 +14,8 @@ function M.handle_pick_action()
     return
   end
 
+  local picker
+
   if config.picker == 'telescope' then
     local ok = pcall(require, 'telescope')
     if not ok then
@@ -23,12 +25,13 @@ function M.handle_pick_action()
       )
       return
     end
-    local ok_cp, telescope_cp = pcall(require, 'cp.pickers.telescope')
+    local ok_cp, telescope_picker = pcall(require, 'cp.pickers.telescope')
     if not ok_cp then
       logger.log('Failed to load telescope integration', vim.log.levels.ERROR)
       return
     end
-    telescope_cp.platform_picker()
+
+    picker = telescope_picker
   elseif config.picker == 'fzf-lua' then
     local ok, _ = pcall(require, 'fzf-lua')
     if not ok then
@@ -38,13 +41,16 @@ function M.handle_pick_action()
       )
       return
     end
-    local ok_cp, fzf_cp = pcall(require, 'cp.pickers.fzf_lua')
+    local ok_cp, fzf_picker = pcall(require, 'cp.pickers.fzf_lua')
     if not ok_cp then
       logger.log('Failed to load fzf-lua integration', vim.log.levels.ERROR)
       return
     end
-    fzf_cp.platform_picker()
+
+    picker = fzf_picker
   end
+
+  picker.pick()
 end
 
 return M

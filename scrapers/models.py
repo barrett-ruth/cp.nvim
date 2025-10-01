@@ -30,7 +30,6 @@ class ScrapingResult:
 class MetadataResult(ScrapingResult):
     contest_id: str = ""
     problems: list[ProblemSummary] = field(default_factory=list)
-    categories: dict[str, list[ProblemSummary]] = field(default_factory=dict)
 
 
 @dataclass

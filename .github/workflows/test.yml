@@ -60,5 +60,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
       - name: Install dependencies with pytest
         run: uv sync --dev
+      - name: Fetch camoufox data
+        run: uv run camoufox fetch
       - name: Run Python tests
         run: uv run pytest tests/scrapers/ -v

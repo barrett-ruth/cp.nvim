@@ -5,8 +5,9 @@ import re
 import sys
 from dataclasses import asdict
 
-import cloudscraper
+import requests
 from bs4 import BeautifulSoup, Tag
+from scrapling.fetchers import StealthySession
 
 from .base import BaseScraper
 from .models import (
@@ -21,11 +22,11 @@ from .models import (
 
 def scrape(url: str) -> list[TestCase]:
     try:
-        scraper = cloudscraper.create_scraper()
-        response = scraper.get(url, timeout=10)
-        response.raise_for_status()
+        with StealthySession(headless=True, solve_cloudflare=True) as session:
+            page = session.fetch(url, google_search=False)
+            html = page.html_content
 
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(html, "html.parser")
         input_sections = soup.find_all("div", class_="input")
         output_sections = soup.find_all("div", class_="output")
 
@@ -139,7 +140,7 @@ def scrape(url: str) -> list[TestCase]:
         return [TestCase(input=combined_input, expected=combined_output)]
 
     except Exception as e:
-        print(f"CloudScraper failed: {e}", file=sys.stderr)
+        print(f"Scrapling failed: {e}", file=sys.stderr)
         return []
 
 
@@ -180,11 +181,11 @@ def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, float]:
 def scrape_contest_problems(contest_id: str) -> list[ProblemSummary]:
     try:
         contest_url: str = f"https://codeforces.com/contest/{contest_id}"
-        scraper = cloudscraper.create_scraper()
-        response = scraper.get(contest_url, timeout=10)
-        response.raise_for_status()
+        with StealthySession(headless=True, solve_cloudflare=True) as session:
+            page = session.fetch(contest_url, google_search=False)
+            html = page.html_content
 
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(html, "html.parser")
         problems: list[ProblemSummary] = []
 
         problem_links = soup.find_all(
@@ -224,8 +225,7 @@ def scrape_sample_tests(url: str) -> list[TestCase]:
 
 
 def scrape_contests() -> list[ContestSummary]:
-    scraper = cloudscraper.create_scraper()
-    response = scraper.get("https://codeforces.com/api/contest.list", timeout=10)
+    response = requests.get("https://codeforces.com/api/contest.list", timeout=10)
     response.raise_for_status()
 
     data = response.json()
@@ -236,7 +236,6 @@ def scrape_contests() -> list[ContestSummary]:
     for contest in data["result"]:
         contest_id = str(contest["id"])
         name = contest["name"]
-
         contests.append(ContestSummary(id=contest_id, name=name, display_name=name))
 
     return contests
@@ -277,10 +276,10 @@ class CodeforcesScraper(BaseScraper):
         url = parse_problem_url(contest_id, problem_letter)
         tests = scrape_sample_tests(url)
 
-        scraper = cloudscraper.create_scraper()
-        response = scraper.get(url, timeout=self.config.timeout_seconds)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
+        with StealthySession(headless=True, solve_cloudflare=True) as session:
+            page = session.fetch(url, google_search=False)
+            html = page.html_content
+        soup = BeautifulSoup(html, "html.parser")
         timeout_ms, memory_mb = extract_problem_limits(soup)
 
         problem_statement_div = soup.find("div", class_="problem-statement")
