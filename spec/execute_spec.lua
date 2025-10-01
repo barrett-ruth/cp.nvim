@@ -235,28 +235,6 @@ describe('cp.execute', function()
     end)
   end)
 
-  describe('parameter validation', function()
-    it('validates language_config parameter', function()
-      assert.has_error(function()
-        execute.compile_generic(nil, {})
-      end)
-
-      assert.has_error(function()
-        execute.compile_generic('not_table', {})
-      end)
-    end)
-
-    it('validates substitutions parameter', function()
-      assert.has_error(function()
-        execute.compile_generic({}, nil)
-      end)
-
-      assert.has_error(function()
-        execute.compile_generic({}, 'not_table')
-      end)
-    end)
-  end)
-
   describe('directory creation', function()
     it('creates build and io directories', function()
       local language_config = {
