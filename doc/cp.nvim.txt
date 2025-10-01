@@ -28,7 +28,7 @@ COMMANDS                                                        *cp-commands*
         cp.nvim uses a single :CP command with intelligent argument parsing:
 
         State Restoration ~
-            :CP                 Restore contest context from current file.
+            :CP                 Restore state from current file.
                                 Automatically detects platform, contest, problem,
                                 and language from cached state. Use this after
                                 switching files to restore your CP environment.
