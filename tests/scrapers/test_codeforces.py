@@ -1,7 +1,5 @@
 from unittest.mock import Mock
 
-import pytest
-
 from scrapers.codeforces import CodeforcesScraper
 from scrapers.models import ContestSummary, ProblemSummary
 
