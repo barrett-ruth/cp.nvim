@@ -17,7 +17,7 @@ describe('cp.fzf_lua', function()
 
   describe('module loading', function()
     it('loads fzf-lua integration without error', function()
-      assert.has_no.errors(function()
+      assert.has_no_errors(function()
         require('cp.pickers.fzf_lua')
       end)
     end)

@@ -64,7 +64,7 @@ describe('cp.telescope', function()
 
   describe('module loading', function()
     it('registers telescope extension without error', function()
-      assert.has_no.errors(function()
+      assert.has_no_errors(function()
         require('cp.pickers.telescope')
       end)
     end)
