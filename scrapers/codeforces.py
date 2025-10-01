@@ -7,7 +7,7 @@ from dataclasses import asdict
 
 import requests
 from bs4 import BeautifulSoup, Tag
-from scrapling.fetchers import StealthySession
+from scrapling.fetchers import StealthyFetcher
 
 from .base import BaseScraper
 from .models import (
@@ -22,9 +22,8 @@ from .models import (
 
 def scrape(url: str) -> list[TestCase]:
     try:
-        with StealthySession(headless=True, solve_cloudflare=True) as session:
-            page = session.fetch(url, google_search=False)
-            html = page.html_content
+        page = StealthyFetcher.fetch(url, headless=True, solve_cloudflare=True)
+        html = page.html_content
 
         soup = BeautifulSoup(html, "html.parser")
         input_sections = soup.find_all("div", class_="input")
@@ -181,9 +180,8 @@ def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, float]:
 def scrape_contest_problems(contest_id: str) -> list[ProblemSummary]:
     try:
         contest_url: str = f"https://codeforces.com/contest/{contest_id}"
-        with StealthySession(headless=True, solve_cloudflare=True) as session:
-            page = session.fetch(contest_url, google_search=False)
-            html = page.html_content
+        page = StealthyFetcher.fetch(contest_url, headless=True, solve_cloudflare=True)
+        html = page.html_content
 
         soup = BeautifulSoup(html, "html.parser")
         problems: list[ProblemSummary] = []
@@ -276,9 +274,8 @@ class CodeforcesScraper(BaseScraper):
         url = parse_problem_url(contest_id, problem_letter)
         tests = scrape_sample_tests(url)
 
-        with StealthySession(headless=True, solve_cloudflare=True) as session:
-            page = session.fetch(url, google_search=False)
-            html = page.html_content
+        page = StealthyFetcher.fetch(url, headless=True, solve_cloudflare=True)
+        html = page.html_content
         soup = BeautifulSoup(html, "html.parser")
         timeout_ms, memory_mb = extract_problem_limits(soup)
 
