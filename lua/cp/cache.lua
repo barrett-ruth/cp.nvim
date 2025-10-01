@@ -240,6 +240,10 @@ end
 ---@param problem_id? string
 ---@param language? string
 function M.set_file_state(file_path, platform, contest_id, problem_id, language)
+  if not cache_data.file_states then
+    cache_data.file_states = {}
+  end
+
   cache_data.file_states[file_path] = {
     platform = platform,
     contest_id = contest_id,
@@ -284,7 +288,10 @@ function M.clear_contest_list(platform)
 end
 
 function M.clear_all()
-  cache_data = {}
+  cache_data = {
+    file_states = {},
+    contest_lists = {},
+  }
   M.save()
 end
 
