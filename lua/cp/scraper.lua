@@ -5,7 +5,7 @@ local logger = require('cp.log')
 
 local function syshandle(result)
   if result.code ~= 0 then
-    local msg = 'Scraper failed: ' .. (result.error or result.stderr or 'Unknown error')
+    local msg = 'Scraper failed: ' .. (result.stderr or 'Unknown error')
     logger.log(msg, vim.log.levels.ERROR)
     return {
       success = false,
@@ -69,13 +69,17 @@ end
 function M.scrape_contest_metadata(platform, contest_id, callback)
   run_scraper(platform, 'metadata', { contest_id }, {
     on_exit = function(result)
-      if not result.success then
+      if not result.success or vim.tbl_isempty(result.data.problems) then
         logger.log(
-          ('Failed to scrape metadata for %s contest %s - aborting.'):format(platform, contest_id)
+          ('Failed to scrape metadata for %s contest %s - aborting.'):format(platform, contest_id),
+          vim.log.levels.ERROR
         )
         return
       end
-      callback(result.data)
+
+      if type(callback) == 'function' then
+        callback(result.data)
+      end
     end,
   })
 end
@@ -83,7 +87,10 @@ end
 function M.scrape_contest_list(platform)
   local result = run_scraper(platform, 'contests', {}, { sync = true })
   if not result.success or not result.data.contests then
-    logger.log(('Could not scrape contests list for platform %s: %s'):format(platform, result.msg))
+    logger.log(
+      ('Could not scrape contests list for platform %s: %s'):format(platform, result.msg),
+      vim.log.levels.ERROR
+    )
     return {}
   end
 
@@ -123,7 +130,9 @@ function M.scrape_problem_tests(platform, contest_id, problem_id, callback)
         end
       end)
 
-      callback(result.data)
+      if type(callback) == 'function' then
+        callback(result.data)
+      end
     end,
   })
 end

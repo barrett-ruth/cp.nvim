@@ -5,7 +5,7 @@ local logger = require('cp.log')
 local snippets = require('cp.snippets')
 
 if not vim.fn.has('nvim-0.10.0') then
-  logger.log('[cp.nvim]: requires nvim-0.10.0+', vim.log.levels.ERROR)
+  logger.log('Requires nvim-0.10.0+', vim.log.levels.ERROR)
   return {}
 end
 

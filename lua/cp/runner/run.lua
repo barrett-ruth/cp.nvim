@@ -185,7 +185,7 @@ local function run_single_test_case(contest_config, cp_config, test_case)
   }
 
   if language_config.compile and binary_file and vim.fn.filereadable(binary_file) == 0 then
-    logger.log('binary not found, compiling first...')
+    logger.log('Binary not found - compiling first.')
     local compile_cmd = substitute_template(language_config.compile, substitutions)
     local redirected_cmd = vim.deepcopy(compile_cmd)
     redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
@@ -219,9 +219,6 @@ local function run_single_test_case(contest_config, cp_config, test_case)
   local start_time = vim.uv.hrtime()
   local timeout_ms = run_panel_state.constraints and run_panel_state.constraints.timeout_ms or 2000
 
-  if not run_panel_state.constraints then
-    logger.log('no problem constraints available, using default 2000ms timeout')
-  end
   local redirected_run_cmd = vim.deepcopy(run_cmd)
   redirected_run_cmd[#redirected_run_cmd] = redirected_run_cmd[#redirected_run_cmd] .. ' 2>&1'
   local result = vim
@@ -315,14 +312,7 @@ function M.load_test_cases(state)
     state.get_problem_id()
   )
 
-  local constraint_info = run_panel_state.constraints
-      and string.format(
-        ' with %dms/%dMB limits',
-        run_panel_state.constraints.timeout_ms,
-        run_panel_state.constraints.memory_mb
-      )
-    or ''
-  logger.log(('loaded %d test case(s)%s'):format(#test_cases, constraint_info), vim.log.levels.INFO)
+  logger.log(('Loaded %d test case(s)'):format(#test_cases), vim.log.levels.INFO)
   return #test_cases > 0
 end
 

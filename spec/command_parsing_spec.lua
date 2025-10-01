@@ -19,7 +19,6 @@ describe('cp command parsing', function()
       setup_contest = function() end,
       navigate_problem = function() end,
       setup_problem = function() end,
-      scrape_remaining_problems = function() end,
     }
     package.loaded['cp.setup'] = mock_setup
 

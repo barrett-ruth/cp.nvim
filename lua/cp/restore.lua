@@ -7,7 +7,7 @@ local state = require('cp.state')
 function M.restore_from_current_file()
   local current_file = vim.fn.expand('%:p')
   if current_file == '' then
-    logger.log('No file is currently open', vim.log.levels.ERROR)
+    logger.log('No file is currently open.', vim.log.levels.ERROR)
     return false
   end
 
@@ -15,7 +15,7 @@ function M.restore_from_current_file()
   local file_state = cache.get_file_state(current_file)
   if not file_state then
     logger.log(
-      'No cached state found for current file. Use :CP <platform> <contest> <problem> first.',
+      'No cached state found for current file. Use :CP <platform> <contest> <problem> [...] first.',
       vim.log.levels.ERROR
     )
     return false
@@ -25,7 +25,7 @@ function M.restore_from_current_file()
     ('Restoring from cached state: %s %s %s'):format(
       file_state.platform,
       file_state.contest_id,
-      file_state.problem_id or 'N/A'
+      file_state.problem_id
     )
   )
 
