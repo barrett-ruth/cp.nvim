@@ -117,6 +117,8 @@ end
 ---@param contest_id string Contest identifier
 ---@return cp.ProblemItem[]
 function M.get_problems_for_contest(platform, contest_id)
+  logger.log('loading contest problems...', vim.log.levels.INFO, true)
+
   local problems = {}
 
   cache.load()
@@ -131,8 +133,6 @@ function M.get_problems_for_contest(platform, contest_id)
     end
     return problems
   end
-
-  logger.log('loading contest problems...', vim.log.levels.INFO, true)
 
   if not utils.setup_python_env() then
     return problems
