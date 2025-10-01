@@ -227,10 +227,6 @@ end
 ---@param file_path string
 ---@return FileState?
 function M.get_file_state(file_path)
-  vim.validate({
-    file_path = { file_path, 'string' },
-  })
-
   if not cache_data.file_states then
     return nil
   end
@@ -244,18 +240,6 @@ end
 ---@param problem_id? string
 ---@param language? string
 function M.set_file_state(file_path, platform, contest_id, problem_id, language)
-  vim.validate({
-    file_path = { file_path, 'string' },
-    platform = { platform, 'string' },
-    contest_id = { contest_id, 'string' },
-    problem_id = { problem_id, { 'string', 'nil' }, true },
-    language = { language, { 'string', 'nil' }, true },
-  })
-
-  if not cache_data.file_states then
-    cache_data.file_states = {}
-  end
-
   cache_data.file_states[file_path] = {
     platform = platform,
     contest_id = contest_id,
@@ -269,10 +253,6 @@ end
 ---@param platform string
 ---@return table[]?
 function M.get_contest_list(platform)
-  vim.validate({
-    platform = { platform, 'string' },
-  })
-
   if not cache_data.contest_lists or not cache_data.contest_lists[platform] then
     return nil
   end
@@ -283,11 +263,6 @@ end
 ---@param platform string
 ---@param contests table[]
 function M.set_contest_list(platform, contests)
-  vim.validate({
-    platform = { platform, 'string' },
-    contests = { contests, 'table' },
-  })
-
   if not cache_data.contest_lists then
     cache_data.contest_lists = {}
   end
@@ -302,10 +277,6 @@ end
 
 ---@param platform string
 function M.clear_contest_list(platform)
-  vim.validate({
-    platform = { platform, 'string' },
-  })
-
   if cache_data.contest_lists and cache_data.contest_lists[platform] then
     cache_data.contest_lists[platform] = nil
     M.save()
@@ -319,10 +290,6 @@ end
 
 ---@param platform string
 function M.clear_platform(platform)
-  vim.validate({
-    platform = { platform, 'string' },
-  })
-
   if cache_data[platform] then
     cache_data[platform] = nil
   end

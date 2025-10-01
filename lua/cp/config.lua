@@ -286,11 +286,6 @@ end
 ---@param problem_id? string
 ---@return string
 local function default_filename(contest_id, problem_id)
-  vim.validate({
-    contest_id = { contest_id, 'string' },
-    problem_id = { problem_id, { 'string', 'nil' }, true },
-  })
-
   if problem_id then
     return (contest_id .. problem_id):lower()
   else

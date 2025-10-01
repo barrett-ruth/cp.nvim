@@ -364,29 +364,18 @@ Example: Setting up and solving AtCoder contest ABC324
 PICKER INTEGRATION                                              *cp-picker*
 
 When picker integration is enabled in configuration, cp.nvim provides interactive
-platform, contest, and problem selection using telescope.nvim or fzf-lua.
+platform and contest selection using telescope.nvim or fzf-lua.
 
 :CP pick                                                        *:CP-pick*
         Launch configured picker for interactive problem selection.
-        Control Flow: Select Platform → Contest → Problem → Code!
+        Control Flow: Select Platform → Contest → Code!
 
         Requires picker = 'telescope' or picker = 'fzf-lua' in configuration.
         Requires corresponding plugin (telescope.nvim or fzf-lua) to be installed.
 
-Picker Controls ~
-                                                       *cp-picker-controls*
-    The picker interface provides several keyboard shortcuts for enhanced control:
-
-    <c-r>                   Force refresh contest list, bypassing cache
-                            Useful when contest lists are outdated or incomplete
-                            Shows loading indicator during refresh operation
-
-    Standard picker controls (telescope.nvim/fzf-lua):
-    <cr>                    Select current item and proceed to next step
-    <c-c> / <esc>          Cancel picker and return to editor
-    <c-n> / <down>         Navigate to next item
-    <c-p> / <up>           Navigate to previous item
-    /                      Start filtering/searching items
+PICKER KEYMAPS                                                  *cp-picker-keys*
+<c-r>   Force refresh contest list, bypassing cache.
+        Useful when contest lists are outdated or incomplete
 
 ==============================================================================
 RUN PANEL                                                           *cp-run*
@@ -542,13 +531,13 @@ prevent them from being overridden: >lua
 
 ==============================================================================
 RUN PANEL KEYMAPS                                           *cp-test-keys*
-<c-n>                           Navigate to next test case (configurable via
+<c-n>   Navigate to next test case (configurable via
                                 run_panel.next_test_key)
-<c-p>                           Navigate to previous test case (configurable via
+<c-p>   Navigate to previous test case (configurable via
                                 run_panel.prev_test_key)
-<c-t>                           Cycle through diff modes: none → git → vim (configurable
+<c-t>   Cycle through diff modes: none → git → vim (configurable
                                 via run_panel.toggle_diff_key)
-<c-q>                           Exit run panel/interactive terminal and restore layout
+<c-q>   Exit run panel/interactive terminal and restore layout
 
 Diff Modes ~
 

@@ -108,7 +108,6 @@ function M.get_contests_for_platform(platform)
     })
   end
 
-  cache.set_contest_list(platform, contests)
   logger.log(('loaded %d contests'):format(#contests))
   return contests
 end

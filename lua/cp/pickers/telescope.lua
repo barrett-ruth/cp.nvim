@@ -47,7 +47,7 @@ local function contest_picker(opts, platform)
           end
         end)
 
-        map('i', '<C-r>', function()
+        map('i', '<c-r>', function()
           local cache = require('cp.cache')
           cache.clear_contest_list(platform)
           actions.close(prompt_bufnr)
