@@ -1,4 +1,4 @@
-*cp.nvim.txt*            Competitive programming plugin for Neovim               *cp.nvim.txt*
+*cp.nvim.txt*            Competitive programming plugin for Neovim
 
 Author:  Barrett Ruth <br.barrettruth@gmail.com>
 License: Same terms as Vim itself (see |license|)
