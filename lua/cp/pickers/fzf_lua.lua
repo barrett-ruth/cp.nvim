@@ -1,6 +1,6 @@
 local picker_utils = require('cp.pickers')
 
-local M
+local M = {}
 
 local function contest_picker(platform)
   local constants = require('cp.constants')
