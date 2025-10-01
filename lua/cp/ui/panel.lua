@@ -238,7 +238,7 @@ function M.toggle_run_panel(is_debug)
     if vim.tbl_isempty(test_state.test_cases) then
       return
     end
-    test_state.current_index = (test_state.current_index + delta) % #test_state.test_cases
+    test_state.current_index = (test_state.current_index + delta - 1) % #test_state.test_cases + 1
     refresh_run_panel()
   end
 

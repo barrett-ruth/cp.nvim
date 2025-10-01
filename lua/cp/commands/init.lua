@@ -62,9 +62,8 @@ local function parse_command(args)
   if vim.tbl_contains(platforms, first) then
     if #filtered_args == 1 then
       return {
-        type = 'platform_only',
-        platform = first,
-        language = language,
+        type = 'error',
+        message = 'Too few arguments - specify a contest.',
       }
     elseif #filtered_args == 2 then
       return {
@@ -144,12 +143,6 @@ function M.handle_command(opts)
   if cmd.type == 'cache' then
     local cache_commands = require('cp.commands.cache')
     cache_commands.handle_cache_command(cmd)
-    return
-  end
-
-  if cmd.type == 'platform_only' then
-    local setup = require('cp.setup')
-    setup.set_platform(cmd.platform)
     return
   end
 

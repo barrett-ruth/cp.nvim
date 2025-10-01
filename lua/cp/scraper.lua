@@ -69,9 +69,13 @@ end
 function M.scrape_contest_metadata(platform, contest_id, callback)
   run_scraper(platform, 'metadata', { contest_id }, {
     on_exit = function(result)
-      if result.success and result.data.problems then
-        callback(result.data.problems)
+      if not result.success then
+        logger.log(
+          ('Failed to scrape metadata for %s contest %s - aborting.'):format(platform, contest_id)
+        )
+        return
       end
+      callback(result.data)
     end,
   })
 end
@@ -89,54 +93,37 @@ end
 function M.scrape_problem_tests(platform, contest_id, problem_id, callback)
   run_scraper(platform, 'tests', { contest_id, problem_id }, {
     on_exit = function(result)
-      if result.success and result.data.tests then
-        vim.schedule(function()
-          local mkdir_ok = pcall(vim.fn.mkdir, 'io', 'p')
-          if mkdir_ok then
-            local config = require('cp.config')
-            local base_name = config.default_filename(contest_id, problem_id)
-
-            for i, test_case in ipairs(result.tests) do
-              local input_file = 'io/' .. base_name .. '.' .. i .. '.cpin'
-              local expected_file = 'io/' .. base_name .. '.' .. i .. '.cpout'
-
-              local input_content = test_case.input:gsub('\r', '')
-              local expected_content = test_case.expected:gsub('\r', '')
-
-              pcall(
-                vim.fn.writefile,
-                vim.split(input_content, '\n', { trimempty = true }),
-                input_file
-              )
-              pcall(
-                vim.fn.writefile,
-                vim.split(expected_content, '\n', { trimempty = true }),
-                expected_file
-              )
-            end
-          end
-        end)
-
-        local cached_tests = {}
-        for i, test_case in ipairs(result.tests) do
-          table.insert(cached_tests, {
-            index = i,
-            input = test_case.input,
-            expected = test_case.expected,
-          })
-        end
-
-        cache.set_test_cases(
-          platform,
-          contest_id,
-          problem_id,
-          cached_tests,
-          result.timeout_ms,
-          result.memory_mb
+      if not result.success or not result.data.tests then
+        logger.log(
+          'Failed to load tests: ' .. (result.msg or 'unknown error'),
+          vim.log.levels.ERROR
         )
+
+        return {}
       end
 
-      callback(result)
+      vim.schedule(function()
+        vim.system({ 'mkdir', '-p', 'build', 'io' }):wait()
+        local config = require('cp.config')
+        local base_name = config.default_filename(contest_id, problem_id)
+
+        for i, test_case in ipairs(result.data.tests) do
+          local input_file = 'io/' .. base_name .. '.' .. i .. '.cpin'
+          local expected_file = 'io/' .. base_name .. '.' .. i .. '.cpout'
+
+          local input_content = test_case.input:gsub('\r', '')
+          local expected_content = test_case.expected:gsub('\r', '')
+
+          pcall(vim.fn.writefile, vim.split(input_content, '\n', { trimempty = true }), input_file)
+          pcall(
+            vim.fn.writefile,
+            vim.split(expected_content, '\n', { trimempty = true }),
+            expected_file
+          )
+        end
+      end)
+
+      callback(result.data)
     end,
   })
 end
