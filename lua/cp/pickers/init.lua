@@ -20,7 +20,7 @@ local utils = require('cp.utils')
 ---@field display_name string Formatted display name for picker
 
 ---@return cp.PlatformItem[]
-local function get_platforms()
+function M.get_platforms()
   local constants = require('cp.constants')
   local result = {}
 
@@ -39,7 +39,7 @@ end
 ---Get list of contests for a specific platform
 ---@param platform string Platform identifier (e.g. "codeforces", "atcoder")
 ---@return cp.ContestItem[]
-local function get_contests_for_platform(platform)
+function M.get_contests_for_platform(platform)
   logger.log('loading contests...', vim.log.levels.INFO, true)
 
   cache.load()
@@ -116,7 +116,7 @@ end
 ---@param platform string Platform identifier
 ---@param contest_id string Contest identifier
 ---@return cp.ProblemItem[]
-local function get_problems_for_contest(platform, contest_id)
+function M.get_problems_for_contest(platform, contest_id)
   local problems = {}
 
   cache.load()
@@ -197,16 +197,11 @@ end
 ---@param platform string Platform identifier
 ---@param contest_id string Contest identifier
 ---@param problem_id string Problem identifier
-local function setup_problem(platform, contest_id, problem_id)
+function M.setup_problem(platform, contest_id, problem_id)
   vim.schedule(function()
     local cp = require('cp')
     cp.handle_command({ fargs = { platform, contest_id, problem_id } })
   end)
 end
-
-M.get_platforms = get_platforms
-M.get_contests_for_platform = get_contests_for_platform
-M.get_problems_for_contest = get_problems_for_contest
-M.setup_problem = setup_problem
 
 return M
