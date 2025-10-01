@@ -4,18 +4,10 @@ from scrapers.codeforces import CodeforcesScraper
 from scrapers.models import ContestSummary, ProblemSummary
 
 
-def make_mock_session(html: str):
-    """Return a mock StealthySession that yields the given HTML."""
-    mock_session = Mock()
-    mock_session.fetch.return_value.html_content = html
-    mock_session.__enter__ = lambda s: s
-    mock_session.__exit__ = lambda s, exc_type, exc_val, exc_tb: None
-    return mock_session
-
-
 def test_scrape_success(mocker, mock_codeforces_html):
-    mock_session = make_mock_session(mock_codeforces_html)
-    mocker.patch("scrapers.codeforces.StealthySession", return_value=mock_session)
+    mock_page = Mock()
+    mock_page.html_content = mock_codeforces_html
+    mocker.patch("scrapers.codeforces.StealthyFetcher.fetch", return_value=mock_page)
 
     scraper = CodeforcesScraper()
     result = scraper.scrape_problem_tests("1900", "A")
@@ -31,8 +23,9 @@ def test_scrape_contest_problems(mocker):
     <a href="/contest/1900/problem/A">A. Problem A</a>
     <a href="/contest/1900/problem/B">B. Problem B</a>
     """
-    mock_session = make_mock_session(html)
-    mocker.patch("scrapers.codeforces.StealthySession", return_value=mock_session)
+    mock_page = Mock()
+    mock_page.html_content = html
+    mocker.patch("scrapers.codeforces.StealthyFetcher.fetch", return_value=mock_page)
 
     scraper = CodeforcesScraper()
     result = scraper.scrape_contest_metadata("1900")
@@ -44,11 +37,10 @@ def test_scrape_contest_problems(mocker):
 
 
 def test_scrape_network_error(mocker):
-    mock_session = Mock()
-    mock_session.fetch.side_effect = Exception("Network error")
-    mock_session.__enter__ = lambda s: s
-    mock_session.__exit__ = lambda s, exc_type, exc_val, exc_tb: None
-    mocker.patch("scrapers.codeforces.StealthySession", return_value=mock_session)
+    mocker.patch(
+        "scrapers.codeforces.StealthyFetcher.fetch",
+        side_effect=Exception("Network error"),
+    )
 
     scraper = CodeforcesScraper()
     result = scraper.scrape_problem_tests("1900", "A")
