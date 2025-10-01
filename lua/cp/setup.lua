@@ -45,7 +45,25 @@ local function scrape_contest_problems(platform, contest_id, problems)
   end
 
   for _, prob in ipairs(missing_problems) do
-    scraper.scrape_problem_tests(platform, contest_id, prob.id)
+    scraper.scrape_problem_tests(platform, contest_id, prob.id, function(result)
+      local cached_tests = {}
+      for i, test_case in ipairs(result.tests) do
+        table.insert(cached_tests, {
+          index = i,
+          input = test_case.input,
+          expected = test_case.expected,
+        })
+      end
+
+      cache.set_test_cases(
+        platform,
+        contest_id,
+        state.get_problem_id(),
+        cached_tests,
+        result.timeout_ms,
+        result.memory_mb
+      )
+    end)
   end
 end
 
@@ -63,12 +81,15 @@ function M.setup_contest(platform, contest_id, problem_id, language)
   end
 
   state.set_contest_id(contest_id)
+  -- TODO: should check cache here, & other uses of gt_contest_data validate them
   logger.log('Fetching contests problems...', vim.log.levels.INFO, true)
 
   scraper.scrape_contest_metadata(platform, contest_id, function(result)
     local problems = result.problems
 
-    logger.log(('found %d problems'):format(#problems))
+    cache.set_contest_data(platform, contest_id, problems)
+
+    logger.log(('Found %d problems for %s contest %s'):format(#problems, platform, contest_id))
 
     local target_problem = problem_id or problems[1].id
 
@@ -166,7 +187,12 @@ function M.navigate_problem(direction, language)
     return
   end
 
-  M.setup_problem(contest_id, problems[new_index].id, language)
+  local cp = require('cp')
+  local args = { platform, contest_id, problems[new_index].id }
+  if language then
+    vim.list_extend(args, { '--lang', language })
+  end
+  cp.handle_command({ fargs = args })
 end
 
 return M

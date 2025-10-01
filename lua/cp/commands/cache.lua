@@ -7,7 +7,6 @@ local logger = require('cp.log')
 local platforms = constants.PLATFORMS
 
 function M.handle_cache_command(cmd)
-  cmd.platform = cmd.platform:lower()
   if cmd.subcommand == 'clear' then
     cache.load()
     if cmd.platform then

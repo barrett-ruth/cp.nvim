@@ -62,6 +62,7 @@ function M.toggle_interactive()
   local cache = require('cp.cache')
   cache.load()
   local contest_data = cache.get_contest_data(platform, contest_id)
+  vim.print('checking cache - contes_data (DLETE ME): ', contest_data)
   if contest_data and not contest_data.interactive then
     logger.log(
       'This is NOT an interactive problem. Use :CP run instead - aborting.',

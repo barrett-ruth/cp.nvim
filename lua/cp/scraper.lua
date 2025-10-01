@@ -128,11 +128,10 @@ function M.scrape_problem_tests(platform, contest_id, problem_id, callback)
             expected_file
           )
         end
+        if type(callback) == 'function' then
+          callback(result.data)
+        end
       end)
-
-      if type(callback) == 'function' then
-        callback(result.data)
-      end
     end,
   })
 end
