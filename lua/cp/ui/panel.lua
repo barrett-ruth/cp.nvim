@@ -92,7 +92,7 @@ function M.toggle_interactive()
 
   vim.fn.chansend(vim.b.terminal_job_id, binary .. '\n')
 
-  vim.keymap.set('t', config.run_panel.close_key, function()
+  vim.keymap.set('t', '<c-q>', function()
     M.toggle_interactive()
   end, { buffer = term_buf, silent = true })
 

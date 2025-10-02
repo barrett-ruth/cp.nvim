@@ -535,7 +535,8 @@ RUN PANEL KEYMAPS                                           *cp-test-keys*
 <c-p>   Navigate to previous test case (configurable via
                                 run_panel.prev_test_key)
 t       Cycle through diff modes: none → git → vim
-q       Exit run panel/interactive terminal and restore layout
+q       Exit run panel and restore layout
+<c-q>   Exit interactive terminal and restore layout
 
 Diff Modes ~
 
