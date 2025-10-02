@@ -1,0 +1,11 @@
+describe('run module', function()
+  local run = require('cp.runner.run')
+
+  describe('basic functionality', function()
+    it('can get panel state', function()
+      local state = run.get_run_panel_state()
+      assert.is_table(state)
+      assert.is_table(state.test_cases)
+    end)
+  end)
+end)
