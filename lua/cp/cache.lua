@@ -4,6 +4,18 @@
 ---@field problem_id? string
 ---@field language? string
 
+---@class ContestData
+---@field problems Problem[]
+---@field test_cases? CachedTestCase[]
+---@field timeout_ms? number
+---@field memory_mb? number
+---@field interactive? boolean
+
+---@class ContestSummary
+---@field display_name string
+---@field name string
+---@field id string
+
 ---@class CacheData
 ---@field [string] table<string, ContestData>
 ---@field file_states? table<string, FileState>
@@ -11,13 +23,6 @@
 
 ---@class ContestListData
 ---@field contests table[]
-
----@class ContestData
----@field problems Problem[]
----@field test_cases? CachedTestCase[]
----@field timeout_ms? number
----@field memory_mb? number
----@field interactive? boolean
 
 ---@class Problem
 ---@field id string
@@ -36,6 +41,8 @@ local cache_file = vim.fn.stdpath('data') .. '/cp-nvim.json'
 local cache_data = {}
 local loaded = false
 
+--- Load the cache from disk if not done already
+---@return nil
 function M.load()
   if loaded then
     return
@@ -63,6 +70,8 @@ function M.load()
   loaded = true
 end
 
+--- Save the cache to disk, overwriting existing contents
+---@return nil
 function M.save()
   vim.schedule(function()
     vim.fn.mkdir(vim.fn.fnamemodify(cache_file, ':h'), 'p')
@@ -260,8 +269,8 @@ function M.set_file_state(file_path, platform, contest_id, problem_id, language)
 end
 
 ---@param platform string
----@return table[]
-function M.get_contest_list(platform)
+---@return table[ContestSummary]
+function M.get_contest_summaries(platform)
   local contest_list = {}
   for contest_id, contest_data in pairs(cache_data[platform] or {}) do
     table.insert(contest_list, {
@@ -274,8 +283,8 @@ function M.get_contest_list(platform)
 end
 
 ---@param platform string
----@param contests table[]
-function M.set_contest_list(platform, contests)
+---@param contests table[ContestSummary]
+function M.set_contest_summaries(platform, contests)
   cache_data[platform] = cache_data[platform] or {}
   for _, contest in ipairs(contests) do
     cache_data[platform][contest.id] = cache_data[platform][contest] or {}
