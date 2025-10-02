@@ -1,6 +1,6 @@
 ---@class AnsiParseResult
 ---@field lines string[]
----@field highlights table[]
+---@field highlights any[]
 
 local M = {}
 

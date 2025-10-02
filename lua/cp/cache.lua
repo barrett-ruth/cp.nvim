@@ -6,10 +6,9 @@
 
 ---@class ContestData
 ---@field problems Problem[]
----@field test_cases? CachedTestCase[]
----@field timeout_ms? number
----@field memory_mb? number
----@field interactive? boolean
+---@field index_map table<string, number>
+---@field name string
+---@field display_name string
 
 ---@class ContestSummary
 ---@field display_name string
@@ -19,19 +18,20 @@
 ---@class CacheData
 ---@field [string] table<string, ContestData>
 ---@field file_states? table<string, FileState>
----@field contest_lists? table<string, ContestListData>
-
----@class ContestListData
----@field contests table[]
+---@field contest_lists? table<string, ContestSummary>
 
 ---@class Problem
 ---@field id string
 ---@field name? string
+---@field interactive? boolean
+---@field memory_mb? number
+---@field timeout_ms? number
+---@field test_cases TestCase[]
 
----@class CachedTestCase
+---@class TestCase
 ---@field index? number
----@field input string
 ---@field expected? string
+---@field input? string
 ---@field output? string
 
 local M = {}
@@ -164,7 +164,7 @@ end
 ---@param platform string
 ---@param contest_id string
 ---@param problem_id? string
----@return CachedTestCase[]?
+---@return TestCase[]
 function M.get_test_cases(platform, contest_id, problem_id)
   vim.validate({
     platform = { platform, 'string' },
@@ -178,8 +178,7 @@ function M.get_test_cases(platform, contest_id, problem_id)
     or not cache_data[platform][contest_id].problems
     or not cache_data[platform][contest_id].index_map
   then
-    print('bad, failing')
-    return nil
+    return {}
   end
 
   local index = cache_data[platform][contest_id].index_map[problem_id]
@@ -189,7 +188,7 @@ end
 ---@param platform string
 ---@param contest_id string
 ---@param problem_id string
----@param test_cases CachedTestCase[]
+---@param test_cases TestCase[]
 ---@param timeout_ms? number
 ---@param memory_mb? number
 ---@param interactive? boolean
@@ -269,7 +268,7 @@ function M.set_file_state(file_path, platform, contest_id, problem_id, language)
 end
 
 ---@param platform string
----@return table[ContestSummary]
+---@return ContestSummary[]
 function M.get_contest_summaries(platform)
   local contest_list = {}
   for contest_id, contest_data in pairs(cache_data[platform] or {}) do
@@ -283,7 +282,7 @@ function M.get_contest_summaries(platform)
 end
 
 ---@param platform string
----@param contests table[ContestSummary]
+---@param contests ContestSummary[]
 function M.set_contest_summaries(platform, contests)
   cache_data[platform] = cache_data[platform] or {}
   for _, contest in ipairs(contests) do

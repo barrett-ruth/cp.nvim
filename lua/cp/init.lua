@@ -13,6 +13,8 @@ local user_config = {}
 local config = config_module.setup(user_config)
 local snippets_initialized = false
 
+--- Root handler for all `:CP ...` commands
+---@return nil
 function M.handle_command(opts)
   local commands = require('cp.commands')
   commands.handle_command(opts)

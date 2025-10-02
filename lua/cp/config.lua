@@ -6,21 +6,9 @@
 ---@field version? number Language version
 ---@field extension? string File extension
 
----@class PartialLanguageConfig
----@field compile? string[] Compile command template
----@field test? string[] Test execution command template
----@field debug? string[] Debug command template
----@field executable? string Executable name
----@field extension? string File extension
-
 ---@class ContestConfig
 ---@field cpp LanguageConfig
 ---@field python LanguageConfig
----@field default_language? string
-
----@class PartialContestConfig
----@field cpp? PartialLanguageConfig
----@field python? PartialLanguageConfig
 ---@field default_language? string
 
 ---@class Hooks
@@ -43,25 +31,25 @@
 
 ---@class cp.Config
 ---@field contests table<string, ContestConfig>
----@field snippets table[]
+---@field snippets any[]
 ---@field hooks Hooks
 ---@field debug boolean
----@field scrapers table<string, boolean>
+---@field scrapers string[]
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 ---@field run_panel RunPanelConfig
 ---@field diff DiffConfig
----@field picker "telescope"|"fzf-lua"|nil
+---@field picker string|nil
 
----@class cp.UserConfig
----@field contests? table<string, PartialContestConfig>
----@field snippets? table[]
+---@class cp.PartialConfig
+---@field contests? table<string, ContestConfig>
+---@field snippets? any[]
 ---@field hooks? Hooks
 ---@field debug? boolean
----@field scrapers? table<string, boolean>
+---@field scrapers? string[]
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 ---@field run_panel? RunPanelConfig
 ---@field diff? DiffConfig
----@field picker? "telescope"|"fzf-lua"|nil
+---@field picker? string|nil
 
 local M = {}
 local constants = require('cp.constants')
@@ -112,7 +100,7 @@ M.defaults = {
   picker = nil,
 }
 
----@param user_config cp.UserConfig|nil
+---@param user_config cp.PartialConfig|nil
 ---@return cp.Config
 function M.setup(user_config)
   vim.validate({
@@ -279,10 +267,14 @@ M.default_filename = default_filename
 
 local current_config = nil
 
+--- Set the config
+---@return nil
 function M.set_current_config(config)
   current_config = config
 end
 
+--- Get the config
+---@return cp.Config
 function M.get_config()
   return current_config or M.defaults
 end
