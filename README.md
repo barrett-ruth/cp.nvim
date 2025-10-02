@@ -1,7 +1,5 @@
 # cp.nvim
 
-> ⚠️ **Warning**: as of 27/09/25, CodeForces upgraded their anti-scraping technology and support is thus (temporarily) broken. I am actively researching a way around this.
-
 **The definitive competitive programming environment for Neovim**
 
 Scrape problems, run tests, and debug solutions across multiple platforms with zero configuration.
@@ -29,7 +27,7 @@ cp.nvim follows a simple principle: **solve locally, submit remotely**.
 ### Basic Usage
 
 1. **Find a contest or problem** on the judge website
-2. **Set up locally** with `:CP <platform> <contest> [<problem>]`
+2. **Set up locally** with `:CP <platform> <contest> [--{lang=<lang>,debug}]`
 
    ```
    :CP codeforces 1848

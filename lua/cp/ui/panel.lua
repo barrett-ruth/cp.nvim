@@ -23,12 +23,12 @@ function M.toggle_interactive()
       state.saved_interactive_session = nil
     end
     state.set_active_panel(nil)
-    logger.log('interactive closed')
+    logger.log('Interactive panel closed.')
     return
   end
 
   if state.get_active_panel() then
-    logger.log('another panel is already active', vim.log.levels.ERROR)
+    logger.log('Another panel is already active.', vim.log.levels.WARN)
     return
   end
 
@@ -36,7 +36,7 @@ function M.toggle_interactive()
 
   if not platform then
     logger.log(
-      'No platform configured. Use :CP <platform> <contest> [...] first.',
+      'No platform configured. Use :CP <platform> <contest> [--{lang=<lang>,debug}] first.',
       vim.log.levels.ERROR
     )
     return
@@ -44,7 +44,7 @@ function M.toggle_interactive()
 
   if not contest_id then
     logger.log(
-      ('No contest %s configured for platform %s. Use :CP <platform> <contest> <problem> to set up first.'):format(
+      ('No contest %s configured for platform %s. Use :CP <platform> <contest> [--{lang=<lang>,debug}] to set up first.'):format(
         contest_id,
         platform
       ),
@@ -62,12 +62,8 @@ function M.toggle_interactive()
   local cache = require('cp.cache')
   cache.load()
   local contest_data = cache.get_contest_data(platform, contest_id)
-  vim.print('checking cache - contes_data (DLETE ME): ', contest_data)
   if contest_data and not contest_data.interactive then
-    logger.log(
-      'This is NOT an interactive problem. Use :CP run instead - aborting.',
-      vim.log.levels.WARN
-    )
+    logger.log('This is NOT an interactive problem. Use :CP run instead.', vim.log.levels.WARN)
     return
   end
 
@@ -140,7 +136,7 @@ function M.toggle_run_panel(is_debug)
 
   if not contest_id then
     logger.log(
-      ('No contest %s configured for platform %s. Use :CP <platform> <contest> <problem> to set up first.'):format(
+      ('No contest %s configured for platform %s. Use :CP <platform> <contest> [--{lang=<lang>,debug}] to set up first.'):format(
         contest_id,
         platform
       ),
@@ -159,15 +155,12 @@ function M.toggle_run_panel(is_debug)
   cache.load()
   local contest_data = cache.get_contest_data(platform, contest_id)
   if contest_data and contest_data.interactive then
-    logger.log(
-      'This is an interactive problem. Use :CP interact instead - aborting.',
-      vim.log.levels.WARN
-    )
+    logger.log('This is an interactive problem. Use :CP interact instead.', vim.log.levels.WARN)
     return
   end
 
   logger.log(
-    ('run panel: platform=%s, contest=%s, problem=%s'):format(
+    ('Run panel: platform=%s, contest=%s, problem=%s'):format(
       tostring(platform),
       tostring(contest_id),
       tostring(problem_id)

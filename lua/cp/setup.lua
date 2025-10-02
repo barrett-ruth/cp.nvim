@@ -28,9 +28,11 @@ function M.set_platform(platform)
   return true
 end
 
-local function scrape_contest_problems(platform, contest_id, problems)
+local function scrape_contest_problems(problems)
   cache.load()
   local missing_problems = {}
+
+  local platform, contest_id = state.get_platform() or '', state.get_contest_id() or ''
 
   for _, prob in ipairs(problems) do
     local cached_tests = cache.get_test_cases(platform, contest_id, prob.id)
@@ -40,7 +42,7 @@ local function scrape_contest_problems(platform, contest_id, problems)
   end
 
   if vim.tbl_isempty(missing_problems) then
-    logger.log(('All problems already cached for %s contest %s'):format(platform, contest_id))
+    logger.log(('All problems already cached for %s contest %s.'):format(platform, contest_id))
     return
   end
 
@@ -67,49 +69,59 @@ local function scrape_contest_problems(platform, contest_id, problems)
   end
 end
 
-function M.setup_contest(platform, contest_id, problem_id, language)
-  if not state.get_platform() then
-    logger.log('No platform configured. Use :CP <platform> <contest> [...] first.')
+function M.setup_contest(platform, contest_id, language, problem_id)
+  if not platform then
+    logger.log('No platform configured. Use :CP <platform> <contest> [--{lang=<lang>,debug} first.')
     return
   end
 
   local config = config_module.get_config()
 
   if not vim.tbl_contains(config.scrapers, platform) then
-    logger.log(('Scraping disabled for %s - aborting.'):format(platform), vim.log.levels.WARN)
+    logger.log(('Scraping disabled for %s.'):format(platform), vim.log.levels.WARN)
     return
   end
 
   state.set_contest_id(contest_id)
-  -- TODO: should check cache here, & other uses of gt_contest_data validate them
-  logger.log('Fetching contests problems...', vim.log.levels.INFO, true)
+  local contest_data = cache.get_contest_data(platform, contest_id)
 
-  scraper.scrape_contest_metadata(platform, contest_id, function(result)
-    local problems = result.problems
+  if
+    not contest_data
+    or not contest_data.problems
+    or (problem_id and not cache.get_test_cases(platform, contest_id, problem_id))
+  then
+    logger.log('Fetching contests problems...', vim.log.levels.INFO, true)
+    scraper.scrape_contest_metadata(platform, contest_id, function(result)
+      local problems = result.problems
 
-    cache.set_contest_data(platform, contest_id, problems)
+      cache.set_contest_data(platform, contest_id, problems)
 
-    logger.log(('Found %d problems for %s contest %s'):format(#problems, platform, contest_id))
+      logger.log(('Found %d problems for %s contest %s.'):format(#problems, platform, contest_id))
 
-    local target_problem = problem_id or problems[1].id
+      M.setup_problem(problem_id or problems[1].id, language)
 
-    M.setup_problem(contest_id, target_problem, language)
-
-    scrape_contest_problems(platform, contest_id, problems)
-  end)
+      scrape_contest_problems(problems)
+    end)
+  else
+    M.setup_problem(problem_id, language)
+  end
 end
 
-function M.setup_problem(contest_id, problem_id, language)
-  if not state.get_platform() then
-    logger.log('No platform set. run :CP <platform> <contest> first', vim.log.levels.ERROR)
+---@param problem_id string
+---@param language? string
+function M.setup_problem(problem_id, language)
+  local platform = state.get_platform()
+  if not platform then
+    logger.log(
+      'No platform set. run :CP <platform> <contest> [--{lang=<lang>,debug}]',
+      vim.log.levels.ERROR
+    )
     return
   end
 
-  local config = config_module.get_config()
-  local platform = state.get_platform() or ''
-
-  state.set_contest_id(contest_id)
   state.set_problem_id(problem_id)
+
+  local config = config_module.get_config()
 
   vim.schedule(function()
     vim.cmd.only({ mods = { silent = true } })
@@ -149,18 +161,30 @@ function M.setup_problem(contest_id, problem_id, language)
       config.hooks.setup_code(state)
     end
 
-    cache.set_file_state(vim.fn.expand('%:p'), platform, contest_id, problem_id, language)
+    cache.set_file_state(
+      vim.fn.expand('%:p'),
+      platform,
+      state.get_contest_id() or '',
+      state.get_problem_id(),
+      language
+    )
   end)
 end
 
 function M.navigate_problem(direction, language)
+  if direction == 0 then
+    return
+  end
+
+  direction = direction > 0 and 1 or -1
+
   local platform = state.get_platform()
   local contest_id = state.get_contest_id()
   local current_problem_id = state.get_problem_id()
 
   if not platform or not contest_id or not current_problem_id then
     logger.log(
-      'No platform configured. Use :CP <platform> <contest> [...] first.',
+      'No platform configured. Use :CP <platform> <contest> [--{lang=<lang>,debug}] first.',
       vim.log.levels.ERROR
     )
     return
@@ -169,7 +193,13 @@ function M.navigate_problem(direction, language)
   cache.load()
   local contest_data = cache.get_contest_data(platform, contest_id)
   if not contest_data or not contest_data.problems then
-    logger.log('No contest data available', vim.log.levels.ERROR)
+    logger.log(
+      ('No data available for %s contest %s.'):format(
+        constants.PLATFORM_DISPLAY_NAMES[platform],
+        contest_id
+      ),
+      vim.log.levels.ERROR
+    )
     return
   end
 
@@ -187,12 +217,7 @@ function M.navigate_problem(direction, language)
     return
   end
 
-  local cp = require('cp')
-  local args = { platform, contest_id, problems[new_index].id }
-  if language then
-    vim.list_extend(args, { '--lang', language })
-  end
-  cp.handle_command({ fargs = args })
+  M.setup_contest(platform, contest_id, language, problems[new_index].id)
 end
 
 return M

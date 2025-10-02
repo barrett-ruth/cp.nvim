@@ -87,7 +87,7 @@ function M.get_contest_data(platform, contest_id)
   end
 
   local contest_data = cache_data[platform][contest_id]
-  if not contest_data then
+  if not contest_data or vim.tbl_isempty(contest_data) then
     return nil
   end
 
