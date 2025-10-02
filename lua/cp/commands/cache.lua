@@ -9,11 +9,19 @@ local platforms = constants.PLATFORMS
 function M.handle_cache_command(cmd)
   if cmd.subcommand == 'read' then
     local data = cache.get_data_pretty()
+    local name = 'cp.nvim://cache.lua'
 
-    local buf = vim.api.nvim_create_buf(true, true)
-    vim.api.nvim_buf_set_name(buf, 'cp.nvim://cache.lua')
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(data, '\n'))
-    vim.bo[buf].filetype = 'lua'
+    local existing = vim.fn.bufnr(name)
+    local buf
+    if existing ~= -1 then
+      buf = existing
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(data, '\n'))
+    else
+      buf = vim.api.nvim_create_buf(true, true)
+      vim.api.nvim_buf_set_name(buf, name)
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(data, '\n'))
+      vim.bo[buf].filetype = 'lua'
+    end
 
     vim.api.nvim_set_current_buf(buf)
   elseif cmd.subcommand == 'clear' then

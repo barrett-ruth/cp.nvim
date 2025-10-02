@@ -28,39 +28,31 @@ function M.set_platform(platform)
   return true
 end
 
-local function scrape_contest_problems(problems)
+local function backfill_missing_tests(platform, contest_id, problems)
   cache.load()
-  local missing_problems = {}
-
-  local platform, contest_id = state.get_platform() or '', state.get_contest_id() or ''
-
+  local missing = {}
   for _, prob in ipairs(problems) do
-    local cached_tests = cache.get_test_cases(platform, contest_id, prob.id)
-    if not cached_tests then
-      table.insert(missing_problems, prob)
+    if not cache.get_test_cases(platform, contest_id, prob.id) then
+      table.insert(missing, prob.id)
     end
   end
-
-  if vim.tbl_isempty(missing_problems) then
+  if #missing == 0 then
     logger.log(('All problems already cached for %s contest %s.'):format(platform, contest_id))
     return
   end
-
-  for _, prob in ipairs(missing_problems) do
-    scraper.scrape_problem_tests(platform, contest_id, prob.id, function(result)
+  for _, pid in ipairs(missing) do
+    local captured = pid
+    scraper.scrape_problem_tests(platform, contest_id, captured, function(result)
       local cached_tests = {}
-      for i, test_case in ipairs(result.tests) do
-        table.insert(cached_tests, {
-          index = i,
-          input = test_case.input,
-          expected = test_case.expected,
-        })
+      if result.tests then
+        for i, t in ipairs(result.tests) do
+          cached_tests[i] = { index = i, input = t.input, expected = t.expected }
+        end
       end
-
       cache.set_test_cases(
         platform,
         contest_id,
-        state.get_problem_id(),
+        captured,
         cached_tests,
         result.timeout_ms,
         result.memory_mb
@@ -76,34 +68,34 @@ function M.setup_contest(platform, contest_id, language, problem_id)
   end
 
   local config = config_module.get_config()
-
   if not vim.tbl_contains(config.scrapers, platform) then
     logger.log(('Scraping disabled for %s.'):format(platform), vim.log.levels.WARN)
     return
   end
 
   state.set_contest_id(contest_id)
+  cache.load()
   local contest_data = cache.get_contest_data(platform, contest_id)
 
-  if
-    not contest_data
-    or not contest_data.problems
-    or (problem_id and not cache.get_test_cases(platform, contest_id, problem_id))
-  then
+  if not contest_data or not contest_data.problems then
     logger.log('Fetching contests problems...', vim.log.levels.INFO, true)
     scraper.scrape_contest_metadata(platform, contest_id, function(result)
-      local problems = result.problems
-
+      local problems = result.problems or {}
       cache.set_contest_data(platform, contest_id, problems)
-
       logger.log(('Found %d problems for %s contest %s.'):format(#problems, platform, contest_id))
-
-      M.setup_problem(problem_id or problems[1].id, language)
-
-      scrape_contest_problems(problems)
+      local pid = problem_id or (problems[1] and problems[1].id)
+      if pid then
+        M.setup_problem(pid, language)
+      end
+      backfill_missing_tests(platform, contest_id, problems)
     end)
   else
-    M.setup_problem(problem_id, language)
+    local problems = contest_data.problems
+    local pid = problem_id or (problems[1] and problems[1].id)
+    if pid then
+      M.setup_problem(pid, language)
+    end
+    backfill_missing_tests(platform, contest_id, problems)
   end
 end
 
@@ -175,7 +167,6 @@ function M.navigate_problem(direction, language)
   if direction == 0 then
     return
   end
-
   direction = direction > 0 and 1 or -1
 
   local platform = state.get_platform()
@@ -204,12 +195,16 @@ function M.navigate_problem(direction, language)
   end
 
   local problems = contest_data.problems
-  local current_index = nil
+  local current_index
   for i, prob in ipairs(problems) do
     if prob.id == current_problem_id then
       current_index = i
       break
     end
+  end
+  if not current_index then
+    M.setup_contest(platform, contest_id, language, problems[1].id)
+    return
   end
 
   local new_index = current_index + direction

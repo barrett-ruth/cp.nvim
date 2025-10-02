@@ -69,16 +69,23 @@ end
 function M.scrape_contest_metadata(platform, contest_id, callback)
   run_scraper(platform, 'metadata', { contest_id }, {
     on_exit = function(result)
-      if not result.success or vim.tbl_isempty(result.data.problems) then
+      if not result or not result.success then
         logger.log(
-          ('Failed to scrape metadata for %s contest %s - aborting.'):format(platform, contest_id),
+          ('Failed to scrape metadata for %s contest %s.'):format(platform, contest_id),
           vim.log.levels.ERROR
         )
         return
       end
-
+      local data = result.data or {}
+      if not data.problems or #data.problems == 0 then
+        logger.log(
+          ('No problems returned for %s contest %s.'):format(platform, contest_id),
+          vim.log.levels.ERROR
+        )
+        return
+      end
       if type(callback) == 'function' then
-        callback(result.data)
+        callback(data)
       end
     end,
   })

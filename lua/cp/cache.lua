@@ -104,19 +104,37 @@ function M.set_contest_data(platform, contest_id, problems)
     problems = { problems, 'table' },
   })
 
-  if not cache_data[platform] then
-    cache_data[platform] = {}
+  cache_data[platform] = cache_data[platform] or {}
+  local existing = cache_data[platform][contest_id] or {}
+
+  local existing_by_id = {}
+  if existing.problems then
+    for _, p in ipairs(existing.problems) do
+      existing_by_id[p.id] = p
+    end
   end
 
-  cache_data[platform][contest_id] = {
-    problems = problems,
-  }
-  cache_data[platform][contest_id].index_map = {}
-
-  for i, problem in ipairs(problems) do
-    cache_data[platform][contest_id].index_map[problem.id] = i
+  local merged = {}
+  for _, p in ipairs(problems) do
+    local prev = existing_by_id[p.id] or {}
+    local merged_p = {
+      id = p.id,
+      name = p.name or prev.name,
+      test_cases = prev.test_cases,
+      timeout_ms = prev.timeout_ms,
+      memory_mb = prev.memory_mb,
+      interactive = prev.interactive,
+    }
+    table.insert(merged, merged_p)
   end
 
+  existing.problems = merged
+  existing.index_map = {}
+  for i, p in ipairs(merged) do
+    existing.index_map[p.id] = i
+  end
+
+  cache_data[platform][contest_id] = existing
   M.save()
 end
 
@@ -151,6 +169,7 @@ function M.get_test_cases(platform, contest_id, problem_id)
     or not cache_data[platform][contest_id].problems
     or not cache_data[platform][contest_id].index_map
   then
+    print('bad, failing')
     return nil
   end
 
