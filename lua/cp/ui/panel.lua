@@ -64,7 +64,7 @@ function M.toggle_interactive()
   local contest_data = cache.get_contest_data(platform, contest_id)
   if
     contest_data
-    and not (contest_data or {}).problems[contest_data.index_map[state.get_current_problem_id]].interactive
+    and not contest_data.problems[contest_data.index_map[state.get_problem_id()]].interactive
   then
     logger.log('This is NOT an interactive problem. Use :CP run instead.', vim.log.levels.WARN)
     return
@@ -159,7 +159,7 @@ function M.toggle_run_panel(is_debug)
   local contest_data = cache.get_contest_data(platform, contest_id)
   if
     contest_data
-    and not (contest_data or {}).problems[contest_data.index_map[state.get_current_problem_id]].interactive
+    and contest_data.problems[contest_data.index_map[state.get_problem_id()]].interactive
   then
     logger.log('This is an interactive problem. Use :CP interact instead.', vim.log.levels.WARN)
     return
