@@ -237,10 +237,10 @@ function M.toggle_run_panel(is_debug)
   end
 
   setup_keybindings_for_buffer = function(buf)
-    vim.keymap.set('n', config.run_panel.close_key, function()
+    vim.keymap.set('n', 'q', function()
       M.toggle_run_panel()
     end, { buffer = buf, silent = true })
-    vim.keymap.set('n', config.run_panel.toggle_diff_key, function()
+    vim.keymap.set('n', 't', function()
       local modes = { 'none', 'git', 'vim' }
       local current_idx = nil
       for i, mode in ipairs(modes) do

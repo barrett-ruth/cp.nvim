@@ -21,6 +21,16 @@ function M.handle_cache_command(cmd)
       vim.api.nvim_buf_set_name(buf, name)
       vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(data, '\n'))
       vim.bo[buf].filetype = 'lua'
+      vim.bo[buf].buftype = 'nofile'
+      vim.bo[buf].bufhidden = 'wipe'
+      vim.bo[buf].swapfile = false
+      vim.api.nvim_buf_set_keymap(
+        buf,
+        'n',
+        'q',
+        '<cmd>bd!<cr>',
+        { nowait = true, noremap = true, silent = true }
+      )
     end
 
     vim.api.nvim_set_current_buf(buf)
