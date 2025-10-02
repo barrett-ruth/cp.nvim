@@ -11,13 +11,10 @@
 
 ---@class ContestListData
 ---@field contests table[]
----@field cached_at number
 
 ---@class ContestData
 ---@field problems Problem[]
----@field scraped_at string
 ---@field test_cases? CachedTestCase[]
----@field test_cases_cached_at? number
 ---@field timeout_ms? number
 ---@field memory_mb? number
 ---@field interactive? boolean
@@ -34,6 +31,7 @@
 
 local M = {}
 
+local logger = require('cp.log')
 local cache_file = vim.fn.stdpath('data') .. '/cp-nvim.json'
 local cache_data = {}
 local loaded = false
@@ -44,7 +42,7 @@ function M.load()
   end
 
   if vim.fn.filereadable(cache_file) == 0 then
-    cache_data = {}
+    vim.fn.writefile({}, cache_file)
     loaded = true
     return
   end
@@ -60,28 +58,19 @@ function M.load()
   if ok then
     cache_data = decoded
   else
-    cache_data = {}
+    logger.log('Could not decode json in cache file', vim.log.levels.ERROR)
   end
   loaded = true
 end
 
 function M.save()
-  local ok, _ = pcall(vim.fn.mkdir, vim.fn.fnamemodify(cache_file, ':h'), 'p')
-  if not ok then
-    vim.schedule(function()
-      vim.fn.mkdir(vim.fn.fnamemodify(cache_file, ':h'), 'p')
-    end)
-    return
-  end
+  vim.schedule(function()
+    vim.fn.mkdir(vim.fn.fnamemodify(cache_file, ':h'), 'p')
 
-  local encoded = vim.json.encode(cache_data)
-  local lines = vim.split(encoded, '\n')
-  local write_ok, _ = pcall(vim.fn.writefile, lines, cache_file)
-  if not write_ok then
-    vim.schedule(function()
-      vim.fn.writefile(lines, cache_file)
-    end)
-  end
+    local encoded = vim.json.encode(cache_data)
+    local lines = vim.split(encoded, '\n')
+    vim.fn.writefile(lines, cache_file)
+  end)
 end
 
 ---@param platform string
@@ -98,7 +87,7 @@ function M.get_contest_data(platform, contest_id)
   end
 
   local contest_data = cache_data[platform][contest_id]
-  if not contest_data then
+  if not contest_data or vim.tbl_isempty(contest_data) then
     return nil
   end
 
@@ -115,15 +104,37 @@ function M.set_contest_data(platform, contest_id, problems)
     problems = { problems, 'table' },
   })
 
-  if not cache_data[platform] then
-    cache_data[platform] = {}
+  cache_data[platform] = cache_data[platform] or {}
+  local existing = cache_data[platform][contest_id] or {}
+
+  local existing_by_id = {}
+  if existing.problems then
+    for _, p in ipairs(existing.problems) do
+      existing_by_id[p.id] = p
+    end
   end
 
-  cache_data[platform][contest_id] = {
-    problems = problems,
-    scraped_at = os.date('%Y-%m-%d'),
-  }
+  local merged = {}
+  for _, p in ipairs(problems) do
+    local prev = existing_by_id[p.id] or {}
+    local merged_p = {
+      id = p.id,
+      name = p.name or prev.name,
+      test_cases = prev.test_cases,
+      timeout_ms = prev.timeout_ms,
+      memory_mb = prev.memory_mb,
+      interactive = prev.interactive,
+    }
+    table.insert(merged, merged_p)
+  end
 
+  existing.problems = merged
+  existing.index_map = {}
+  for i, p in ipairs(merged) do
+    existing.index_map[p.id] = i
+  end
+
+  cache_data[platform][contest_id] = existing
   M.save()
 end
 
@@ -152,16 +163,23 @@ function M.get_test_cases(platform, contest_id, problem_id)
     problem_id = { problem_id, { 'string', 'nil' }, true },
   })
 
-  local problem_key = problem_id and (contest_id .. '_' .. problem_id) or contest_id
-  if not cache_data[platform] or not cache_data[platform][problem_key] then
+  if
+    not cache_data[platform]
+    or not cache_data[platform][contest_id]
+    or not cache_data[platform][contest_id].problems
+    or not cache_data[platform][contest_id].index_map
+  then
+    print('bad, failing')
     return nil
   end
-  return cache_data[platform][problem_key].test_cases
+
+  local index = cache_data[platform][contest_id].index_map[problem_id]
+  return cache_data[platform][contest_id].problems[index].test_cases
 end
 
 ---@param platform string
 ---@param contest_id string
----@param problem_id? string
+---@param problem_id string
 ---@param test_cases CachedTestCase[]
 ---@param timeout_ms? number
 ---@param memory_mb? number
@@ -185,22 +203,12 @@ function M.set_test_cases(
     interactive = { interactive, { 'boolean', 'nil' }, true },
   })
 
-  local problem_key = problem_id and (contest_id .. '_' .. problem_id) or contest_id
-  if not cache_data[platform] then
-    cache_data[platform] = {}
-  end
-  if not cache_data[platform][problem_key] then
-    cache_data[platform][problem_key] = {}
-  end
+  local index = cache_data[platform][contest_id].index_map[problem_id]
 
-  cache_data[platform][problem_key].test_cases = test_cases
-  cache_data[platform][problem_key].test_cases_cached_at = os.time()
-  if timeout_ms then
-    cache_data[platform][problem_key].timeout_ms = timeout_ms
-  end
-  if memory_mb then
-    cache_data[platform][problem_key].memory_mb = memory_mb
-  end
+  cache_data[platform][contest_id].problems[index].test_cases = test_cases
+  cache_data[platform][contest_id].problems[index].timeout_ms = timeout_ms or 0
+  cache_data[platform][contest_id].problems[index].memory_mb = memory_mb or 0
+
   M.save()
 end
 
@@ -215,12 +223,9 @@ function M.get_constraints(platform, contest_id, problem_id)
     problem_id = { problem_id, { 'string', 'nil' }, true },
   })
 
-  local problem_key = problem_id and (contest_id .. '_' .. problem_id) or contest_id
-  if not cache_data[platform] or not cache_data[platform][problem_key] then
-    return nil, nil
-  end
+  local index = cache_data[platform][contest_id].index_map[problem_id]
 
-  local problem_data = cache_data[platform][problem_key]
+  local problem_data = cache_data[platform][contest_id].problems[index]
   return problem_data.timeout_ms, problem_data.memory_mb
 end
 
@@ -255,43 +260,34 @@ function M.set_file_state(file_path, platform, contest_id, problem_id, language)
 end
 
 ---@param platform string
----@return table[]?
+---@return table[]
 function M.get_contest_list(platform)
-  if not cache_data.contest_lists or not cache_data.contest_lists[platform] then
-    return nil
+  local contest_list = {}
+  for contest_id, contest_data in pairs(cache_data[platform] or {}) do
+    table.insert(contest_list, {
+      id = contest_id,
+      name = contest_data.name,
+      display_name = contest_data.display_name,
+    })
   end
-
-  return cache_data.contest_lists[platform].contests
+  return contest_list
 end
 
 ---@param platform string
 ---@param contests table[]
 function M.set_contest_list(platform, contests)
-  if not cache_data.contest_lists then
-    cache_data.contest_lists = {}
+  cache_data[platform] = cache_data[platform] or {}
+  for _, contest in ipairs(contests) do
+    cache_data[platform][contest.id] = cache_data[platform][contest] or {}
+    cache_data[platform][contest.id].display_name = contest.display_name
+    cache_data[platform][contest.id].name = contest.name
   end
-
-  cache_data.contest_lists[platform] = {
-    contests = contests,
-    cached_at = os.time(),
-  }
 
   M.save()
 end
 
----@param platform string
-function M.clear_contest_list(platform)
-  if cache_data.contest_lists and cache_data.contest_lists[platform] then
-    cache_data.contest_lists[platform] = nil
-    M.save()
-  end
-end
-
 function M.clear_all()
-  cache_data = {
-    file_states = {},
-    contest_lists = {},
-  }
+  cache_data = {}
   M.save()
 end
 
@@ -300,10 +296,15 @@ function M.clear_platform(platform)
   if cache_data[platform] then
     cache_data[platform] = nil
   end
-  if cache_data.contest_lists and cache_data.contest_lists[platform] then
-    cache_data.contest_lists[platform] = nil
-  end
+
   M.save()
+end
+
+---@return string
+function M.get_data_pretty()
+  M.load()
+
+  return vim.inspect(cache_data)
 end
 
 return M

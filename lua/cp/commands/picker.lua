@@ -8,7 +8,7 @@ function M.handle_pick_action()
 
   if not config.picker then
     logger.log(
-      'No picker configured. Set picker = "telescope" or picker = "fzf-lua" in config',
+      'No picker configured. Set picker = "{telescope,fzf-lua}" in your config.',
       vim.log.levels.ERROR
     )
     return
@@ -20,14 +20,14 @@ function M.handle_pick_action()
     local ok = pcall(require, 'telescope')
     if not ok then
       logger.log(
-        'Telescope not available. Install telescope.nvim or change picker config',
+        'telescope.nvim is not available. Install telescope.nvim xor change your picker config.',
         vim.log.levels.ERROR
       )
       return
     end
     local ok_cp, telescope_picker = pcall(require, 'cp.pickers.telescope')
     if not ok_cp then
-      logger.log('Failed to load telescope integration', vim.log.levels.ERROR)
+      logger.log('Failed to load telescope integration.', vim.log.levels.ERROR)
       return
     end
 
@@ -36,14 +36,14 @@ function M.handle_pick_action()
     local ok, _ = pcall(require, 'fzf-lua')
     if not ok then
       logger.log(
-        'fzf-lua not available. Install fzf-lua or change picker config',
+        'fzf-lua is not available. Install fzf-lua xor change your picker config',
         vim.log.levels.ERROR
       )
       return
     end
     local ok_cp, fzf_picker = pcall(require, 'cp.pickers.fzf_lua')
     if not ok_cp then
-      logger.log('Failed to load fzf-lua integration', vim.log.levels.ERROR)
+      logger.log('Failed to load fzf-lua integration.', vim.log.levels.ERROR)
       return
     end
 

@@ -2,13 +2,13 @@ local picker_utils = require('cp.pickers')
 
 local M = {}
 
-local function contest_picker(platform)
+local function contest_picker(platform, refresh)
   local constants = require('cp.constants')
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   local fzf = require('fzf-lua')
-  local contests = picker_utils.get_contests_for_platform(platform)
+  local contests = picker_utils.get_platform_contests(platform, refresh)
 
-  if #contests == 0 then
+  if vim.tbl_isempty(contests) then
     vim.notify(
       ('No contests found for platform: %s'):format(platform_display_name),
       vim.log.levels.WARN
@@ -27,7 +27,7 @@ local function contest_picker(platform)
     },
     actions = {
       ['default'] = function(selected)
-        if not selected or #selected == 0 then
+        if vim.tbl_isempty(selected) then
           return
         end
 
@@ -48,7 +48,7 @@ local function contest_picker(platform)
       ['ctrl-r'] = function()
         local cache = require('cp.cache')
         cache.clear_contest_list(platform)
-        contest_picker(platform)
+        contest_picker(platform, true)
       end,
     },
   })
@@ -65,7 +65,7 @@ function M.pick()
     prompt = 'Select Platform> ',
     actions = {
       ['default'] = function(selected)
-        if not selected or #selected == 0 then
+        if vim.tbl_isempty(selected) then
           return
         end
 

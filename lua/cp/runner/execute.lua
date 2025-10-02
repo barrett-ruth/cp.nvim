@@ -52,7 +52,7 @@ end
 ---@return {code: integer, stdout: string, stderr: string}
 function M.compile_generic(language_config, substitutions)
   if not language_config.compile then
-    logger.log('no compilation step required')
+    logger.log('No compilation step required for language - skipping.')
     return { code = 0, stderr = '' }
   end
 
@@ -73,9 +73,9 @@ function M.compile_generic(language_config, substitutions)
   result.stderr = ansi.bytes_to_string(result.stderr or '')
 
   if result.code == 0 then
-    logger.log(('compilation successful (%.1fms)'):format(compile_time), vim.log.levels.INFO)
+    logger.log(('Compilation successful in %.1fms.'):format(compile_time), vim.log.levels.INFO)
   else
-    logger.log(('compilation failed (%.1fms)'):format(compile_time))
+    logger.log(('Compilation failed in %.1fms.'):format(compile_time))
   end
 
   return result
@@ -107,14 +107,14 @@ local function execute_command(cmd, input_data, timeout_ms)
   local actual_code = result.code or 0
 
   if result.code == 124 then
-    logger.log(('execution timed out after %.1fms'):format(execution_time), vim.log.levels.WARN)
+    logger.log(('Execution timed out in %.1fms.'):format(execution_time), vim.log.levels.WARN)
   elseif actual_code ~= 0 then
     logger.log(
-      ('execution failed (exit code %d, %.1fms)'):format(actual_code, execution_time),
+      ('Execution failed in %.1fms (exit code %d).'):format(execution_time, actual_code),
       vim.log.levels.WARN
     )
   else
-    logger.log(('execution successful (%.1fms)'):format(execution_time))
+    logger.log(('Execution successful in %.1fms.'):format(execution_time))
   end
 
   return {
@@ -177,8 +177,8 @@ function M.compile_problem(contest_config, is_debug)
   local state = require('cp.state')
   local source_file = state.get_source_file()
   if not source_file then
-    logger.log('No source file found', vim.log.levels.ERROR)
-    return { success = false, output = 'No source file found' }
+    logger.log('No source file found.', vim.log.levels.ERROR)
+    return { success = false, output = 'No source file found.' }
   end
 
   local language = get_language_from_file(source_file, contest_config)
@@ -186,7 +186,7 @@ function M.compile_problem(contest_config, is_debug)
 
   if not language_config then
     logger.log('No configuration for language: ' .. language, vim.log.levels.ERROR)
-    return { success = false, output = 'No configuration for language: ' .. language }
+    return { success = false, output = ('No configuration for language %s.'):format(language) }
   end
 
   local binary_file = state.get_binary_file()
@@ -203,10 +203,6 @@ function M.compile_problem(contest_config, is_debug)
     if compile_result.code ~= 0 then
       return { success = false, output = compile_result.stdout or 'unknown error' }
     end
-    logger.log(
-      ('compilation successful (%s)'):format(is_debug and 'debug mode' or 'test mode'),
-      vim.log.levels.INFO
-    )
   end
 
   return { success = true, output = nil }
@@ -220,7 +216,10 @@ function M.run_problem(contest_config, is_debug)
   local output_file = state.get_output_file()
 
   if not source_file or not output_file then
-    logger.log('Missing required file paths', vim.log.levels.ERROR)
+    logger.log(
+      ('Missing required file paths %s and %s'):format(source_file, output_file),
+      vim.log.levels.ERROR
+    )
     return
   end
 
@@ -257,13 +256,14 @@ function M.run_problem(contest_config, is_debug)
 
   local cache = require('cp.cache')
   cache.load()
+
   local platform = state.get_platform()
   local contest_id = state.get_contest_id()
   local problem_id = state.get_problem_id()
   local expected_file = state.get_expected_file()
 
   if not platform or not contest_id or not expected_file then
-    logger.log('configure a contest before running a problem', vim.log.levels.ERROR)
+    logger.log('Configure a contest before running a problem', vim.log.levels.ERROR)
     return
   end
   local timeout_ms, _ = cache.get_constraints(platform, contest_id, problem_id)

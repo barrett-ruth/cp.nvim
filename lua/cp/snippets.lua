@@ -4,7 +4,7 @@ local logger = require('cp.log')
 function M.setup(config)
   local ok, ls = pcall(require, 'luasnip')
   if not ok then
-    logger.log('LuaSnip not available - snippets disabled', vim.log.levels.INFO)
+    logger.log('LuaSnip not available - snippets are disabled.', vim.log.levels.INFO, true)
     return
   end
 

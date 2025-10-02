@@ -1,11 +1,42 @@
 local M = {}
-local cache = require('cp.cache')
 local utils = require('cp.utils')
 
-local function run_scraper(platform, subcommand, args, callback)
+local logger = require('cp.log')
+
+local function syshandle(result)
+  if result.code ~= 0 then
+    local msg = 'Scraper failed: ' .. (result.stderr or 'Unknown error')
+    logger.log(msg, vim.log.levels.ERROR)
+    return {
+      success = false,
+      error = msg,
+    }
+  end
+
+  local ok, data = pcall(vim.json.decode, result.stdout)
+  if not ok then
+    local msg = 'Failed to parse scraper output: ' .. tostring(data)
+    logger.log(msg, vim.log.levels.ERROR)
+    return {
+      success = false,
+      error = msg,
+    }
+  end
+
+  return {
+    success = true,
+    data = data,
+  }
+end
+
+local function run_scraper(platform, subcommand, args, opts)
   if not utils.setup_python_env() then
-    callback({ success = false, error = 'Python environment setup failed' })
-    return
+    local msg = 'Python environment setup failed'
+    logger.log(msg, vim.log.levels.ERROR)
+    return {
+      success = false,
+      message = msg,
+    }
   end
 
   local plugin_path = utils.get_plugin_path()
@@ -18,114 +49,98 @@ local function run_scraper(platform, subcommand, args, callback)
     'scrapers.' .. platform,
     subcommand,
   }
+  vim.list_extend(cmd, args)
 
-  for _, arg in ipairs(args or {}) do
-    table.insert(cmd, arg)
-  end
-
-  vim.system(cmd, {
-    cwd = plugin_path,
+  local sysopts = {
     text = true,
     timeout = 30000,
-  }, function(result)
-    if result.code ~= 0 then
-      callback({
-        success = false,
-        error = 'Scraper failed: ' .. (result.stderr or 'Unknown error'),
-      })
-      return
-    end
+  }
 
-    local ok, data = pcall(vim.json.decode, result.stdout)
-    if not ok then
-      callback({
-        success = false,
-        error = 'Failed to parse scraper output: ' .. tostring(data),
-      })
-      return
-    end
-
-    callback(data)
-  end)
+  if opts.sync then
+    local result = vim.system(cmd, sysopts):wait()
+    return syshandle(result)
+  else
+    vim.system(cmd, sysopts, function(result)
+      return opts.on_exit(syshandle(result))
+    end)
+  end
 end
 
 function M.scrape_contest_metadata(platform, contest_id, callback)
-  cache.load()
-
-  local cached = cache.get_contest_data(platform, contest_id)
-  if cached then
-    callback({ success = true, problems = cached.problems })
-    return
-  end
-
-  run_scraper(platform, 'metadata', { contest_id }, function(result)
-    if result.success and result.problems then
-      cache.set_contest_data(platform, contest_id, result.problems)
-    end
-    callback(result)
-  end)
+  run_scraper(platform, 'metadata', { contest_id }, {
+    on_exit = function(result)
+      if not result or not result.success then
+        logger.log(
+          ('Failed to scrape metadata for %s contest %s.'):format(platform, contest_id),
+          vim.log.levels.ERROR
+        )
+        return
+      end
+      local data = result.data or {}
+      if not data.problems or #data.problems == 0 then
+        logger.log(
+          ('No problems returned for %s contest %s.'):format(platform, contest_id),
+          vim.log.levels.ERROR
+        )
+        return
+      end
+      if type(callback) == 'function' then
+        callback(data)
+      end
+    end,
+  })
 end
 
-function M.scrape_contest_list(platform, callback)
-  cache.load()
-
-  local cached = cache.get_contest_list(platform)
-  if cached then
-    callback({ success = true, contests = cached })
-    return
+function M.scrape_contest_list(platform)
+  local result = run_scraper(platform, 'contests', {}, { sync = true })
+  if not result.success or not result.data.contests then
+    logger.log(
+      ('Could not scrape contests list for platform %s: %s'):format(platform, result.msg),
+      vim.log.levels.ERROR
+    )
+    return {}
   end
 
-  run_scraper(platform, 'contests', {}, function(result)
-    if result.success and result.contests then
-      cache.set_contest_list(platform, result.contests)
-    end
-    callback(result)
-  end)
+  return result.data.contests
 end
 
 function M.scrape_problem_tests(platform, contest_id, problem_id, callback)
-  run_scraper(platform, 'tests', { contest_id, problem_id }, function(result)
-    if result.success and result.tests then
-      vim.schedule(function()
-        local mkdir_ok = pcall(vim.fn.mkdir, 'io', 'p')
-        if mkdir_ok then
-          local config = require('cp.config')
-          local base_name = config.default_filename(contest_id, problem_id)
+  run_scraper(platform, 'tests', { contest_id, problem_id }, {
+    on_exit = function(result)
+      if not result.success or not result.data.tests then
+        logger.log(
+          'Failed to load tests: ' .. (result.msg or 'unknown error'),
+          vim.log.levels.ERROR
+        )
 
-          for i, test_case in ipairs(result.tests) do
-            local input_file = 'io/' .. base_name .. '.' .. i .. '.cpin'
-            local expected_file = 'io/' .. base_name .. '.' .. i .. '.cpout'
-
-            local input_content = test_case.input:gsub('\r', '')
-            local expected_content = test_case.expected:gsub('\r', '')
-
-            pcall(vim.fn.writefile, vim.split(input_content, '\n', true), input_file)
-            pcall(vim.fn.writefile, vim.split(expected_content, '\n', true), expected_file)
-          end
-        end
-      end)
-
-      local cached_tests = {}
-      for i, test_case in ipairs(result.tests) do
-        table.insert(cached_tests, {
-          index = i,
-          input = test_case.input,
-          expected = test_case.expected,
-        })
+        return {}
       end
 
-      cache.set_test_cases(
-        platform,
-        contest_id,
-        problem_id,
-        cached_tests,
-        result.timeout_ms,
-        result.memory_mb
-      )
-    end
+      vim.schedule(function()
+        vim.system({ 'mkdir', '-p', 'build', 'io' }):wait()
+        local config = require('cp.config')
+        local base_name = config.default_filename(contest_id, problem_id)
 
-    callback(result)
-  end)
+        for i, test_case in ipairs(result.data.tests) do
+          local input_file = 'io/' .. base_name .. '.' .. i .. '.cpin'
+          local expected_file = 'io/' .. base_name .. '.' .. i .. '.cpout'
+
+          local input_content = test_case.input:gsub('\r', '')
+          local expected_content = test_case.expected:gsub('\r', '')
+
+          pcall(vim.fn.writefile, vim.split(input_content, '\n', { trimempty = true }), input_file)
+          pcall(
+            vim.fn.writefile,
+            vim.split(expected_content, '\n', { trimempty = true }),
+            expected_file
+          )
+        end
+        if type(callback) == 'function' then
+          callback(result.data)
+        end
+      end)
+    end,
+  })
 end
 
 return M

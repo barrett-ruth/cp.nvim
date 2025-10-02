@@ -66,9 +66,9 @@ end
 local function parse_test_cases_from_cache(platform, contest_id, problem_id)
   local cache = require('cp.cache')
   cache.load()
-  local cached_test_cases = cache.get_test_cases(platform, contest_id, problem_id)
+  local cached_test_cases = cache.get_test_cases(platform, contest_id, problem_id) or {}
 
-  if not cached_test_cases or #cached_test_cases == 0 then
+  if vim.tbl_isempty(cached_test_cases) then
     return {}
   end
 
@@ -78,34 +78,6 @@ local function parse_test_cases_from_cache(platform, contest_id, problem_id)
     local index = test_case.index or i
     local expected = test_case.expected or test_case.output or ''
     table.insert(test_cases, create_test_case(index, test_case.input, expected))
-  end
-
-  return test_cases
-end
-
----@param input_file string
----@return TestCase[]
-local function parse_test_cases_from_files(input_file, _)
-  local base_name = vim.fn.fnamemodify(input_file, ':r')
-  local test_cases = {}
-
-  local i = 1
-  while true do
-    local individual_input_file = base_name .. '.' .. i .. '.cpin'
-    local individual_expected_file = base_name .. '.' .. i .. '.cpout'
-
-    if
-      vim.fn.filereadable(individual_input_file) == 1
-      and vim.fn.filereadable(individual_expected_file) == 1
-    then
-      local input_content = table.concat(vim.fn.readfile(individual_input_file), '\n')
-      local expected_content = table.concat(vim.fn.readfile(individual_expected_file), '\n')
-
-      table.insert(test_cases, create_test_case(i, input_content, expected_content))
-      i = i + 1
-    else
-      break
-    end
   end
 
   return test_cases
@@ -136,27 +108,10 @@ end
 local function run_single_test_case(contest_config, cp_config, test_case)
   local state = require('cp.state')
   local source_file = state.get_source_file()
-  if not source_file then
-    return {
-      status = 'fail',
-      actual = '',
-      error = 'No source file found',
-      time_ms = 0,
-    }
-  end
 
   local language = vim.fn.fnamemodify(source_file, ':e')
   local language_name = constants.filetype_to_language[language] or contest_config.default_language
   local language_config = contest_config[language_name]
-
-  if not language_config then
-    return {
-      status = 'fail',
-      actual = '',
-      error = 'No language configuration',
-      time_ms = 0,
-    }
-  end
 
   local function substitute_template(cmd_template, substitutions)
     local result = {}
@@ -185,7 +140,7 @@ local function run_single_test_case(contest_config, cp_config, test_case)
   }
 
   if language_config.compile and binary_file and vim.fn.filereadable(binary_file) == 0 then
-    logger.log('binary not found, compiling first...')
+    logger.log('Binary not found - compiling first.')
     local compile_cmd = substitute_template(language_config.compile, substitutions)
     local redirected_cmd = vim.deepcopy(compile_cmd)
     redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
@@ -208,6 +163,7 @@ local function run_single_test_case(contest_config, cp_config, test_case)
         ok = false,
         signal = nil,
         timed_out = false,
+        actual_highlights = {},
       }
     end
   end
@@ -219,9 +175,6 @@ local function run_single_test_case(contest_config, cp_config, test_case)
   local start_time = vim.uv.hrtime()
   local timeout_ms = run_panel_state.constraints and run_panel_state.constraints.timeout_ms or 2000
 
-  if not run_panel_state.constraints then
-    logger.log('no problem constraints available, using default 2000ms timeout')
-  end
   local redirected_run_cmd = vim.deepcopy(run_cmd)
   redirected_run_cmd[#redirected_run_cmd] = redirected_run_cmd[#redirected_run_cmd] .. ' 2>&1'
   local result = vim
@@ -299,13 +252,9 @@ function M.load_test_cases(state)
     state.get_platform() or '',
     state.get_contest_id() or '',
     state.get_problem_id()
-  )
+  ) or {}
 
-  if #test_cases == 0 then
-    local input_file = state.get_input_file()
-    local expected_file = state.get_expected_file()
-    test_cases = parse_test_cases_from_files(input_file, expected_file)
-  end
+  -- TODO: re-fetch/cache-populating mechanism to ge the test cases if not in the cache
 
   run_panel_state.test_cases = test_cases
   run_panel_state.current_index = 1
@@ -315,14 +264,7 @@ function M.load_test_cases(state)
     state.get_problem_id()
   )
 
-  local constraint_info = run_panel_state.constraints
-      and string.format(
-        ' with %dms/%dMB limits',
-        run_panel_state.constraints.timeout_ms,
-        run_panel_state.constraints.memory_mb
-      )
-    or ''
-  logger.log(('loaded %d test case(s)%s'):format(#test_cases, constraint_info), vim.log.levels.INFO)
+  logger.log(('Loaded %d test case(s)'):format(#test_cases), vim.log.levels.INFO)
   return #test_cases > 0
 end
 

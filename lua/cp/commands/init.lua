@@ -8,7 +8,7 @@ local platforms = constants.PLATFORMS
 local actions = constants.ACTIONS
 
 local function parse_command(args)
-  if #args == 0 then
+  if vim.tbl_isempty(args) then
     return {
       type = 'restore_from_file',
     }
@@ -44,11 +44,11 @@ local function parse_command(args)
       if not subcommand then
         return { type = 'error', message = 'cache command requires subcommand: clear' }
       end
-      if subcommand == 'clear' then
+      if vim.tbl_contains({ 'clear', 'read' }, subcommand) then
         local platform = filtered_args[3]
         return {
           type = 'cache',
-          subcommand = 'clear',
+          subcommand = subcommand,
           platform = platform,
         }
       else
@@ -62,9 +62,8 @@ local function parse_command(args)
   if vim.tbl_contains(platforms, first) then
     if #filtered_args == 1 then
       return {
-        type = 'platform_only',
-        platform = first,
-        language = language,
+        type = 'error',
+        message = 'Too few arguments - specify a contest.',
       }
     elseif #filtered_args == 2 then
       return {
@@ -75,11 +74,8 @@ local function parse_command(args)
       }
     elseif #filtered_args == 3 then
       return {
-        type = 'full_setup',
-        platform = first,
-        contest = filtered_args[2],
-        problem = filtered_args[3],
-        language = language,
+        type = 'error',
+        message = 'Setup contests with :CP <platform> <contest_id> [--{lang=<lang>,debug}]',
       }
     else
       return { type = 'error', message = 'Too many arguments' }
@@ -89,16 +85,6 @@ local function parse_command(args)
   if state.get_platform() and state.get_contest_id() then
     local cache = require('cp.cache')
     cache.load()
-    local contest_data =
-      cache.get_contest_data(state.get_platform() or '', state.get_contest_id() or '')
-    if contest_data and contest_data.problems then
-      local problem_ids = vim.tbl_map(function(prob)
-        return prob.id
-      end, contest_data.problems)
-      if vim.tbl_contains(problem_ids, first) then
-        return { type = 'problem_switch', problem = first, language = language }
-      end
-    end
     return {
       type = 'error',
       message = ("invalid subcommand '%s'"):format(first),
@@ -147,31 +133,11 @@ function M.handle_command(opts)
     return
   end
 
-  if cmd.type == 'platform_only' then
-    local setup = require('cp.setup')
-    setup.set_platform(cmd.platform)
-    return
-  end
-
   if cmd.type == 'contest_setup' then
     local setup = require('cp.setup')
     if setup.set_platform(cmd.platform) then
-      setup.setup_contest(cmd.platform, cmd.contest, nil, cmd.language)
+      setup.setup_contest(cmd.platform, cmd.contest, cmd.language, nil)
     end
-    return
-  end
-
-  if cmd.type == 'full_setup' then
-    local setup = require('cp.setup')
-    if setup.set_platform(cmd.platform) then
-      setup.setup_contest(cmd.platform, cmd.contest, cmd.problem, cmd.language)
-    end
-    return
-  end
-
-  if cmd.type == 'problem_switch' then
-    local setup = require('cp.setup')
-    setup.setup_problem(state.get_contest_id() or '', cmd.problem, cmd.language)
     return
   end
 end
