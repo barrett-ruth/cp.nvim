@@ -49,13 +49,13 @@ function M.get_platform_contests(platform, refresh)
 
   cache.load()
 
-  local picker_contests = cache.get_contest_list(platform)
+  local picker_contests = cache.get_contest_summaries(platform)
 
   if refresh or vim.tbl_isempty(picker_contests) then
     logger.log(('Cache miss on %s contests'):format(platform))
     local contests = scraper.scrape_contest_list(platform)
 
-    cache.set_contest_list(platform, contests)
+    cache.set_contest_summaries(platform, contests)
   end
 
   logger.log(
@@ -64,7 +64,7 @@ function M.get_platform_contests(platform, refresh)
     true
   )
 
-  picker_contests = cache.get_contest_list(platform)
+  picker_contests = cache.get_contest_summaries(platform)
 
   return picker_contests
 end

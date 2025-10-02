@@ -1,6 +1,12 @@
 ---@class AnsiParseResult
 ---@field lines string[]
----@field highlights table[]
+---@field highlights Highlight[]
+
+---@class Highlight
+---@field line number
+---@field col_start number
+---@field col_end number
+---@field highlight_group string
 
 local M = {}
 

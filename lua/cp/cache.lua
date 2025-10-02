@@ -4,29 +4,34 @@
 ---@field problem_id? string
 ---@field language? string
 
+---@class ContestData
+---@field problems Problem[]
+---@field index_map table<string, number>
+---@field name string
+---@field display_name string
+
+---@class ContestSummary
+---@field display_name string
+---@field name string
+---@field id string
+
 ---@class CacheData
 ---@field [string] table<string, ContestData>
 ---@field file_states? table<string, FileState>
----@field contest_lists? table<string, ContestListData>
-
----@class ContestListData
----@field contests table[]
-
----@class ContestData
----@field problems Problem[]
----@field test_cases? CachedTestCase[]
----@field timeout_ms? number
----@field memory_mb? number
----@field interactive? boolean
+---@field contest_lists? table<string, ContestSummary>
 
 ---@class Problem
 ---@field id string
 ---@field name? string
+---@field interactive? boolean
+---@field memory_mb? number
+---@field timeout_ms? number
+---@field test_cases TestCase[]
 
----@class CachedTestCase
+---@class TestCase
 ---@field index? number
----@field input string
 ---@field expected? string
+---@field input? string
 ---@field output? string
 
 local M = {}
@@ -36,6 +41,8 @@ local cache_file = vim.fn.stdpath('data') .. '/cp-nvim.json'
 local cache_data = {}
 local loaded = false
 
+--- Load the cache from disk if not done already
+---@return nil
 function M.load()
   if loaded then
     return
@@ -63,6 +70,8 @@ function M.load()
   loaded = true
 end
 
+--- Save the cache to disk, overwriting existing contents
+---@return nil
 function M.save()
   vim.schedule(function()
     vim.fn.mkdir(vim.fn.fnamemodify(cache_file, ':h'), 'p')
@@ -155,7 +164,7 @@ end
 ---@param platform string
 ---@param contest_id string
 ---@param problem_id? string
----@return CachedTestCase[]?
+---@return TestCase[]
 function M.get_test_cases(platform, contest_id, problem_id)
   vim.validate({
     platform = { platform, 'string' },
@@ -169,8 +178,7 @@ function M.get_test_cases(platform, contest_id, problem_id)
     or not cache_data[platform][contest_id].problems
     or not cache_data[platform][contest_id].index_map
   then
-    print('bad, failing')
-    return nil
+    return {}
   end
 
   local index = cache_data[platform][contest_id].index_map[problem_id]
@@ -180,7 +188,7 @@ end
 ---@param platform string
 ---@param contest_id string
 ---@param problem_id string
----@param test_cases CachedTestCase[]
+---@param test_cases TestCase[]
 ---@param timeout_ms? number
 ---@param memory_mb? number
 ---@param interactive? boolean
@@ -260,8 +268,8 @@ function M.set_file_state(file_path, platform, contest_id, problem_id, language)
 end
 
 ---@param platform string
----@return table[]
-function M.get_contest_list(platform)
+---@return ContestSummary[]
+function M.get_contest_summaries(platform)
   local contest_list = {}
   for contest_id, contest_data in pairs(cache_data[platform] or {}) do
     table.insert(contest_list, {
@@ -274,8 +282,8 @@ function M.get_contest_list(platform)
 end
 
 ---@param platform string
----@param contests table[]
-function M.set_contest_list(platform, contests)
+---@param contests ContestSummary[]
+function M.set_contest_summaries(platform, contests)
   cache_data[platform] = cache_data[platform] or {}
   for _, contest in ipairs(contests) do
     cache_data[platform][contest.id] = cache_data[platform][contest] or {}

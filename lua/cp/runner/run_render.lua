@@ -23,22 +23,22 @@ local exit_code_names = {
   [143] = 'SIGCHLD',
 }
 
----@param test_case TestCase
+---@param ran_test_case RanTestCase
 ---@return StatusInfo
-function M.get_status_info(test_case)
-  if test_case.status == 'pass' then
+function M.get_status_info(ran_test_case)
+  if ran_test_case.status == 'pass' then
     return { text = 'AC', highlight_group = 'CpTestAC' }
-  elseif test_case.status == 'fail' then
-    if test_case.timed_out then
+  elseif ran_test_case.status == 'fail' then
+    if ran_test_case.timed_out then
       return { text = 'TLE', highlight_group = 'CpTestTLE' }
-    elseif test_case.code and test_case.code >= 128 then
+    elseif ran_test_case.code and ran_test_case.code >= 128 then
       return { text = 'RTE', highlight_group = 'CpTestRTE' }
     else
       return { text = 'WA', highlight_group = 'CpTestWA' }
     end
-  elseif test_case.status == 'timeout' then
+  elseif ran_test_case.status == 'timeout' then
     return { text = 'TLE', highlight_group = 'CpTestTLE' }
-  elseif test_case.status == 'running' then
+  elseif ran_test_case.status == 'running' then
     return { text = '...', highlight_group = 'CpTestPending' }
   else
     return { text = '', highlight_group = 'CpTestPending' }
@@ -278,7 +278,7 @@ local function data_row(c, idx, tc, is_current, test_state)
 end
 
 ---@param test_state RunPanelState
----@return string[], table[] lines and highlight positions
+---@return string[], Highlight[] lines and highlight positions
 function M.render_test_list(test_state)
   local lines, highlights = {}, {}
   local c = compute_cols(test_state)
@@ -332,18 +332,18 @@ function M.render_test_list(test_state)
   return lines, highlights
 end
 
----@param test_case TestCase?
+---@param ran_test_case RanTestCase?
 ---@return string
-function M.render_status_bar(test_case)
-  if not test_case then
+function M.render_status_bar(ran_test_case)
+  if not ran_test_case then
     return ''
   end
   local parts = {}
-  if test_case.time_ms then
-    table.insert(parts, string.format('%.2fms', test_case.time_ms))
+  if ran_test_case.time_ms then
+    table.insert(parts, string.format('%.2fms', ran_test_case.time_ms))
   end
-  if test_case.code then
-    table.insert(parts, string.format('Exit: %d', test_case.code))
+  if ran_test_case.code then
+    table.insert(parts, string.format('Exit: %d', ran_test_case.code))
   end
   return table.concat(parts, ' │ ')
 end

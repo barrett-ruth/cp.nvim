@@ -6,6 +6,9 @@ local logger = require('cp.log')
 
 local platforms = constants.PLATFORMS
 
+--- Dispatch any `:CP cache ...` command
+---@param cmd table
+---@return nil
 function M.handle_cache_command(cmd)
   if cmd.subcommand == 'read' then
     local data = cache.get_data_pretty()

@@ -1,10 +1,10 @@
----@class TestCase
+---@class RanTestCase
 ---@field index number
 ---@field input string
 ---@field expected string
 ---@field status "pending"|"pass"|"fail"|"running"|"timeout"
 ---@field actual string?
----@field actual_highlights table[]?
+---@field actual_highlights? Highlight[]
 ---@field time_ms number?
 ---@field error string?
 ---@field stderr string?
@@ -19,7 +19,7 @@
 ---@field memory_mb number
 
 ---@class RunPanelState
----@field test_cases TestCase[]
+---@field test_cases RanTestCase[]
 ---@field current_index number
 ---@field buffer number?
 ---@field namespace number?
@@ -45,7 +45,7 @@ local run_panel_state = {
 ---@param index number
 ---@param input string
 ---@param expected string
----@return TestCase
+---@return RanTestCase
 local function create_test_case(index, input, expected)
   return {
     index = index,
@@ -62,7 +62,7 @@ end
 ---@param platform string
 ---@param contest_id string
 ---@param problem_id string?
----@return TestCase[]
+---@return RanTestCase[]
 local function parse_test_cases_from_cache(platform, contest_id, problem_id)
   local cache = require('cp.cache')
   cache.load()
@@ -103,13 +103,13 @@ local function load_constraints_from_cache(platform, contest_id, problem_id)
 end
 
 ---@param contest_config ContestConfig
----@param test_case TestCase
+---@param test_case RanTestCase
 ---@return table
 local function run_single_test_case(contest_config, cp_config, test_case)
   local state = require('cp.state')
   local source_file = state.get_source_file()
 
-  local language = vim.fn.fnamemodify(source_file, ':e')
+  local language = vim.fn.fnamemodify(source_file or '', ':e')
   local language_name = constants.filetype_to_language[language] or contest_config.default_language
   local language_config = contest_config[language_name]
 
@@ -297,7 +297,7 @@ end
 
 ---@param contest_config ContestConfig
 ---@param cp_config cp.Config
----@return TestCase[]
+---@return RanTestCase[]
 function M.run_all_test_cases(contest_config, cp_config)
   local results = {}
   for i, _ in ipairs(run_panel_state.test_cases) do

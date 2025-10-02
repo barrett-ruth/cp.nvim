@@ -7,11 +7,6 @@
 ---@field set_problem_id fun(problem_id: string)
 ---@field get_active_panel fun(): string?
 ---@field set_active_panel fun(): string?
----@field get_saved_session fun(): table?
----@field set_saved_session fun(session: table)
----@field get_context fun(): {platform: string?, contest_id: string?, problem_id: string?}
----@field has_context fun(): boolean
----@field reset fun()
 ---@field get_base_name fun(): string?
 ---@field get_source_file fun(language?: string): string?
 ---@field get_binary_file fun(): string?
@@ -54,14 +49,6 @@ function M.set_problem_id(problem_id)
   state.problem_id = problem_id
 end
 
-function M.get_saved_session()
-  return state.saved_session
-end
-
-function M.set_saved_session(session)
-  state.saved_session = session
-end
-
 function M.get_base_name()
   local platform, contest_id, problem_id = M.get_platform(), M.get_contest_id(), M.get_problem_id()
   if not platform or not contest_id or not problem_id then
@@ -76,14 +63,6 @@ function M.get_base_name()
   else
     return config_module.default_filename(contest_id, problem_id)
   end
-end
-
-function M.get_context()
-  return {
-    platform = state.platform,
-    contest_id = state.contest_id,
-    problem_id = state.problem_id,
-  }
 end
 
 function M.get_source_file(language)
@@ -127,25 +106,12 @@ function M.get_expected_file()
   return base_name and ('io/%s.expected'):format(base_name) or nil
 end
 
-function M.has_context()
-  return state.platform and state.contest_id
-end
-
 function M.get_active_panel()
   return state.active_panel
 end
 
 function M.set_active_panel(panel)
   state.active_panel = panel
-end
-
-function M.reset()
-  state.platform = nil
-  state.contest_id = nil
-  state.problem_id = nil
-  state.test_cases = nil
-  state.run_panel_active = false
-  state.saved_session = nil
 end
 
 return M

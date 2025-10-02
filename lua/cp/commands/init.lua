@@ -7,6 +7,19 @@ local state = require('cp.state')
 local platforms = constants.PLATFORMS
 local actions = constants.ACTIONS
 
+---@class ParsedCommand
+---@field type string
+---@field error string?
+---@field language? string
+---@field debug? boolean
+---@field action? string
+---@field message? string
+---@field contest? string
+---@field platform? string
+
+--- Turn raw args into normalized structure to later dispatch
+---@param args string[] The raw command-line mode args
+---@return ParsedCommand
 local function parse_command(args)
   if vim.tbl_isempty(args) then
     return {
@@ -94,6 +107,8 @@ local function parse_command(args)
   return { type = 'error', message = 'Unknown command or no contest context' }
 end
 
+--- Core logic for handling `:CP ...` commands
+---@return nil
 function M.handle_command(opts)
   local cmd = parse_command(opts.fargs)
 
@@ -105,10 +120,7 @@ function M.handle_command(opts)
   if cmd.type == 'restore_from_file' then
     local restore = require('cp.restore')
     restore.restore_from_current_file()
-    return
-  end
-
-  if cmd.type == 'action' then
+  elseif cmd.type == 'action' then
     local setup = require('cp.setup')
     local ui = require('cp.ui.panel')
 
@@ -124,16 +136,10 @@ function M.handle_command(opts)
       local picker = require('cp.commands.picker')
       picker.handle_pick_action()
     end
-    return
-  end
-
-  if cmd.type == 'cache' then
+  elseif cmd.type == 'cache' then
     local cache_commands = require('cp.commands.cache')
     cache_commands.handle_cache_command(cmd)
-    return
-  end
-
-  if cmd.type == 'contest_setup' then
+  elseif cmd.type == 'contest_setup' then
     local setup = require('cp.setup')
     if setup.set_platform(cmd.platform) then
       setup.setup_contest(cmd.platform, cmd.contest, cmd.language, nil)

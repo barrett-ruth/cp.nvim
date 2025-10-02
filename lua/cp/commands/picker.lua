@@ -3,6 +3,8 @@ local M = {}
 local config_module = require('cp.config')
 local logger = require('cp.log')
 
+--- Dispatch `:CP pick` to appropriate picker
+---@return nil
 function M.handle_pick_action()
   local config = config_module.get_config()
 
