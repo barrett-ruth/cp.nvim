@@ -278,7 +278,7 @@ local function data_row(c, idx, tc, is_current, test_state)
 end
 
 ---@param test_state RunPanelState
----@return string[], any[] lines and highlight positions
+---@return string[], Highlight[] lines and highlight positions
 function M.render_test_list(test_state)
   local lines, highlights = {}, {}
   local c = compute_cols(test_state)

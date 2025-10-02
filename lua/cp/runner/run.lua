@@ -4,7 +4,7 @@
 ---@field expected string
 ---@field status "pending"|"pass"|"fail"|"running"|"timeout"
 ---@field actual string?
----@field actual_highlights? any[]
+---@field actual_highlights? Highlight[]
 ---@field time_ms number?
 ---@field error string?
 ---@field stderr string?
