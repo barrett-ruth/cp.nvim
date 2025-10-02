@@ -7,8 +7,6 @@
 ---@field set_problem_id fun(problem_id: string)
 ---@field get_active_panel fun(): string?
 ---@field set_active_panel fun(): string?
----@field get_test_cases fun(): table[]?
----@field set_test_cases fun(test_cases: table[])
 ---@field get_saved_session fun(): table?
 ---@field set_saved_session fun(session: table)
 ---@field get_context fun(): {platform: string?, contest_id: string?, problem_id: string?}
@@ -54,14 +52,6 @@ end
 
 function M.set_problem_id(problem_id)
   state.problem_id = problem_id
-end
-
-function M.get_test_cases()
-  return state.test_cases
-end
-
-function M.set_test_cases(test_cases)
-  state.test_cases = test_cases
 end
 
 function M.get_saved_session()

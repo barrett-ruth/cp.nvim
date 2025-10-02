@@ -57,13 +57,6 @@ COMMANDS                                                        *cp-commands*
                                 Example: >
                                     :CP cses
 <
-            :CP {problem_id} [--lang={language}]
-                                Problem switch: switch to different problem
-                                within current contest context.
-                                Example: >
-                                    :CP b
-                                    :CP b --lang=python
-<
         Action Commands ~
             :CP run [--debug]   Toggle run panel for individual test case
                                 debugging. Shows per-test results with redesigned
@@ -81,6 +74,15 @@ COMMANDS                                                        *cp-commands*
         Navigation Commands ~
             :CP prev            Navigate to previous problem in current contest.
                                 Stops at first problem (no wrapping).
+
+        Cache Commands ~
+            :CP cache clear [contest]
+                                Clear the cache data (contest list, problem
+                                data, file states) for the specified contest,
+                                or all contests if none specified
+
+            :CP cache read
+                                View the cache in a pretty-printed lua buffer.
 
 Command Flags ~
                                                                 *cp-flags*
@@ -285,7 +287,6 @@ URL format: https://atcoder.jp/contests/abc123/tasks/abc123_a
 Usage examples: >
     :CP atcoder abc324 a        " Full setup: problem A from contest ABC324
     :CP atcoder abc324          " Contest setup: load contest metadata only
-    :CP b                       " Switch to problem B (if contest loaded)
     :CP next                    " Navigate to next problem in contest
 <
                                 Note: AtCoder template includes optimizations
@@ -303,7 +304,6 @@ URL format: https://codeforces.com/contest/1234/problem/A
 Usage examples: >
     :CP codeforces 1934 a       " Full setup: problem A from contest 1934
     :CP codeforces 1934         " Contest setup: load contest metadata only
-    :CP c                       " Switch to problem C (if contest loaded)
     :CP prev                    " Navigate to previous problem in contest
 <
                                 Note: Problem IDs are automatically converted

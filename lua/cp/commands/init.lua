@@ -44,11 +44,11 @@ local function parse_command(args)
       if not subcommand then
         return { type = 'error', message = 'cache command requires subcommand: clear' }
       end
-      if subcommand == 'clear' then
+      if vim.tbl_contains({ 'clear', 'read' }, subcommand) then
         local platform = filtered_args[3]
         return {
           type = 'cache',
-          subcommand = 'clear',
+          subcommand = subcommand,
           platform = platform,
         }
       else

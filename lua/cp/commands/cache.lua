@@ -7,7 +7,16 @@ local logger = require('cp.log')
 local platforms = constants.PLATFORMS
 
 function M.handle_cache_command(cmd)
-  if cmd.subcommand == 'clear' then
+  if cmd.subcommand == 'read' then
+    local data = cache.get_data_pretty()
+
+    local buf = vim.api.nvim_create_buf(true, true)
+    vim.api.nvim_buf_set_name(buf, 'cp.nvim://cache.lua')
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(data, '\n'))
+    vim.bo[buf].filetype = 'lua'
+
+    vim.api.nvim_set_current_buf(buf)
+  elseif cmd.subcommand == 'clear' then
     cache.load()
     if cmd.platform then
       if vim.tbl_contains(platforms, cmd.platform) then

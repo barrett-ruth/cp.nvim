@@ -8,10 +8,10 @@ local picker_utils = require('cp.pickers')
 
 local M = {}
 
-local function contest_picker(opts, platform)
+local function contest_picker(opts, platform, refresh)
   local constants = require('cp.constants')
-  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
-  local contests = picker_utils.get_contests_for_platform(platform)
+  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform]
+  local contests = picker_utils.get_platform_contests(platform, refresh)
 
   if vim.tbl_isempty(contests) then
     vim.notify(
@@ -48,10 +48,8 @@ local function contest_picker(opts, platform)
         end)
 
         map('i', '<c-r>', function()
-          local cache = require('cp.cache')
-          cache.clear_contest_list(platform)
           actions.close(prompt_bufnr)
-          contest_picker(opts, platform)
+          contest_picker(opts, platform, true)
         end)
 
         return true

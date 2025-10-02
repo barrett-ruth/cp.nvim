@@ -2,11 +2,11 @@ local picker_utils = require('cp.pickers')
 
 local M = {}
 
-local function contest_picker(platform)
+local function contest_picker(platform, refresh)
   local constants = require('cp.constants')
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
   local fzf = require('fzf-lua')
-  local contests = picker_utils.get_contests_for_platform(platform)
+  local contests = picker_utils.get_platform_contests(platform, refresh)
 
   if vim.tbl_isempty(contests) then
     vim.notify(
@@ -48,7 +48,7 @@ local function contest_picker(platform)
       ['ctrl-r'] = function()
         local cache = require('cp.cache')
         cache.clear_contest_list(platform)
-        contest_picker(platform)
+        contest_picker(platform, true)
       end,
     },
   })

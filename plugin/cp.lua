@@ -46,7 +46,7 @@ end, {
       if args[2] == 'cache' then
         return vim.tbl_filter(function(cmd)
           return cmd:find(ArgLead, 1, true) == 1
-        end, { 'clear' })
+        end, { 'clear', 'read' })
       end
     elseif num_args == 4 then
       if args[2] == 'cache' and args[3] == 'clear' then
