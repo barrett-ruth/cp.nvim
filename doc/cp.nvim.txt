@@ -422,7 +422,8 @@ Test cases use competitive programming terminology with color highlighting:
     AC      Accepted (passed) - Green
     WA      Wrong Answer (output mismatch) - Red
     TLE     Time Limit Exceeded (timeout) - Orange
-    RTE     Runtime Error (non-zero exit) - Purple
+    MLE     Memory Limit Exceeded Error (heuristic) - Orange
+    RTE     Runtime Error (other non-zero exit code) - Purple
 <
 
 ==============================================================================

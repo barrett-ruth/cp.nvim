@@ -141,7 +141,7 @@ function M.run(cmd, stdin, timeout_ms, memory_mb)
   end
 
   local mled = false
-  if peak_mb >= memory_mb or (code ~= 0 and not tled) and (near_cap or oom_hint) or code == 137 then
+  if peak_mb >= memory_mb or near_cap or oom_hint then
     mled = true
   end
 
