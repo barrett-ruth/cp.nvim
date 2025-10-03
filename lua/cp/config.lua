@@ -52,7 +52,9 @@
 ---@field picker? string|nil
 
 local M = {}
+
 local constants = require('cp.constants')
+local utils = require('cp.utils')
 
 local default_contest_config = {
   cpp = {
@@ -247,6 +249,11 @@ function M.setup(user_config)
       table.sort(available_langs)
       contest_config.default_language = available_langs[1]
     end
+  end
+
+  local ok, err = utils.check_required_runtime()
+  if not ok then
+    error('[cp.nvim] ' .. err)
   end
 
   return config

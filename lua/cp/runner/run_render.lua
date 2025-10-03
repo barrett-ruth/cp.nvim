@@ -26,22 +26,22 @@ local exit_code_names = {
 ---@param ran_test_case RanTestCase
 ---@return StatusInfo
 function M.get_status_info(ran_test_case)
-  if ran_test_case.status == 'pass' then
+  if ran_test_case.ok then
     return { text = 'AC', highlight_group = 'CpTestAC' }
-  elseif ran_test_case.status == 'fail' then
-    if ran_test_case.timed_out then
-      return { text = 'TLE', highlight_group = 'CpTestTLE' }
-    elseif ran_test_case.code and ran_test_case.code >= 128 then
-      return { text = 'RTE', highlight_group = 'CpTestRTE' }
-    else
-      return { text = 'WA', highlight_group = 'CpTestWA' }
-    end
-  elseif ran_test_case.status == 'timeout' then
-    return { text = 'TLE', highlight_group = 'CpTestTLE' }
-  elseif ran_test_case.status == 'running' then
+  end
+
+  if ran_test_case.actual == '' then
     return { text = '...', highlight_group = 'CpTestPending' }
+  end
+
+  if ran_test_case.tled then
+    return { text = 'TLE', highlight_group = 'CpTestTLE' }
+  elseif ran_test_case.mled then
+    return { text = 'MLE', highlight_group = 'CpTestMLE' }
+  elseif ran_test_case.code and ran_test_case.code >= 128 then
+    return { text = 'RTE', highlight_group = 'CpTestRTE' }
   else
-    return { text = '', highlight_group = 'CpTestPending' }
+    return { text = 'WA', highlight_group = 'CpTestWA' }
   end
 end
 
@@ -54,18 +54,16 @@ local function format_exit_code(code)
 end
 
 local function compute_cols(test_state)
-  local w = { num = 5, status = 8, time = 6, timeout = 8, memory = 8, exit = 11 }
+  local w = { num = 5, status = 8, time = 6, timeout = 8, rss = 8, memory = 8, exit = 11 }
 
-  local timeout_str = ''
-  local memory_str = ''
+  local timeout_str = '—'
+  local memory_str = '—'
   if test_state.constraints then
     timeout_str = tostring(test_state.constraints.timeout_ms)
     memory_str = string.format('%.0f', test_state.constraints.memory_mb)
-  else
-    timeout_str = '—'
-    memory_str = '—'
   end
 
+  vim.print(test_state)
   for i, tc in ipairs(test_state.test_cases) do
     local prefix = (i == test_state.current_index) and '>' or ' '
     w.num = math.max(w.num, #(' ' .. prefix .. i .. ' '))
@@ -73,6 +71,8 @@ local function compute_cols(test_state)
     local time_str = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
     w.time = math.max(w.time, #(' ' .. time_str .. ' '))
     w.timeout = math.max(w.timeout, #(' ' .. timeout_str .. ' '))
+    local rss_str = (tc.rss_mb and string.format('%.0f', tc.rss_mb)) or '—'
+    w.rss = math.max(w.rss, #(' ' .. rss_str .. ' '))
     w.memory = math.max(w.memory, #(' ' .. memory_str .. ' '))
     w.exit = math.max(w.exit, #(' ' .. format_exit_code(tc.code) .. ' '))
   end
@@ -81,11 +81,12 @@ local function compute_cols(test_state)
   w.status = math.max(w.status, #' Status ')
   w.time = math.max(w.time, #' Runtime (ms) ')
   w.timeout = math.max(w.timeout, #' Time (ms) ')
+  w.rss = math.max(w.rss, #' RSS (MB) ')
   w.memory = math.max(w.memory, #' Mem (MB) ')
   w.exit = math.max(w.exit, #' Exit Code ')
 
-  local sum = w.num + w.status + w.time + w.timeout + w.memory + w.exit
-  local inner = sum + 5
+  local sum = w.num + w.status + w.time + w.timeout + w.rss + w.memory + w.exit
+  local inner = sum + 6
   local total = inner + 2
   return { w = w, sum = sum, inner = inner, total = total }
 end
@@ -95,32 +96,19 @@ local function center(text, width)
   if pad <= 0 then
     return text
   end
-  local left = math.floor(pad / 2)
+  local left = math.ceil(pad / 2)
   return string.rep(' ', left) .. text .. string.rep(' ', pad - left)
-end
-
-local function right_align(text, width)
-  local content = (' %s '):format(text)
-  local pad = width - #content
-  if pad <= 0 then
-    return content
-  end
-  return string.rep(' ', pad) .. content
 end
 
 local function format_num_column(prefix, idx, width)
   local num_str = tostring(idx)
-  local content
-  if #num_str == 1 then
-    content = ' ' .. prefix .. ' ' .. num_str .. ' '
-  else
-    content = ' ' .. prefix .. num_str .. ' '
-  end
+  local content = (#num_str == 1) and (' ' .. prefix .. ' ' .. num_str .. ' ')
+    or (' ' .. prefix .. num_str .. ' ')
   local total_pad = width - #content
   if total_pad <= 0 then
     return content
   end
-  local left_pad = math.floor(total_pad / 2)
+  local left_pad = math.ceil(total_pad / 2)
   local right_pad = total_pad - left_pad
   return string.rep(' ', left_pad) .. content .. string.rep(' ', right_pad)
 end
@@ -135,6 +123,8 @@ local function top_border(c)
     .. string.rep('─', w.time)
     .. '┬'
     .. string.rep('─', w.timeout)
+    .. '┬'
+    .. string.rep('─', w.rss)
     .. '┬'
     .. string.rep('─', w.memory)
     .. '┬'
@@ -153,6 +143,8 @@ local function row_sep(c)
     .. '┼'
     .. string.rep('─', w.timeout)
     .. '┼'
+    .. string.rep('─', w.rss)
+    .. '┼'
     .. string.rep('─', w.memory)
     .. '┼'
     .. string.rep('─', w.exit)
@@ -169,6 +161,8 @@ local function bottom_border(c)
     .. string.rep('─', w.time)
     .. '┴'
     .. string.rep('─', w.timeout)
+    .. '┴'
+    .. string.rep('─', w.rss)
     .. '┴'
     .. string.rep('─', w.memory)
     .. '┴'
@@ -187,6 +181,8 @@ local function flat_fence_above(c)
     .. '┴'
     .. string.rep('─', w.timeout)
     .. '┴'
+    .. string.rep('─', w.rss)
+    .. '┴'
     .. string.rep('─', w.memory)
     .. '┴'
     .. string.rep('─', w.exit)
@@ -203,6 +199,8 @@ local function flat_fence_below(c)
     .. string.rep('─', w.time)
     .. '┬'
     .. string.rep('─', w.timeout)
+    .. '┬'
+    .. string.rep('─', w.rss)
     .. '┬'
     .. string.rep('─', w.memory)
     .. '┬'
@@ -225,6 +223,8 @@ local function header_line(c)
     .. '│'
     .. center('Time (ms)', w.timeout)
     .. '│'
+    .. center('RSS (MB)', w.rss)
+    .. '│'
     .. center('Mem (MB)', w.memory)
     .. '│'
     .. center('Exit Code', w.exit)
@@ -238,33 +238,34 @@ local function data_row(c, idx, tc, is_current, test_state)
   local time = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
   local exit = format_exit_code(tc.code)
 
-  local timeout = ''
-  local memory = ''
+  local timeout = '—'
+  local memory = '—'
   if test_state.constraints then
     timeout = tostring(test_state.constraints.timeout_ms)
     memory = string.format('%.0f', test_state.constraints.memory_mb)
-  else
-    timeout = '—'
-    memory = '—'
   end
+
+  local rss = (tc.rss_mb and string.format('%.0f', tc.rss_mb)) or '—'
 
   local line = '│'
     .. format_num_column(prefix, idx, w.num)
     .. '│'
-    .. right_align(status.text, w.status)
+    .. center(status.text, w.status)
     .. '│'
-    .. right_align(time, w.time)
+    .. center(time, w.time)
     .. '│'
-    .. right_align(timeout, w.timeout)
+    .. center(timeout, w.timeout)
     .. '│'
-    .. right_align(memory, w.memory)
+    .. center(rss, w.rss)
     .. '│'
-    .. right_align(exit, w.exit)
+    .. center(memory, w.memory)
+    .. '│'
+    .. center(exit, w.exit)
     .. '│'
 
   local hi
   if status.text ~= '' then
-    local status_pos = line:find(status.text)
+    local status_pos = line:find(status.text, 1, true)
     if status_pos then
       hi = {
         col_start = status_pos - 1,
@@ -354,6 +355,7 @@ function M.get_highlight_groups()
     CpTestAC = { fg = '#10b981' },
     CpTestWA = { fg = '#ef4444' },
     CpTestTLE = { fg = '#f59e0b' },
+    CpTestMLE = { fg = '#f59e0b' },
     CpTestRTE = { fg = '#8b5cf6' },
     CpTestPending = { fg = '#6b7280' },
     CpDiffRemoved = { fg = '#ef4444', bg = '#1f1f1f' },

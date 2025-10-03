@@ -1,10 +1,10 @@
 local M = {}
 
-local buffer_utils = require('cp.utils.buffer')
 local config_module = require('cp.config')
 local layouts = require('cp.ui.layouts')
 local logger = require('cp.log')
 local state = require('cp.state')
+local utils = require('cp.utils')
 
 local current_diff_layout = nil
 local current_mode = nil
@@ -194,7 +194,7 @@ function M.toggle_run_panel(is_debug)
   vim.cmd(('mksession! %s'):format(state.saved_session))
   vim.cmd('silent only')
 
-  local tab_buf = buffer_utils.create_buffer_with_options()
+  local tab_buf = utils.create_buffer_with_options()
   local main_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(main_win, tab_buf)
   vim.api.nvim_set_option_value('filetype', 'cptest', { buf = tab_buf })
@@ -224,7 +224,7 @@ function M.toggle_run_panel(is_debug)
     run_render.setup_highlights()
     local test_state = run.get_run_panel_state()
     local tab_lines, tab_highlights = run_render.render_test_list(test_state)
-    buffer_utils.update_buffer_content(
+    utils.update_buffer_content(
       test_buffers.tab_buf,
       tab_lines,
       tab_highlights,

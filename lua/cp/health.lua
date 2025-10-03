@@ -2,59 +2,64 @@ local M = {}
 
 local utils = require('cp.utils')
 
-local function check_nvim_version()
+local function check_required()
+  vim.health.start('cp.nvim [required] ~')
+
   if vim.fn.has('nvim-0.10.0') == 1 then
     vim.health.ok('Neovim 0.10.0+ detected')
   else
     vim.health.error('cp.nvim requires Neovim 0.10.0+')
   end
-end
 
-local function check_uv()
+  local uname = vim.loop.os_uname()
+  if uname.sysname == 'Windows_NT' then
+    vim.health.error('Windows is not supported')
+  end
+
   if vim.fn.executable('uv') == 1 then
     vim.health.ok('uv executable found')
-
-    local result = vim.system({ 'uv', '--version' }, { text = true }):wait()
-    if result.code == 0 then
-      vim.health.info('uv version: ' .. result.stdout:gsub('\n', ''))
+    local r = vim.system({ 'uv', '--version' }, { text = true }):wait()
+    if r.code == 0 then
+      vim.health.info('uv version: ' .. r.stdout:gsub('\n', ''))
     end
   else
-    vim.health.warn('uv not found - install from https://docs.astral.sh/uv/ for problem scraping')
+    vim.health.warn('uv not found (install https://docs.astral.sh/uv/ for scraping)')
   end
-end
 
-local function check_python_env()
   local plugin_path = utils.get_plugin_path()
   local venv_dir = plugin_path .. '/.venv'
-
   if vim.fn.isdirectory(venv_dir) == 1 then
     vim.health.ok('Python virtual environment found at ' .. venv_dir)
   else
-    vim.health.warn('Python virtual environment not set up - run :CP command to initialize')
+    vim.health.info('Python virtual environment not set up (created on first scrape)')
+  end
+
+  local cap = utils.time_capability()
+  if cap.ok then
+    vim.health.ok('GNU time found: ' .. cap.path)
+  else
+    vim.health.error('GNU time not found: ' .. (cap.reason or ''))
   end
 end
 
-local function check_luasnip()
-  local has_luasnip, luasnip = pcall(require, 'luasnip')
+local function check_optional()
+  vim.health.start('cp.nvim [optional] ~')
+
+  local has_luasnip = pcall(require, 'luasnip')
   if has_luasnip then
     vim.health.ok('LuaSnip integration available')
-    local snippet_count = #luasnip.get_snippets('all')
-    vim.health.info('LuaSnip snippets loaded: ' .. snippet_count)
   else
-    vim.health.info('LuaSnip not available - template expansion will be limited')
+    vim.health.info('LuaSnip not available (templates optional)')
   end
 end
 
 function M.check()
   local version = require('cp.version')
-  vim.health.start('cp.nvim health check')
-
+  vim.health.start('cp.nvim health check ~')
   vim.health.info('Version: ' .. version.version)
 
-  check_nvim_version()
-  check_uv()
-  check_python_env()
-  check_luasnip()
+  check_required()
+  check_optional()
 end
 
 return M
