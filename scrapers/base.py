@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Any, Awaitable, Callable, ParamSpec, cast
 
 from .models import ContestListResult, MetadataResult, TestsResult
+
+P = ParamSpec("P")
 
 
 @dataclass
@@ -13,21 +18,23 @@ class ScraperConfig:
 
 
 class BaseScraper(ABC):
-    def __init__(self, config: ScraperConfig | None = None):
-        self.config = config or ScraperConfig()
-
     @property
     @abstractmethod
     def platform_name(self) -> str: ...
 
     @abstractmethod
-    def scrape_contest_metadata(self, contest_id: str) -> MetadataResult: ...
+    async def scrape_contest_metadata(self, contest_id: str) -> MetadataResult: ...
 
     @abstractmethod
-    def scrape_problem_tests(self, contest_id: str, problem_id: str) -> TestsResult: ...
+    async def scrape_problem_tests(
+        self, contest_id: str, problem_id: str
+    ) -> TestsResult: ...
 
     @abstractmethod
-    def scrape_contest_list(self) -> ContestListResult: ...
+    async def scrape_contest_list(self) -> ContestListResult: ...
+
+    @abstractmethod
+    async def stream_tests_for_category_async(self, category_id: str) -> None: ...
 
     def _create_metadata_error(
         self, error_msg: str, contest_id: str = ""
@@ -56,15 +63,21 @@ class BaseScraper(ABC):
             success=False, error=f"{self.platform_name}: {error_msg}"
         )
 
-    def _safe_execute(self, operation: str, func, *args, **kwargs):
+    async def _safe_execute(
+        self,
+        operation: str,
+        func: Callable[P, Awaitable[Any]],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ):
         try:
-            return func(*args, **kwargs)
+            return await func(*args, **kwargs)
         except Exception as e:
             if operation == "metadata":
-                contest_id = args[0] if args else ""
+                contest_id = cast(str, args[0]) if args else ""
                 return self._create_metadata_error(str(e), contest_id)
             elif operation == "tests":
-                problem_id = args[1] if len(args) > 1 else ""
+                problem_id = cast(str, args[1]) if len(args) > 1 else ""
                 return self._create_tests_error(str(e), problem_id)
             elif operation == "contests":
                 return self._create_contests_error(str(e))

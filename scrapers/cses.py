@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
+import asyncio
 import json
 import re
 import sys
 from dataclasses import asdict
+from typing import Any
 
-import backoff
-import requests
-from bs4 import BeautifulSoup, Tag
+import httpx
 
 from .base import BaseScraper
 from .models import (
@@ -18,6 +18,19 @@ from .models import (
     TestCase,
     TestsResult,
 )
+
+BASE_URL = "https://cses.fi"
+INDEX_PATH = "/problemset/list"
+TASK_PATH = "/problemset/task/{id}"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}
+TIMEOUT_S = 15.0
+CONNECTIONS = 8
+
+
+def _run(coro):
+    return asyncio.run(coro)
 
 
 def normalize_category_name(category_name: str) -> str:
@@ -57,256 +70,114 @@ def snake_to_title(name: str) -> str:
     return " ".join(map(fix_word, enumerate(words)))
 
 
-@backoff.on_exception(
-    backoff.expo,
-    (requests.exceptions.RequestException, requests.exceptions.HTTPError),
-    max_tries=4,
-    jitter=backoff.random_jitter,
-    on_backoff=lambda details: print(
-        f"Request failed (attempt {details['tries']}), retrying in {details['wait']:.1f}s: {details['exception']}",
-        file=sys.stderr,
-    ),
+async def fetch_text(client: httpx.AsyncClient, path: str) -> str:
+    r = await client.get(BASE_URL + path, headers=HEADERS, timeout=TIMEOUT_S)
+    r.raise_for_status()
+    return r.text
+
+
+CATEGORY_BLOCK_RE = re.compile(
+    r'<h2>(?P<cat>[^<]+)</h2>\s*<ul class="task-list">(?P<body>.*?)</ul>',
+    re.DOTALL,
 )
-@backoff.on_predicate(
-    backoff.expo,
-    lambda response: response.status_code == 429,
-    max_tries=4,
-    jitter=backoff.random_jitter,
-    on_backoff=lambda details: print(
-        f"Rate limited, retrying in {details['wait']:.1f}s", file=sys.stderr
-    ),
+TASK_LINK_RE = re.compile(
+    r'<li class="task"><a href="/problemset/task/(?P<id>\d+)/?">(?P<title>[^<]+)</a>',
+    re.DOTALL,
 )
-def make_request(url: str, headers: dict) -> requests.Response:
-    response = requests.get(url, headers=headers, timeout=10)
-    response.raise_for_status()
-    return response
+
+TITLE_RE = re.compile(
+    r'<div class="title-block">.*?<h1>(?P<title>[^<]+)</h1>', re.DOTALL
+)
+TIME_RE = re.compile(r"<li><b>Time limit:</b>\s*([0-9.]+)\s*s</li>")
+MEM_RE = re.compile(r"<li><b>Memory limit:</b>\s*(\d+)\s*MB</li>")
+SIDEBAR_CAT_RE = re.compile(
+    r'<div class="nav sidebar">.*?<h4>(?P<cat>[^<]+)</h4>', re.DOTALL
+)
+
+MD_BLOCK_RE = re.compile(r'<div class="md">(.*?)</div>', re.DOTALL | re.IGNORECASE)
+EXAMPLE_SECTION_RE = re.compile(
+    r"<h[1-6][^>]*>\s*example[s]?:?\s*</h[1-6]>\s*(?P<section>.*?)(?=<h[1-6][^>]*>|$)",
+    re.DOTALL | re.IGNORECASE,
+)
+LABELED_IO_RE = re.compile(
+    r"input\s*:\s*</p>\s*<pre>(?P<input>.*?)</pre>.*?output\s*:\s*</p>\s*<pre>(?P<output>.*?)</pre>",
+    re.DOTALL | re.IGNORECASE,
+)
+PRE_RE = re.compile(r"<pre>(.*?)</pre>", re.DOTALL | re.IGNORECASE)
 
 
-def scrape_category_problems(category_id: str) -> list[ProblemSummary]:
-    category_name = snake_to_title(category_id)
-    try:
-        problemset_url = "https://cses.fi/problemset/"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        response = make_request(problemset_url, headers)
-        soup = BeautifulSoup(response.text, "html.parser")
-        current_category = None
-        problems = []
-        target_found = False
-        for element in soup.find_all(["h1", "h2", "ul"]):
-            if not isinstance(element, Tag):
-                continue
-            if element.name in ["h1", "h2"]:
-                text = element.get_text(strip=True)
-                if not text or text.startswith("CSES") or text == "CSES Problem Set":
-                    continue
-                if target_found and current_category != text:
-                    break
-                current_category = text
-                if text.lower() == category_name.lower():
-                    target_found = True
-            elif element.name == "ul" and current_category and target_found:
-                problem_links = element.find_all(
-                    "a", href=lambda x: x and "/problemset/task/" in x
-                )
-                for link in problem_links:
-                    href = link.get("href", "")
-                    if not href:
-                        continue
-                    problem_id = href.split("/")[-1]
-                    problem_name = link.get_text(strip=True)
-                    if not problem_id.isdigit() or not problem_name:
-                        continue
-                    problems.append(ProblemSummary(id=problem_id, name=problem_name))
-        return problems
-    except Exception as e:
-        print(f"Failed to scrape CSES category {category_id}: {e}", file=sys.stderr)
-        return []
-
-
-def parse_problem_url(problem_input: str) -> str | None:
-    if problem_input.startswith("https://cses.fi/problemset/task/"):
-        return problem_input.rstrip("/")
-    elif problem_input.isdigit():
-        return f"https://cses.fi/problemset/task/{problem_input}"
-    return None
-
-
-def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, float]:
-    timeout_ms = None
-    memory_mb = None
-    constraints_ul = soup.find("ul", class_="task-constraints")
-    if not constraints_ul or not isinstance(constraints_ul, Tag):
-        raise ValueError("Could not find task-constraints section")
-    for li in constraints_ul.find_all("li"):
-        text = li.get_text()
-        if "Time limit:" in text:
-            match = re.search(r"Time limit:\s*(\d+(?:\.\d+)?)\s*s", text)
-            if match:
-                seconds = float(match.group(1))
-                timeout_ms = int(seconds * 1000)
-        if "Memory limit:" in text:
-            match = re.search(r"Memory limit:\s*(\d+)\s*MB", text)
-            if match:
-                memory_mb = float(match.group(1))
-    if timeout_ms is None:
-        raise ValueError("Could not find valid timeout in task-constraints section")
-    if memory_mb is None:
-        raise ValueError(
-            "Could not find valid memory limit in task-constraints section"
-        )
-    return timeout_ms, memory_mb
-
-
-def scrape_categories() -> list[ContestSummary]:
-    try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        response = make_request("https://cses.fi/problemset/", headers)
-        soup = BeautifulSoup(response.text, "html.parser")
-        categories = []
-        for h2 in soup.find_all("h2"):
-            category_name = h2.get_text().strip()
-            if category_name == "General":
-                continue
-            category_id = normalize_category_name(category_name)
-            display_name = category_name
-            categories.append(
-                ContestSummary(
-                    id=category_id, name=category_name, display_name=display_name
-                )
+def parse_categories(html: str) -> list[ContestSummary]:
+    out: list[ContestSummary] = []
+    for m in CATEGORY_BLOCK_RE.finditer(html):
+        cat = m.group("cat").strip()
+        if cat == "General":
+            continue
+        out.append(
+            ContestSummary(
+                id=normalize_category_name(cat),
+                name=cat,
+                display_name=cat,
             )
-        return categories
-    except Exception as e:
-        print(f"Failed to scrape CSES categories: {e}", file=sys.stderr)
-        return []
-
-
-def process_problem_element(
-    element,
-    current_category: str | None,
-    all_categories: dict[str, list[ProblemSummary]],
-) -> str | None:
-    if element.name == "h1":
-        category_name = element.get_text().strip()
-        if category_name not in all_categories:
-            all_categories[category_name] = []
-        return category_name
-    if element.name != "a" or "/problemset/task/" not in element.get("href", ""):
-        return current_category
-    href = element.get("href", "")
-    if not href:
-        return current_category
-    problem_id = href.split("/")[-1]
-    problem_name = element.get_text(strip=True)
-    if not (problem_id.isdigit() and problem_name and current_category):
-        return current_category
-    problem = ProblemSummary(id=problem_id, name=problem_name)
-    all_categories[current_category].append(problem)
-    return current_category
-
-
-def scrape_all_problems() -> dict[str, list[ProblemSummary]]:
-    try:
-        problemset_url = "https://cses.fi/problemset/"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        response = requests.get(problemset_url, headers=headers, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
-        all_categories: dict[str, list[ProblemSummary]] = {}
-        current_category = None
-        for element in soup.find_all(["h1", "h2", "ul"]):
-            if not isinstance(element, Tag):
-                continue
-            if element.name in ["h1", "h2"]:
-                text = element.get_text(strip=True)
-                if text and not text.startswith("CSES") and text != "CSES Problem Set":
-                    current_category = text
-                    if current_category not in all_categories:
-                        all_categories[current_category] = []
-                        print(f"Found category: {current_category}", file=sys.stderr)
-            elif element.name == "ul" and current_category:
-                problem_links = element.find_all(
-                    "a", href=lambda x: x and "/problemset/task/" in x
-                )
-                for link in problem_links:
-                    href = link.get("href", "")
-                    if href:
-                        problem_id = href.split("/")[-1]
-                        problem_name = link.get_text(strip=True)
-                        if problem_id.isdigit() and problem_name:
-                            problem = ProblemSummary(id=problem_id, name=problem_name)
-                            all_categories[current_category].append(problem)
-        print(
-            f"Found {len(all_categories)} categories with {sum(len(probs) for probs in all_categories.values())} problems",
-            file=sys.stderr,
         )
-        return all_categories
-    except Exception as e:
-        print(f"Failed to scrape CSES problems: {e}", file=sys.stderr)
-        return {}
-
-
-def _collect_section_after(header: Tag) -> list[Tag]:
-    out: list[Tag] = []
-    cur = header.find_next_sibling()
-    while cur and not (isinstance(cur, Tag) and cur.name in ("h1", "h2", "h3")):
-        if isinstance(cur, Tag):
-            out.append(cur)
-        cur = cur.find_next_sibling()
     return out
 
 
-def extract_example_test_cases(soup: BeautifulSoup) -> list[tuple[str, str]]:
-    example_headers = soup.find_all(
-        lambda t: isinstance(t, Tag)
-        and t.name in ("h1", "h2", "h3")
-        and t.get_text(strip=True).lower().startswith("example")
-    )
-    cases: list[tuple[str, str]] = []
-    for hdr in example_headers:
-        section = _collect_section_after(hdr)
-
-        def find_labeled(label: str) -> str | None:
-            for node in section:
-                if not isinstance(node, Tag):
-                    continue
-                if node.name in ("p", "h4", "h5", "h6"):
-                    txt = node.get_text(strip=True).lower().rstrip(":")
-                    if txt == label:
-                        pre = node.find_next_sibling("pre")
-                        if pre:
-                            return pre.get_text().strip()
-            return None
-
-        inp = find_labeled("input")
-        out = find_labeled("output")
-        if not inp or not out:
-            pres = [n for n in section if isinstance(n, Tag) and n.name == "pre"]
-            if len(pres) >= 2:
-                inp = inp or pres[0].get_text().strip()
-                out = out or pres[1].get_text().strip()
-        if inp and out:
-            cases.append((inp, out))
-    return cases
+def parse_category_problems(category_id: str, html: str) -> list[ProblemSummary]:
+    want = snake_to_title(category_id)
+    for m in CATEGORY_BLOCK_RE.finditer(html):
+        cat = m.group("cat").strip()
+        if cat != want:
+            continue
+        body = m.group("body")
+        return [
+            ProblemSummary(id=mm.group("id"), name=mm.group("title"))
+            for mm in TASK_LINK_RE.finditer(body)
+        ]
+    return []
 
 
-def scrape(url: str) -> list[TestCase]:
-    try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        response = make_request(url, headers)
-        soup = BeautifulSoup(response.text, "html.parser")
-        pairs = extract_example_test_cases(soup)
-        return [TestCase(input=inp, expected=out) for (inp, out) in pairs]
-    except Exception as e:
-        print(f"Error scraping CSES: {e}", file=sys.stderr)
+def parse_limits(html: str) -> tuple[int, int]:
+    tm = TIME_RE.search(html)
+    mm = MEM_RE.search(html)
+    t = int(round(float(tm.group(1)) * 1000)) if tm else 0
+    m = int(mm.group(1)) if mm else 0
+    return t, m
+
+
+def parse_title(html: str) -> str:
+    mt = TITLE_RE.search(html)
+    return mt.group("title").strip() if mt else ""
+
+
+def parse_category_from_sidebar(html: str) -> str | None:
+    m = SIDEBAR_CAT_RE.search(html)
+    return m.group("cat").strip() if m else None
+
+
+def parse_tests(html: str) -> list[TestCase]:
+    md = MD_BLOCK_RE.search(html)
+    if not md:
         return []
+    block = md.group(1)
+
+    msec = EXAMPLE_SECTION_RE.search(block)
+    section = msec.group("section") if msec else block
+
+    mlabel = LABELED_IO_RE.search(section)
+    if mlabel:
+        a = mlabel.group("input").strip()
+        b = mlabel.group("output").strip()
+        return [TestCase(input=a, expected=b)]
+
+    pres = PRE_RE.findall(section)
+    if len(pres) >= 2:
+        return [TestCase(input=pres[0].strip(), expected=pres[1].strip())]
+
+    return []
+
+
+def task_path(problem_id: str | int) -> str:
+    return TASK_PATH.format(id=str(problem_id))
 
 
 class CSESScraper(BaseScraper):
@@ -314,78 +185,31 @@ class CSESScraper(BaseScraper):
     def platform_name(self) -> str:
         return "cses"
 
-    def scrape_contest_metadata(self, contest_id: str) -> MetadataResult:
-        return self._safe_execute("metadata", self._scrape_metadata_impl, contest_id)
-
-    def scrape_problem_tests(self, contest_id: str, problem_id: str) -> TestsResult:
-        return self._safe_execute(
-            "tests", self._scrape_tests_impl, contest_id, problem_id
-        )
-
-    def scrape_contest_list(self) -> ContestListResult:
-        return self._safe_execute("contests", self._scrape_contests_impl)
-
-    def _safe_execute(self, operation: str, func, *args):
-        try:
-            return func(*args)
-        except Exception as e:
-            error_msg = f"{self.platform_name}: {str(e)}"
-            if operation == "metadata":
-                return MetadataResult(success=False, error=error_msg)
-            elif operation == "tests":
-                return TestsResult(
-                    success=False,
-                    error=error_msg,
-                    problem_id="",
-                    url="",
-                    tests=[],
-                    timeout_ms=0,
-                    memory_mb=0,
-                )
-            elif operation == "contests":
-                return ContestListResult(success=False, error=error_msg)
-
-    def _scrape_metadata_impl(self, category_id: str) -> MetadataResult:
-        problems = scrape_category_problems(category_id)
+    async def scrape_contest_metadata(self, contest_id: str) -> MetadataResult:
+        async with httpx.AsyncClient() as client:
+            html = await fetch_text(client, INDEX_PATH)
+        problems = parse_category_problems(contest_id, html)
         if not problems:
             return MetadataResult(
                 success=False,
-                error=f"{self.platform_name}: No problems found for category: {category_id}",
+                error=f"{self.platform_name}: No problems found for category: {contest_id}",
             )
         return MetadataResult(
-            success=True, error="", contest_id=category_id, problems=problems
+            success=True, error="", contest_id=contest_id, problems=problems
         )
 
-    def _scrape_tests_impl(self, category: str, problem_id: str) -> TestsResult:
-        url = parse_problem_url(problem_id)
-        if not url:
-            return TestsResult(
-                success=False,
-                error=f"{self.platform_name}: Invalid problem input: {problem_id}. Use either problem ID (e.g., 1068) or full URL",
-                problem_id=problem_id if problem_id.isdigit() else "",
-                url="",
-                tests=[],
-                timeout_ms=0,
-                memory_mb=0,
-            )
-        tests = scrape(url)
-        m = re.search(r"/task/(\d+)", url)
-        actual_problem_id = (
-            problem_id if problem_id.isdigit() else (m.group(1) if m else "")
-        )
-        headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
-        timeout_ms, memory_mb = extract_problem_limits(soup)
+    async def scrape_problem_tests(self, category: str, problem_id: str) -> TestsResult:
+        path = task_path(problem_id)
+        async with httpx.AsyncClient() as client:
+            html = await fetch_text(client, path)
+        tests = parse_tests(html)
+        timeout_ms, memory_mb = parse_limits(html)
         if not tests:
             return TestsResult(
                 success=False,
                 error=f"{self.platform_name}: No tests found for {problem_id}",
-                problem_id=actual_problem_id,
-                url=url,
+                problem_id=problem_id if problem_id.isdigit() else "",
+                url=BASE_URL + path,
                 tests=[],
                 timeout_ms=timeout_ms,
                 memory_mb=memory_mb,
@@ -393,50 +217,93 @@ class CSESScraper(BaseScraper):
         return TestsResult(
             success=True,
             error="",
-            problem_id=actual_problem_id,
-            url=url,
+            problem_id=problem_id if problem_id.isdigit() else "",
+            url=BASE_URL + path,
             tests=tests,
             timeout_ms=timeout_ms,
             memory_mb=memory_mb,
         )
 
-    def _scrape_contests_impl(self) -> ContestListResult:
-        categories = scrape_categories()
-        if not categories:
+    async def scrape_contest_list(self) -> ContestListResult:
+        async with httpx.AsyncClient() as client:
+            html = await fetch_text(client, INDEX_PATH)
+        cats = parse_categories(html)
+        if not cats:
             return ContestListResult(
                 success=False, error=f"{self.platform_name}: No contests found"
             )
-        return ContestListResult(success=True, error="", contests=categories)
+        return ContestListResult(success=True, error="", contests=cats)
+
+    async def stream_tests_for_category_async(self, category_id: str) -> None:
+        async with httpx.AsyncClient(
+            limits=httpx.Limits(max_connections=CONNECTIONS)
+        ) as client:
+            index_html = await fetch_text(client, INDEX_PATH)
+            problems = parse_category_problems(category_id, index_html)
+            if not problems:
+                return
+
+            sem = asyncio.Semaphore(CONNECTIONS)
+
+            async def run_one(pid: str) -> dict[str, Any]:
+                async with sem:
+                    try:
+                        html = await fetch_text(client, task_path(pid))
+                        tests = parse_tests(html)
+                        timeout_ms, memory_mb = parse_limits(html)
+                        if not tests:
+                            return {
+                                "problem_id": pid,
+                                "error": f"{self.platform_name}: no tests found",
+                            }
+                        return {
+                            "problem_id": pid,
+                            "tests": [
+                                {"input": t.input, "expected": t.expected}
+                                for t in tests
+                            ],
+                            "timeout_ms": timeout_ms,
+                            "memory_mb": memory_mb,
+                            "interactive": False,
+                        }
+                    except Exception as e:
+                        return {"problem_id": pid, "error": str(e)}
+
+            tasks = [run_one(p.id) for p in problems]
+            for coro in asyncio.as_completed(tasks):
+                payload = await coro
+                print(json.dumps(payload), flush=True)
 
 
-def main() -> None:
+async def main_async() -> int:
     if len(sys.argv) < 2:
         result = MetadataResult(
             success=False,
-            error="Usage: cses.py metadata <category_id> OR cses.py tests <category> <problem_id> OR cses.py contests",
+            error="Usage: cses.py metadata <category_id> OR cses.py tests <category> OR cses.py contests",
         )
         print(json.dumps(asdict(result)))
-        sys.exit(1)
+        return 1
+
     mode: str = sys.argv[1]
     scraper = CSESScraper()
+
     if mode == "metadata":
         if len(sys.argv) != 3:
             result = MetadataResult(
-                success=False,
-                error="Usage: cses.py metadata <category_id>",
+                success=False, error="Usage: cses.py metadata <category_id>"
             )
             print(json.dumps(asdict(result)))
-            sys.exit(1)
+            return 1
         category_id = sys.argv[2]
-        result = scraper.scrape_contest_metadata(category_id)
+        result = await scraper.scrape_contest_metadata(category_id)
         print(json.dumps(asdict(result)))
-        if not result.success:
-            sys.exit(1)
-    elif mode == "tests":
-        if len(sys.argv) != 4:
+        return 0 if result.success else 1
+
+    if mode == "tests":
+        if len(sys.argv) != 3:
             tests_result = TestsResult(
                 success=False,
-                error="Usage: cses.py tests <category> <problem_id>",
+                error="Usage: cses.py tests <category>",
                 problem_id="",
                 url="",
                 tests=[],
@@ -444,31 +311,32 @@ def main() -> None:
                 memory_mb=0,
             )
             print(json.dumps(asdict(tests_result)))
-            sys.exit(1)
+            return 1
         category = sys.argv[2]
-        problem_id = sys.argv[3]
-        tests_result = scraper.scrape_problem_tests(category, problem_id)
-        print(json.dumps(asdict(tests_result)))
-        if not tests_result.success:
-            sys.exit(1)
-    elif mode == "contests":
+        await scraper.stream_tests_for_category_async(category)
+        return 0
+
+    if mode == "contests":
         if len(sys.argv) != 2:
             contest_result = ContestListResult(
                 success=False, error="Usage: cses.py contests"
             )
             print(json.dumps(asdict(contest_result)))
-            sys.exit(1)
-        contest_result = scraper.scrape_contest_list()
+            return 1
+        contest_result = await scraper.scrape_contest_list()
         print(json.dumps(asdict(contest_result)))
-        if not contest_result.success:
-            sys.exit(1)
-    else:
-        result = MetadataResult(
-            success=False,
-            error=f"Unknown mode: {mode}. Use 'metadata <category>', 'tests <category> <problem_id>', or 'contests'",
-        )
-        print(json.dumps(asdict(result)))
-        sys.exit(1)
+        return 0 if contest_result.success else 1
+
+    result = MetadataResult(
+        success=False,
+        error=f"Unknown mode: {mode}. Use 'metadata <category>', 'tests <category>', or 'contests'",
+    )
+    print(json.dumps(asdict(result)))
+    return 1
+
+
+def main() -> None:
+    sys.exit(asyncio.run(main_async()))
 
 
 if __name__ == "__main__":
