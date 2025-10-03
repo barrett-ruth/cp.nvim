@@ -14,6 +14,7 @@
 ---@field signal string?
 ---@field tled boolean?
 ---@field mled boolean?
+---@field rss_mb number
 
 ---@class ProblemConstraints
 ---@field timeout_ms number
@@ -44,6 +45,10 @@ local run_panel_state = {
   constraints = nil,
 }
 
+---@param platform string
+---@param contest_id string
+---@param problem_id string|nil
+---@return ProblemConstraints|nil
 local function load_constraints_from_cache(platform, contest_id, problem_id)
   cache.load()
   local timeout_ms, memory_mb = cache.get_constraints(platform, contest_id, problem_id)
@@ -53,6 +58,8 @@ local function load_constraints_from_cache(platform, contest_id, problem_id)
   return nil
 end
 
+---@param test_cases TestCase[]
+---@return RanTestCase[]
 local function create_sentinal_panel_data(test_cases)
   local out = {}
   for i, tc in ipairs(test_cases) do
@@ -67,11 +74,18 @@ local function create_sentinal_panel_data(test_cases)
   return out
 end
 
+---@param language_config LanguageConfig
+---@param substitutions table<string, string>
+---@return string[]
 local function build_command(language_config, substitutions)
   local exec_util = require('cp.runner.execute')._util
   return exec_util.build_command(language_config.test, language_config.executable, substitutions)
 end
 
+---@param contest_config ContestConfig
+---@param cp_config cp.Config
+---@param test_case RanTestCase
+---@return { status: "pass"|"fail"|"tle"|"mle", actual: string, actual_highlights: Highlight[], error: string, stderr: string, time_ms: number, code: integer, ok: boolean, signal: string, tled: boolean, mled: boolean, rss_mb: number }
 local function run_single_test_case(contest_config, cp_config, test_case)
   local state = require('cp.state')
   local exec = require('cp.runner.execute')
@@ -96,6 +110,7 @@ local function run_single_test_case(contest_config, cp_config, test_case)
         error = 'Compilation failed',
         stderr = clean,
         time_ms = 0,
+        rss_mb = 0,
         code = cr.code,
         ok = false,
         signal = nil,
@@ -161,7 +176,7 @@ local function run_single_test_case(contest_config, cp_config, test_case)
     status = status,
     actual = out,
     actual_highlights = highlights,
-    error = (r.code ~= 0 and not ok) and out or nil,
+    error = (r.code ~= 0 and not ok) and out or '',
     stderr = '',
     time_ms = r.time_ms,
     code = r.code,
@@ -169,9 +184,12 @@ local function run_single_test_case(contest_config, cp_config, test_case)
     signal = signal,
     tled = r.tled or false,
     mled = r.mled or false,
+    rss_mb = r.peak_mb,
   }
 end
 
+---@param state table
+---@return boolean
 function M.load_test_cases(state)
   local tcs = cache.get_test_cases(
     state.get_platform() or '',
@@ -191,6 +209,10 @@ function M.load_test_cases(state)
   return #tcs > 0
 end
 
+---@param contest_config ContestConfig
+---@param cp_config cp.Config
+---@param index number
+---@return boolean
 function M.run_test_case(contest_config, cp_config, index)
   local tc = run_panel_state.test_cases[index]
   if not tc then
@@ -211,10 +233,14 @@ function M.run_test_case(contest_config, cp_config, index)
   tc.signal = r.signal
   tc.tled = r.tled
   tc.mled = r.mled
+  tc.rss_mb = r.rss_mb
 
   return true
 end
 
+---@param contest_config ContestConfig
+---@param cp_config cp.Config
+---@return RanTestCase[]
 function M.run_all_test_cases(contest_config, cp_config)
   local results = {}
   for i = 1, #run_panel_state.test_cases do
@@ -224,11 +250,14 @@ function M.run_all_test_cases(contest_config, cp_config)
   return results
 end
 
+---@return RunPanelState
 function M.get_run_panel_state()
   return run_panel_state
 end
 
-function M.handle_compilation_failure(compilation_output)
+---@param output string|nil
+---@return nil
+function M.handle_compilation_failure(output)
   local ansi = require('cp.ui.ansi')
   local config = require('cp.config').setup()
 
@@ -236,11 +265,11 @@ function M.handle_compilation_failure(compilation_output)
   local hl = {}
 
   if config.run_panel.ansi then
-    local p = ansi.parse_ansi_text(compilation_output or '')
+    local p = ansi.parse_ansi_text(output or '')
     txt = table.concat(p.lines, '\n')
     hl = p.highlights
   else
-    txt = (compilation_output or ''):gsub('\027%[[%d;]*[a-zA-Z]', '')
+    txt = (output or ''):gsub('\027%[[%d;]*[a-zA-Z]', '')
   end
 
   for _, tc in ipairs(run_panel_state.test_cases) do
@@ -252,7 +281,7 @@ function M.handle_compilation_failure(compilation_output)
     tc.time_ms = 0
     tc.code = 1
     tc.ok = false
-    tc.signal = nil
+    tc.signal = ''
     tc.tled = false
     tc.mled = false
   end
