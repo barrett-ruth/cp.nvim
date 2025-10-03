@@ -57,7 +57,7 @@ local function find_gnu_time()
 
   _time_cached = true
   _time_path = nil
-  _time_reason = 'GNU time not found (install `time` on Linux or `brew install coreutils` on macOS)'
+  _time_reason = 'GNU time not found'
   return _time_path, _time_reason
 end
 
@@ -214,7 +214,7 @@ local function find_gnu_timeout()
 
   _timeout_cached = true
   _timeout_path = nil
-  _timeout_reason = 'GNU timeout not found (install `coreutils`; macOS: `brew install coreutils`)'
+  _timeout_reason = 'GNU timeout not found'
   return _timeout_path, _timeout_reason
 end
 
