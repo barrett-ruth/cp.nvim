@@ -36,9 +36,8 @@ function M.get_platforms()
   return result
 end
 
----Get list of contests for a specific platform
----@param platform string Platform identifier (e.g. "codeforces", "atcoder")
----@param refresh? boolean Whether to skip caching and append new contests
+---@param platform string
+---@param refresh? boolean
 ---@return cp.ContestItem[]
 function M.get_platform_contests(platform, refresh)
   logger.log(
@@ -48,23 +47,20 @@ function M.get_platform_contests(platform, refresh)
   )
 
   cache.load()
-
   local picker_contests = cache.get_contest_summaries(platform)
 
   if refresh or vim.tbl_isempty(picker_contests) then
     logger.log(('Cache miss on %s contests'):format(platform))
-    local contests = scraper.scrape_contest_list(platform)
-
+    local contests = scraper.scrape_contest_list(platform) -- sync
     cache.set_contest_summaries(platform, contests)
+    picker_contests = cache.get_contest_summaries(platform) -- <-- reload after write
   end
 
   logger.log(
-    ('Loaded %s %s contests.'):format(#picker_contests, constants.PLATFORM_DISPLAY_NAMES[platform]),
+    ('Loaded %d %s contests.'):format(#picker_contests, constants.PLATFORM_DISPLAY_NAMES[platform]),
     vim.log.levels.INFO,
     true
   )
-
-  picker_contests = cache.get_contest_summaries(platform)
 
   return picker_contests
 end

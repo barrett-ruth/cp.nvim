@@ -57,6 +57,33 @@ function M.setup_contest(platform, contest_id, language, problem_id)
   state.set_contest_id(contest_id)
   cache.load()
 
+  local function proceed(contest_data)
+    local problems = contest_data.problems
+    local pid = problems[(problem_id and contest_data.index_map[problem_id] or 1)].id
+    M.setup_problem(pid, language)
+
+    local cached_len = #vim.tbl_filter(function(p)
+      return cache.get_test_cases(platform, contest_id, p.id) ~= nil
+    end, problems)
+
+    if cached_len ~= #problems then
+      scraper.scrape_all_tests(platform, contest_id, function(ev)
+        local cached_tests = {}
+        for i, t in ipairs(ev.tests) do
+          cached_tests[i] = { index = i, input = t.input, expected = t.expected }
+        end
+        cache.set_test_cases(
+          platform,
+          contest_id,
+          ev.problem_id,
+          cached_tests,
+          ev.timeout_ms or 0,
+          ev.memory_mb or 0
+        )
+      end)
+    end
+  end
+
   local contest_data = cache.get_contest_data(platform, contest_id)
   if not contest_data or not contest_data.problems then
     logger.log('Fetching contests problems...', vim.log.levels.INFO, true)
@@ -64,63 +91,12 @@ function M.setup_contest(platform, contest_id, language, problem_id)
       local problems = result.problems or {}
       cache.set_contest_data(platform, contest_id, problems, result.name, result.display_name)
       logger.log(('Found %d problems for %s contest %s.'):format(#problems, platform, contest_id))
-
-      contest_data = cache.get_contest_data(platform, contest_id)
-      local pid = contest_data.problems[problem_id and contest_data.index_map[problem_id] or 1].id
-      M.setup_problem(pid, language)
-
-      local cached_len = #vim.tbl_filter(function(p)
-        return cache.get_test_cases(platform, contest_id, p.id) ~= nil
-      end, problems)
-      if cached_len < #problems then
-        scraper.scrape_all_tests(platform, contest_id, function(ev)
-          if not ev or not ev.tests or not ev.problem_id then
-            return
-          end
-          local cached_tests = {}
-          for i, t in ipairs(ev.tests) do
-            cached_tests[i] = { index = i, input = t.input, expected = t.expected }
-          end
-          cache.set_test_cases(
-            platform,
-            contest_id,
-            ev.problem_id,
-            cached_tests,
-            ev.timeout_ms or 0,
-            ev.memory_mb or 0
-          )
-        end)
-      end
+      proceed(cache.get_contest_data(platform, contest_id))
     end)
-
     return
   end
 
-  local problems = contest_data.problems
-  local pid = problems[(problem_id and contest_data.index_map[problem_id] or 1)].id
-  M.setup_problem(pid, language)
-  local cached_len = #vim.tbl_filter(function(p)
-    return cache.get_test_cases(platform, contest_id, p.id) ~= nil
-  end, problems)
-  if cached_len < #problems then
-    scraper.scrape_all_tests(platform, contest_id, function(ev)
-      if not ev or not ev.tests or not ev.problem_id then
-        return
-      end
-      local cached_tests = {}
-      for i, t in ipairs(ev.tests) do
-        cached_tests[i] = { index = i, input = t.input, expected = t.expected }
-      end
-      cache.set_test_cases(
-        platform,
-        contest_id,
-        ev.problem_id,
-        cached_tests,
-        ev.timeout_ms or 0,
-        ev.memory_mb or 0
-      )
-    end)
-  end
+  proceed(contest_data)
 end
 
 ---@param problem_id string
