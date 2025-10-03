@@ -63,7 +63,6 @@ local function compute_cols(test_state)
     memory_str = string.format('%.0f', test_state.constraints.memory_mb)
   end
 
-  vim.print(test_state)
   for i, tc in ipairs(test_state.test_cases) do
     local prefix = (i == test_state.current_index) and '>' or ' '
     w.num = math.max(w.num, #(' ' .. prefix .. i .. ' '))
