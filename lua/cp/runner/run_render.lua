@@ -30,19 +30,17 @@ function M.get_status_info(ran_test_case)
     return { text = 'AC', highlight_group = 'CpTestAC' }
   end
 
-  if ran_test_case.actual == '' then
-    return { text = '...', highlight_group = 'CpTestPending' }
-  end
-
   if ran_test_case.tled then
     return { text = 'TLE', highlight_group = 'CpTestTLE' }
   elseif ran_test_case.mled then
     return { text = 'MLE', highlight_group = 'CpTestMLE' }
-  elseif ran_test_case.code and ran_test_case.code >= 128 then
+  elseif ran_test_case.code > 0 and ran_test_case.code >= 128 then
     return { text = 'RTE', highlight_group = 'CpTestRTE' }
-  else
+  elseif ran_test_case.code == 0 and not ran_test_case.ok then
     return { text = 'WA', highlight_group = 'CpTestWA' }
   end
+
+  return { text = '...', highlight_group = 'CpTestPending' }
 end
 
 local function format_exit_code(code)

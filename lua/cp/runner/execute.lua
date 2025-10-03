@@ -74,10 +74,7 @@ local function parse_and_strip_time_v(output, memory_mb)
     end
   end
   if not timing_idx then
-    while #lines > 0 and lines[#lines]:match('^%s*$') do
-      table.remove(lines, #lines)
-    end
-    return table.concat(lines, '\n'), 0, false
+    return output or '', 0, false
   end
 
   local start_idx = timing_idx
@@ -110,20 +107,22 @@ local function parse_and_strip_time_v(output, memory_mb)
 end
 
 function M.run(cmd, stdin, timeout_ms, memory_mb)
-  local prog = table.concat(cmd, ' ')
-  local pre = {}
-  if memory_mb and memory_mb > 0 then
-    table.insert(pre, ('ulimit -v %d'):format(memory_mb * 1024))
-  end
-  local prefix = (#pre > 0) and (table.concat(pre, '; ') .. '; ') or ''
   local time_bin = utils.time_path()
-  local sh = prefix .. ('%s -v sh -c %q 2>&1'):format(time_bin, prog)
+  local timeout_bin = utils.timeout_path()
+
+  local prog = table.concat(cmd, ' ')
+  local pre = {
+    ('ulimit -v %d'):format(memory_mb * 1024),
+  }
+  local prefix = table.concat(pre, '; ') .. '; '
+  local sec = math.ceil(timeout_ms / 1000)
+  local timeout_prefix = ('%s -k 1s %ds '):format(timeout_bin, sec)
+  local sh = prefix .. timeout_prefix .. ('%s -v sh -c %q 2>&1'):format(time_bin, prog)
 
   local t0 = vim.uv.hrtime()
   local r = vim
     .system({ 'sh', '-c', sh }, {
       stdin = stdin,
-      timeout = timeout_ms,
       text = true,
     })
     :wait()
@@ -131,27 +130,12 @@ function M.run(cmd, stdin, timeout_ms, memory_mb)
 
   local code = r.code or 0
   local raw = r.stdout or ''
-  local cleaned, peak_mb = parse_and_strip_time_v(raw)
+  local cleaned, peak_mb, mled = parse_and_strip_time_v(raw, memory_mb)
   local tled = code == 124
 
   local signal = nil
   if code >= 128 then
     signal = constants.signal_codes[code]
-  end
-
-  local lower = (cleaned or ''):lower()
-  local oom_hint = lower:find('std::bad_alloc', 1, true)
-    or lower:find('cannot allocate memory', 1, true)
-    or lower:find('enomem', 1, true)
-
-  local near_cap = false
-  if memory_mb and memory_mb > 0 then
-    near_cap = (peak_mb >= (0.90 * memory_mb))
-  end
-
-  local mled = false
-  if peak_mb >= memory_mb or near_cap or oom_hint then
-    mled = true
   end
 
   if tled then
