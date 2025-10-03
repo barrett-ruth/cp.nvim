@@ -63,7 +63,7 @@ function M.compile(language_config, substitutions)
   return r
 end
 
-local function parse_and_strip_time_v(output)
+local function parse_and_strip_time_v(output, memory_mb)
   local lines = vim.split(output or '', '\n', { plain = true })
 
   local timing_idx
@@ -73,6 +73,12 @@ local function parse_and_strip_time_v(output)
       break
     end
   end
+  if not timing_idx then
+    while #lines > 0 and lines[#lines]:match('^%s*$') do
+      table.remove(lines, #lines)
+    end
+    return table.concat(lines, '\n'), 0, false
+  end
 
   local start_idx = timing_idx
   local k = timing_idx - 1
@@ -81,11 +87,14 @@ local function parse_and_strip_time_v(output)
     k = k - 1
   end
 
-  local peak_mb = 0
+  local peak_mb, mled = 0, false
   for j = timing_idx, #lines do
     local kb = lines[j]:match('Maximum resident set size %(kbytes%):%s*(%d+)')
     if kb then
       peak_mb = tonumber(kb) / 1024.0
+      if memory_mb and memory_mb > 0 and peak_mb > memory_mb then
+        mled = true
+      end
     end
   end
 
@@ -97,7 +106,7 @@ local function parse_and_strip_time_v(output)
     table.remove(lines, #lines)
   end
 
-  return table.concat(lines, '\n'), peak_mb
+  return table.concat(lines, '\n'), peak_mb, mled
 end
 
 function M.run(cmd, stdin, timeout_ms, memory_mb)
