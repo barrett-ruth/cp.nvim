@@ -96,23 +96,19 @@ local function center(text, width)
   if pad <= 0 then
     return text
   end
-  local left = math.floor(pad / 2)
+  local left = math.ceil(pad / 2)
   return string.rep(' ', left) .. text .. string.rep(' ', pad - left)
 end
 
 local function format_num_column(prefix, idx, width)
   local num_str = tostring(idx)
-  local content
-  if #num_str == 1 then
-    content = ' ' .. prefix .. ' ' .. num_str .. ' '
-  else
-    content = ' ' .. prefix .. num_str .. ' '
-  end
+  local content = (#num_str == 1) and (' ' .. prefix .. ' ' .. num_str .. ' ')
+    or (' ' .. prefix .. num_str .. ' ')
   local total_pad = width - #content
   if total_pad <= 0 then
     return content
   end
-  local left_pad = math.floor(total_pad / 2)
+  local left_pad = math.ceil(total_pad / 2)
   local right_pad = total_pad - left_pad
   return string.rep(' ', left_pad) .. content .. string.rep(' ', right_pad)
 end
