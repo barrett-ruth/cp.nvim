@@ -29,6 +29,7 @@
 ---@field constraints ProblemConstraints?
 
 local M = {}
+local cache = require('cp.cache')
 local constants = require('cp.constants')
 local logger = require('cp.log')
 
@@ -43,14 +44,7 @@ local run_panel_state = {
   constraints = nil,
 }
 
-local function parse_test_cases_from_cache(platform, contest_id, problem_id)
-  local cache = require('cp.cache')
-  cache.load()
-  return cache.get_test_cases(platform, contest_id, problem_id) or {}
-end
-
 local function load_constraints_from_cache(platform, contest_id, problem_id)
-  local cache = require('cp.cache')
   cache.load()
   local timeout_ms, memory_mb = cache.get_constraints(platform, contest_id, problem_id)
   if timeout_ms and memory_mb then
@@ -179,7 +173,7 @@ local function run_single_test_case(contest_config, cp_config, test_case)
 end
 
 function M.load_test_cases(state)
-  local tcs = parse_test_cases_from_cache(
+  local tcs = cache.get_test_cases(
     state.get_platform() or '',
     state.get_contest_id() or '',
     state.get_problem_id()
