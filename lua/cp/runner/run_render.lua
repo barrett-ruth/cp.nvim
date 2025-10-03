@@ -30,19 +30,17 @@ function M.get_status_info(ran_test_case)
     return { text = 'AC', highlight_group = 'CpTestAC' }
   end
 
-  if ran_test_case.actual == '' then
-    return { text = '...', highlight_group = 'CpTestPending' }
-  end
-
   if ran_test_case.tled then
     return { text = 'TLE', highlight_group = 'CpTestTLE' }
   elseif ran_test_case.mled then
     return { text = 'MLE', highlight_group = 'CpTestMLE' }
-  elseif ran_test_case.code and ran_test_case.code >= 128 then
+  elseif ran_test_case.code > 0 and ran_test_case.code >= 128 then
     return { text = 'RTE', highlight_group = 'CpTestRTE' }
-  else
+  elseif ran_test_case.code == 0 and not ran_test_case.ok then
     return { text = 'WA', highlight_group = 'CpTestWA' }
   end
+
+  return { text = 'N/A', highlight_group = 'CpTestNA' }
 end
 
 local function format_exit_code(code)
@@ -356,7 +354,7 @@ function M.get_highlight_groups()
     CpTestTLE = { fg = '#f59e0b' },
     CpTestMLE = { fg = '#f59e0b' },
     CpTestRTE = { fg = '#8b5cf6' },
-    CpTestPending = { fg = '#6b7280' },
+    CpTestNA = { fg = '#6b7280' },
     CpDiffRemoved = { fg = '#ef4444', bg = '#1f1f1f' },
     CpDiffAdded = { fg = '#10b981', bg = '#1f1f1f' },
   }

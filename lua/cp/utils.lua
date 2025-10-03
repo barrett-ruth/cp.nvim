@@ -7,6 +7,9 @@ local uname = vim.loop.os_uname()
 local _time_cached = false
 local _time_path = nil
 local _time_reason = nil
+local _timeout_cached = false
+local _timeout_path = nil
+local _timeout_reason = nil
 
 local function is_windows()
   return uname and uname.sysname == 'Windows_NT'
@@ -146,9 +149,14 @@ function M.check_required_runtime()
     return false, 'Neovim 0.10.0+ required'
   end
 
-  local cap = M.time_capability()
-  if not cap.ok then
-    return false, 'GNU time not found: ' .. (cap.reason or '')
+  local time = M.time_capability()
+  if not time.ok then
+    return false, 'GNU time not found: ' .. (time.reason or '')
+  end
+
+  local timeout = M.timeout_capability()
+  if not timeout.ok then
+    return false, 'GNU timeout not found: ' .. (timeout.reason or '')
   end
 
   if vim.fn.executable('uv') ~= 1 then
@@ -160,6 +168,64 @@ function M.check_required_runtime()
   end
 
   return true
+end
+
+local function check_timeout_is_gnu_timeout(bin)
+  if vim.fn.executable(bin) ~= 1 then
+    return false
+  end
+  local r = vim.system({ bin, '--version' }, { text = true }):wait()
+  if r and r.code == 0 and r.stdout then
+    local s = r.stdout:lower()
+    if s:find('gnu coreutils', 1, true) or s:find('timeout %(gnu coreutils%)', 1, true) then
+      return true
+    end
+  end
+  return false
+end
+
+local function find_gnu_timeout()
+  if _timeout_cached then
+    return _timeout_path, _timeout_reason
+  end
+
+  if is_windows() then
+    _timeout_cached = true
+    _timeout_path = nil
+    _timeout_reason = 'unsupported on Windows'
+    return _timeout_path, _timeout_reason
+  end
+
+  local candidates
+  if uname and uname.sysname == 'Darwin' then
+    candidates = { 'gtimeout', '/opt/homebrew/bin/gtimeout', '/usr/local/bin/gtimeout' }
+  else
+    candidates = { '/usr/bin/timeout', 'timeout' }
+  end
+
+  for _, bin in ipairs(candidates) do
+    if check_timeout_is_gnu_timeout(bin) then
+      _timeout_cached = true
+      _timeout_path = bin
+      _timeout_reason = nil
+      return _timeout_path, _timeout_reason
+    end
+  end
+
+  _timeout_cached = true
+  _timeout_path = nil
+  _timeout_reason = 'GNU timeout not found (install `coreutils`; macOS: `brew install coreutils`)'
+  return _timeout_path, _timeout_reason
+end
+
+function M.timeout_path()
+  local path = find_gnu_timeout()
+  return path
+end
+
+function M.timeout_capability()
+  local path, reason = find_gnu_timeout()
+  return { ok = path ~= nil, path = path, reason = reason }
 end
 
 return M

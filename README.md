@@ -19,6 +19,7 @@ https://github.com/user-attachments/assets/50b19481-8e6d-47b4-bebc-15e16c61a9c9
 
 - [uv](https://docs.astral.sh/uv/) for problem scraping
 - [LuaSnip](https://github.com/L3MON4D3/LuaSnip) for templates
+- GNU [time](https://www.gnu.org/software/time/) and [timeout](https://www.gnu.org/software/coreutils/manual/html_node/timeout-invocation.html)
 
 ## Quick Start
 

@@ -122,9 +122,8 @@ local function run_single_test_case(contest_config, cp_config, test_case)
 
   local cmd = build_command(language_config, substitutions)
   local stdin_content = (test_case.input or '') .. '\n'
-  local timeout_ms = (run_panel_state.constraints and run_panel_state.constraints.timeout_ms)
-    or 2000
-  local memory_mb = run_panel_state.constraints and run_panel_state.constraints.memory_mb or nil
+  local timeout_ms = (run_panel_state.constraints and run_panel_state.constraints.timeout_ms) or 0
+  local memory_mb = run_panel_state.constraints and run_panel_state.constraints.memory_mb or 0
 
   local r = exec.run(cmd, stdin_content, timeout_ms, memory_mb)
 
@@ -184,7 +183,7 @@ local function run_single_test_case(contest_config, cp_config, test_case)
     signal = signal,
     tled = r.tled or false,
     mled = r.mled or false,
-    rss_mb = r.peak_mb,
+    rss_mb = r.peak_mb or 0,
   }
 end
 
@@ -284,6 +283,7 @@ function M.handle_compilation_failure(output)
     tc.signal = ''
     tc.tled = false
     tc.mled = false
+    tc.rss_mb = 0
   end
 end
 
