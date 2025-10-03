@@ -54,7 +54,6 @@
 local M = {}
 
 local constants = require('cp.constants')
-local logger = require('cp.log')
 local utils = require('cp.utils')
 
 local default_contest_config = {
