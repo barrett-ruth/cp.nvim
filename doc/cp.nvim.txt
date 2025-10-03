@@ -419,11 +419,12 @@ Status Indicators ~
 
 Test cases use competitive programming terminology with color highlighting:
 
-    AC      Accepted (passed) - Green
-    WA      Wrong Answer (output mismatch) - Red
-    TLE     Time Limit Exceeded (timeout) - Orange
-    MLE     Memory Limit Exceeded Error (heuristic) - Orange
-    RTE     Runtime Error (other non-zero exit code) - Purple
+    AC      Accepted (passed)
+    WA      Wrong Answer (output mismatch)
+    TLE     Time Limit Exceeded (timeout)
+    MLE     Memory Limit Exceeded Error (heuristic)
+    RTE     Runtime Error (other non-zero exit code)
+    NA      Any other state (undecipherable, error, running)
 <
 
 ==============================================================================
@@ -442,8 +443,9 @@ Test cases use competitive programming terminology with color highlighting:
     CpTestAC        Green foreground for AC status
     CpTestWA        Red foreground for WA status
     CpTestTLE       Orange foreground for TLE status
+    CpTestMLE       Orange foreground for MLE status
     CpTestRTE       Purple foreground for RTE status
-    CpTestPending   Gray foreground for pending tests
+    CpTestNA        Gray foreground for remaining state
 
 ANSI Color Groups ~
 

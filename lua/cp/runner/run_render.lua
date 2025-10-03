@@ -40,7 +40,7 @@ function M.get_status_info(ran_test_case)
     return { text = 'WA', highlight_group = 'CpTestWA' }
   end
 
-  return { text = 'N/A', highlight_group = 'CpTestPending' }
+  return { text = 'N/A', highlight_group = 'CpTestNA' }
 end
 
 local function format_exit_code(code)
@@ -354,7 +354,7 @@ function M.get_highlight_groups()
     CpTestTLE = { fg = '#f59e0b' },
     CpTestMLE = { fg = '#f59e0b' },
     CpTestRTE = { fg = '#8b5cf6' },
-    CpTestPending = { fg = '#6b7280' },
+    CpTestNA = { fg = '#6b7280' },
     CpDiffRemoved = { fg = '#ef4444', bg = '#1f1f1f' },
     CpDiffAdded = { fg = '#10b981', bg = '#1f1f1f' },
   }

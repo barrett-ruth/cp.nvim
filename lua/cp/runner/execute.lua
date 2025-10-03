@@ -93,7 +93,7 @@ local function parse_and_strip_time_v(output)
   for line in tail:gmatch('[^\n]+') do
     local kb = line:match('Maximum resident set size %(kbytes%):%s*(%d+)')
     if kb then
-      peak_kb = tonumber(kb)
+      peak_kb = tonumber(kb) or 0
     end
   end
 

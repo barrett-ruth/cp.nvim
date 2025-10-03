@@ -34,11 +34,18 @@ local function check_required()
     vim.health.info('Python virtual environment not set up (created on first scrape)')
   end
 
-  local cap = utils.time_capability()
-  if cap.ok then
-    vim.health.ok('GNU time found: ' .. cap.path)
+  local time_cap = utils.time_capability()
+  if time_cap.ok then
+    vim.health.ok('GNU time found: ' .. time_cap.path)
   else
-    vim.health.error('GNU time not found: ' .. (cap.reason or ''))
+    vim.health.error('GNU time not found: ' .. (time_cap.reason or ''))
+  end
+
+  local timeout_cap = utils.time_capability()
+  if timeout_cap.ok then
+    vim.health.ok('GNU timeout found: ' .. timeout_cap.path)
+  else
+    vim.health.error('GNU timeout not found: ' .. (timeout_cap.reason or ''))
   end
 end
 
