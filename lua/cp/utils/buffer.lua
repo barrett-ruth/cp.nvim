@@ -1,5 +1,7 @@
 local M = {}
 
+--- Configure the buffer with good defaults
+---@param filetype? string
 function M.create_buffer_with_options(filetype)
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = buf })

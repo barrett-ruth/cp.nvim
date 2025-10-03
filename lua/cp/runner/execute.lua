@@ -1,6 +1,5 @@
 ---@class ExecuteResult
 ---@field stdout string
----@field stderr string
 ---@field code integer
 ---@field time_ms number
 ---@field timed_out boolean
@@ -49,7 +48,7 @@ end
 
 ---@param language_config table
 ---@param substitutions table<string, string>
----@return {code: integer, stdout: string, stderr: string}
+---@return {code: integer, stdout: string}
 function M.compile_generic(language_config, substitutions)
   if not language_config.compile then
     logger.log('No compilation step required for language - skipping.')
@@ -70,7 +69,6 @@ function M.compile_generic(language_config, substitutions)
 
   local ansi = require('cp.ui.ansi')
   result.stdout = ansi.bytes_to_string(result.stdout or '')
-  result.stderr = ansi.bytes_to_string(result.stderr or '')
 
   if result.code == 0 then
     logger.log(('Compilation successful in %.1fms.'):format(compile_time), vim.log.levels.INFO)
@@ -119,7 +117,6 @@ local function execute_command(cmd, input_data, timeout_ms)
 
   return {
     stdout = result.stdout or '',
-    stderr = result.stderr or '',
     code = actual_code,
     time_ms = execution_time,
     timed_out = result.code == 124,
@@ -243,7 +240,7 @@ function M.run_problem(contest_config, is_debug)
   if compile_cmd then
     local compile_result = M.compile_generic(language_config, substitutions)
     if compile_result.code ~= 0 then
-      vim.fn.writefile({ compile_result.stderr }, output_file)
+      vim.fn.writefile({ compile_result.stdout }, output_file)
       return
     end
   end
