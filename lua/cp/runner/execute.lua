@@ -63,47 +63,43 @@ function M.compile(language_config, substitutions)
   return r
 end
 
-local function parse_and_strip_time_v(output, memory_mb)
-  local lines = vim.split(output or '', '\n', { plain = true })
-
-  local timing_idx
-  for i = #lines, 1, -1 do
-    if lines[i]:match('^%s*Command being timed:') then
-      timing_idx = i
+local function parse_and_strip_time_v(output)
+  local s = output or ''
+  local last_i, from = nil, 1
+  while true do
+    local i = string.find(s, 'Command being timed:', from, true)
+    if not i then
       break
     end
+    last_i, from = i, i + 1
   end
-  if not timing_idx then
-    return output or '', 0, false
+  if not last_i then
+    return s, 0
   end
 
-  local start_idx = timing_idx
-  local k = timing_idx - 1
-  while k >= 1 and lines[k]:match('^%s*Command ') do
-    start_idx = k
+  local k = last_i - 1
+  while k >= 1 do
+    local ch = s:sub(k, k)
+    if ch ~= ' ' and ch ~= '\t' then
+      break
+    end
     k = k - 1
   end
 
-  local peak_mb, mled = 0, false
-  for j = timing_idx, #lines do
-    local kb = lines[j]:match('Maximum resident set size %(kbytes%):%s*(%d+)')
+  local head = s:sub(1, k)
+  local tail = s:sub(last_i)
+
+  local peak_kb = 0.0
+  for line in tail:gmatch('[^\n]+') do
+    local kb = line:match('Maximum resident set size %(kbytes%):%s*(%d+)')
     if kb then
-      peak_mb = tonumber(kb) / 1024.0
-      if memory_mb and memory_mb > 0 and peak_mb > memory_mb then
-        mled = true
-      end
+      peak_kb = tonumber(kb)
     end
   end
 
-  for j = #lines, start_idx, -1 do
-    table.remove(lines, j)
-  end
-
-  while #lines > 0 and lines[#lines]:match('^%s*$') do
-    table.remove(lines, #lines)
-  end
-
-  return table.concat(lines, '\n'), peak_mb, mled
+  local peak_mb = peak_kb / 1024.0
+  head = head:gsub('\n+$', '')
+  return head, peak_mb
 end
 
 function M.run(cmd, stdin, timeout_ms, memory_mb)
@@ -130,13 +126,23 @@ function M.run(cmd, stdin, timeout_ms, memory_mb)
 
   local code = r.code or 0
   local raw = r.stdout or ''
-  local cleaned, peak_mb, mled = parse_and_strip_time_v(raw, memory_mb)
+  local cleaned, peak_mb = parse_and_strip_time_v(raw)
   local tled = code == 124
 
   local signal = nil
   if code >= 128 then
     signal = constants.signal_codes[code]
   end
+
+  local lower = (cleaned or ''):lower()
+  local oom_hint = lower:find('std::bad_alloc', 1, true)
+    or lower:find('cannot allocate memory', 1, true)
+    or lower:find('out of memory', 1, true)
+    or lower:find('oom', 1, true)
+    or lower:find('enomem', 1, true)
+  local near_cap = peak_mb >= (0.90 * memory_mb)
+
+  local mled = (peak_mb >= memory_mb) or near_cap or (oom_hint and not tled)
 
   if tled then
     logger.log(('Execution timed out in %.1fms.'):format(dt))

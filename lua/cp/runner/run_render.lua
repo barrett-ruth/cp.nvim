@@ -40,7 +40,7 @@ function M.get_status_info(ran_test_case)
     return { text = 'WA', highlight_group = 'CpTestWA' }
   end
 
-  return { text = '...', highlight_group = 'CpTestPending' }
+  return { text = 'N/A', highlight_group = 'CpTestPending' }
 end
 
 local function format_exit_code(code)
