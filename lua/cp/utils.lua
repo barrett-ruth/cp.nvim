@@ -58,9 +58,7 @@ local function find_gnu_time()
   return _time_path, _time_reason
 end
 
---- Return the validated GNU time binary path
---- Fails closed: returns nil if GNU time is unavailable.
----@return string|nil path
+---@return string|nil path to GNU time binary
 function M.time_path()
   local path = find_gnu_time()
   return path
@@ -137,6 +135,31 @@ function M.update_buffer_content(bufnr, lines, highlights, namespace)
     local highlight = require('cp.ui.highlight')
     highlight.apply_highlights(bufnr, highlights, namespace)
   end
+end
+
+function M.check_required_runtime()
+  if is_windows() then
+    return false, 'Windows is not supported'
+  end
+
+  if vim.fn.has('nvim-0.10.0') ~= 1 then
+    return false, 'Neovim 0.10.0+ required'
+  end
+
+  local cap = M.time_capability()
+  if not cap.ok then
+    return false, 'GNU time not found: ' .. (cap.reason or '')
+  end
+
+  if vim.fn.executable('uv') ~= 1 then
+    return false, 'uv not found (https://docs.astral.sh/uv/)'
+  end
+
+  if not M.setup_python_env() then
+    return false, 'failed to set up Python virtual environment'
+  end
+
+  return true
 end
 
 return M

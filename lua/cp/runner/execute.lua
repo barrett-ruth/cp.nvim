@@ -123,7 +123,7 @@ function M.run(cmd, stdin, timeout_ms, memory_mb)
   local code = r.code or 0
   local raw = r.stdout or ''
   local cleaned, peak_mb = parse_and_strip_time_v(raw)
-  local tled = (code == 124)
+  local tled = code == 124
 
   local signal = nil
   if code >= 128 then
