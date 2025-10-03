@@ -198,7 +198,9 @@ class CSESScraper(BaseScraper):
             success=True, error="", contest_id=contest_id, problems=problems
         )
 
-    async def scrape_problem_tests(self, category: str, problem_id: str) -> TestsResult:
+    async def scrape_problem_tests(
+        self, contest_id: str, problem_id: str
+    ) -> TestsResult:
         path = task_path(problem_id)
         async with httpx.AsyncClient() as client:
             html = await fetch_text(client, path)
