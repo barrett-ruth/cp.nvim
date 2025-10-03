@@ -79,29 +79,22 @@ end
 
 ---@param platform string
 ---@param contest_id string
----@return ContestData?
+---@return ContestData
 function M.get_contest_data(platform, contest_id)
   vim.validate({
     platform = { platform, 'string' },
     contest_id = { contest_id, 'string' },
   })
 
-  if not cache_data[platform] then
-    return nil
-  end
-
-  local contest_data = cache_data[platform][contest_id]
-  if not contest_data or vim.tbl_isempty(contest_data) then
-    return nil
-  end
-
-  return contest_data
+  return cache_data[platform][contest_id] or {}
 end
 
 ---@param platform string
 ---@param contest_id string
 ---@param problems Problem[]
-function M.set_contest_data(platform, contest_id, problems)
+---@param contest_name? string
+---@param display_name? string
+function M.set_contest_data(platform, contest_id, problems, contest_name, display_name)
   vim.validate({
     platform = { platform, 'string' },
     contest_id = { contest_id, 'string' },
@@ -109,36 +102,17 @@ function M.set_contest_data(platform, contest_id, problems)
   })
 
   cache_data[platform] = cache_data[platform] or {}
-  local existing = cache_data[platform][contest_id] or {}
-
-  local existing_by_id = {}
-  if existing.problems then
-    for _, p in ipairs(existing.problems) do
-      existing_by_id[p.id] = p
-    end
+  local out = {
+    name = contest_name,
+    display_name = display_name,
+    problems = vim.deepcopy(problems),
+    index_map = {},
+  }
+  for i, p in ipairs(out.problems) do
+    out.index_map[p.id] = i
   end
 
-  local merged = {}
-  for _, p in ipairs(problems) do
-    local prev = existing_by_id[p.id] or {}
-    local merged_p = {
-      id = p.id,
-      name = p.name or prev.name,
-      test_cases = prev.test_cases,
-      timeout_ms = prev.timeout_ms,
-      memory_mb = prev.memory_mb,
-      interactive = prev.interactive,
-    }
-    table.insert(merged, merged_p)
-  end
-
-  existing.problems = merged
-  existing.index_map = {}
-  for i, p in ipairs(merged) do
-    existing.index_map[p.id] = i
-  end
-
-  cache_data[platform][contest_id] = existing
+  cache_data[platform][contest_id] = out
   M.save()
 end
 

@@ -28,45 +28,26 @@ function M.set_platform(platform)
   return true
 end
 
-local function backfill_missing_tests(platform, contest_id, problems)
-  cache.load()
-  local missing = {}
-  for _, prob in ipairs(problems) do
-    if not cache.get_test_cases(platform, contest_id, prob.id) then
-      table.insert(missing, prob.id)
-    end
-  end
-  if #missing == 0 then
-    logger.log(('All problems already cached for %s contest %s.'):format(platform, contest_id))
-    return
-  end
-  for _, pid in ipairs(missing) do
-    local captured = pid
-    scraper.scrape_problem_tests(platform, contest_id, captured, function(result)
-      local cached_tests = {}
-      if result.tests then
-        for i, t in ipairs(result.tests) do
-          cached_tests[i] = { index = i, input = t.input, expected = t.expected }
-        end
-      end
-      cache.set_test_cases(
-        platform,
-        contest_id,
-        captured,
-        cached_tests,
-        result.timeout_ms,
-        result.memory_mb
-      )
-    end)
-  end
-end
+---@class TestCaseLite
+---@field input string
+---@field expected string
 
+---@class ScrapeEvent
+---@field problem_id string
+---@field tests TestCaseLite[]|nil
+---@field timeout_ms integer|nil
+---@field memory_mb integer|nil
+---@field interactive boolean|nil
+---@field error string|nil
+---@field done boolean|nil
+---@field succeeded integer|nil
+---@field failed integer|nil
+
+---@param platform string
+---@param contest_id string
+---@param language string|nil
+---@param problem_id string|nil
 function M.setup_contest(platform, contest_id, language, problem_id)
-  if not platform then
-    logger.log('No platform configured. Use :CP <platform> <contest> [--{lang=<lang>,debug} first.')
-    return
-  end
-
   local config = config_module.get_config()
   if not vim.tbl_contains(config.scrapers, platform) then
     logger.log(('Scraping disabled for %s.'):format(platform), vim.log.levels.WARN)
@@ -75,27 +56,70 @@ function M.setup_contest(platform, contest_id, language, problem_id)
 
   state.set_contest_id(contest_id)
   cache.load()
-  local contest_data = cache.get_contest_data(platform, contest_id)
 
+  local contest_data = cache.get_contest_data(platform, contest_id)
   if not contest_data or not contest_data.problems then
     logger.log('Fetching contests problems...', vim.log.levels.INFO, true)
     scraper.scrape_contest_metadata(platform, contest_id, function(result)
       local problems = result.problems or {}
-      cache.set_contest_data(platform, contest_id, problems)
+      cache.set_contest_data(platform, contest_id, problems, result.name, result.display_name)
       logger.log(('Found %d problems for %s contest %s.'):format(#problems, platform, contest_id))
-      local pid = problem_id or (problems[1] and problems[1].id)
-      if pid then
-        M.setup_problem(pid, language)
-      end
-      backfill_missing_tests(platform, contest_id, problems)
-    end)
-  else
-    local problems = contest_data.problems
-    local pid = problem_id or (problems[1] and problems[1].id)
-    if pid then
+
+      contest_data = cache.get_contest_data(platform, contest_id)
+      local pid = contest_data.problems[problem_id and contest_data.index_map[problem_id] or 1].id
       M.setup_problem(pid, language)
-    end
-    backfill_missing_tests(platform, contest_id, problems)
+
+      local cached_len = #vim.tbl_filter(function(p)
+        return cache.get_test_cases(platform, contest_id, p.id) ~= nil
+      end, problems)
+      if cached_len < #problems then
+        scraper.scrape_all_tests(platform, contest_id, function(ev)
+          if not ev or not ev.tests or not ev.problem_id then
+            return
+          end
+          local cached_tests = {}
+          for i, t in ipairs(ev.tests) do
+            cached_tests[i] = { index = i, input = t.input, expected = t.expected }
+          end
+          cache.set_test_cases(
+            platform,
+            contest_id,
+            ev.problem_id,
+            cached_tests,
+            ev.timeout_ms or 0,
+            ev.memory_mb or 0
+          )
+        end)
+      end
+    end)
+
+    return
+  end
+
+  local problems = contest_data.problems
+  local pid = problems[(problem_id and contest_data.index_map[problem_id] or 1)].id
+  M.setup_problem(pid, language)
+  local cached_len = #vim.tbl_filter(function(p)
+    return cache.get_test_cases(platform, contest_id, p.id) ~= nil
+  end, problems)
+  if cached_len < #problems then
+    scraper.scrape_all_tests(platform, contest_id, function(ev)
+      if not ev or not ev.tests or not ev.problem_id then
+        return
+      end
+      local cached_tests = {}
+      for i, t in ipairs(ev.tests) do
+        cached_tests[i] = { index = i, input = t.input, expected = t.expected }
+      end
+      cache.set_test_cases(
+        platform,
+        contest_id,
+        ev.problem_id,
+        cached_tests,
+        ev.timeout_ms or 0,
+        ev.memory_mb or 0
+      )
+    end)
   end
 end
 
@@ -195,19 +219,9 @@ function M.navigate_problem(direction, language)
   end
 
   local problems = contest_data.problems
-  local current_index
-  for i, prob in ipairs(problems) do
-    if prob.id == current_problem_id then
-      current_index = i
-      break
-    end
-  end
-  if not current_index then
-    M.setup_contest(platform, contest_id, language, problems[1].id)
-    return
-  end
+  local index = contest_data.index_map[current_problem_id]
 
-  local new_index = current_index + direction
+  local new_index = index + direction
   if new_index < 1 or new_index > #problems then
     return
   end
