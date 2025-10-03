@@ -15,11 +15,6 @@
 ---@field name string
 ---@field id string
 
----@class CacheData
----@field [string] table<string, ContestData>
----@field file_states? table<string, FileState>
----@field contest_lists? table<string, ContestSummary>
-
 ---@class Problem
 ---@field id string
 ---@field name? string

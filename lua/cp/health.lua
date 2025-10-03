@@ -10,6 +10,27 @@ local function check_nvim_version()
   end
 end
 
+local function check_gnu_time()
+  local sysname = vim.loop.os_uname().sysname
+  if sysname == 'Windows_NT' then
+    vim.health.error('Windows is not supported for runs (GNU time is required).')
+    return
+  end
+
+  local cap = utils.time_capability()
+  if cap.ok then
+    vim.health.ok('GNU time found: ' .. cap.path)
+    return
+  end
+
+  vim.health.error('GNU time not found: ' .. (cap.reason or ''))
+  if sysname == 'Darwin' then
+    vim.health.info('Install via Homebrew: brew install coreutils (binary: gtime)')
+  else
+    vim.health.info('Install via your package manager, e.g., Debian/Ubuntu: sudo apt install time')
+  end
+end
+
 local function check_uv()
   if vim.fn.executable('uv') == 1 then
     vim.health.ok('uv executable found')
@@ -55,6 +76,7 @@ function M.check()
   check_uv()
   check_python_env()
   check_luasnip()
+  check_gnu_time()
 end
 
 return M

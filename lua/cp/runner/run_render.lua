@@ -26,22 +26,22 @@ local exit_code_names = {
 ---@param ran_test_case RanTestCase
 ---@return StatusInfo
 function M.get_status_info(ran_test_case)
-  if ran_test_case.status == 'pass' then
+  if ran_test_case.ok then
     return { text = 'AC', highlight_group = 'CpTestAC' }
-  elseif ran_test_case.status == 'fail' then
-    if ran_test_case.timed_out then
-      return { text = 'TLE', highlight_group = 'CpTestTLE' }
-    elseif ran_test_case.code and ran_test_case.code >= 128 then
-      return { text = 'RTE', highlight_group = 'CpTestRTE' }
-    else
-      return { text = 'WA', highlight_group = 'CpTestWA' }
-    end
-  elseif ran_test_case.status == 'timeout' then
-    return { text = 'TLE', highlight_group = 'CpTestTLE' }
-  elseif ran_test_case.status == 'running' then
+  end
+
+  if ran_test_case.actual == '' then
     return { text = '...', highlight_group = 'CpTestPending' }
+  end
+
+  if ran_test_case.tled then
+    return { text = 'TLE', highlight_group = 'CpTestTLE' }
+  elseif ran_test_case.mled then
+    return { text = 'MLE', highlight_group = 'CpTestMLE' }
+  elseif ran_test_case.code and ran_test_case.code >= 128 then
+    return { text = 'RTE', highlight_group = 'CpTestRTE' }
   else
-    return { text = '', highlight_group = 'CpTestPending' }
+    return { text = 'WA', highlight_group = 'CpTestWA' }
   end
 end
 
@@ -354,6 +354,7 @@ function M.get_highlight_groups()
     CpTestAC = { fg = '#10b981' },
     CpTestWA = { fg = '#ef4444' },
     CpTestTLE = { fg = '#f59e0b' },
+    CpTestMLE = { fg = '#f59e0b' },
     CpTestRTE = { fg = '#8b5cf6' },
     CpTestPending = { fg = '#6b7280' },
     CpDiffRemoved = { fg = '#ef4444', bg = '#1f1f1f' },

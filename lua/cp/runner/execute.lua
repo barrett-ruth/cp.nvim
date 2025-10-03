@@ -2,42 +2,35 @@
 ---@field stdout string
 ---@field code integer
 ---@field time_ms number
----@field timed_out boolean
+---@field tled boolean
+---@field mled boolean
+---@field peak_mb number
+---@field signal string|nil
 
 local M = {}
-local logger = require('cp.log')
-
 local constants = require('cp.constants')
+local logger = require('cp.log')
+local utils = require('cp.utils')
+
 local filetype_to_language = constants.filetype_to_language
 
----@param source_file string
----@param contest_config table
----@return string
 local function get_language_from_file(source_file, contest_config)
-  local extension = vim.fn.fnamemodify(source_file, ':e')
-  local language = filetype_to_language[extension] or contest_config.default_language
-  return language
+  local ext = vim.fn.fnamemodify(source_file, ':e')
+  return filetype_to_language[ext] or contest_config.default_language
 end
 
----@param cmd_template string[]
----@param substitutions table<string, string>
----@return string[]
 local function substitute_template(cmd_template, substitutions)
-  local result = {}
-  for _, arg in ipairs(cmd_template) do
-    local substituted = arg
-    for key, value in pairs(substitutions) do
-      substituted = substituted:gsub('{' .. key .. '}', value)
+  local out = {}
+  for _, a in ipairs(cmd_template) do
+    local s = a
+    for k, v in pairs(substitutions) do
+      s = s:gsub('{' .. k .. '}', v)
     end
-    table.insert(result, substituted)
+    table.insert(out, s)
   end
-  return result
+  return out
 end
 
----@param cmd_template string[]
----@param executable? string
----@param substitutions table<string, string>
----@return string[]
 local function build_command(cmd_template, executable, substitutions)
   local cmd = substitute_template(cmd_template, substitutions)
   if executable then
@@ -46,245 +39,158 @@ local function build_command(cmd_template, executable, substitutions)
   return cmd
 end
 
----@param language_config table
----@param substitutions table<string, string>
----@return {code: integer, stdout: string}
-function M.compile_generic(language_config, substitutions)
+function M.compile(language_config, substitutions)
   if not language_config.compile then
-    logger.log('No compilation step required for language - skipping.')
-    return { code = 0, stderr = '' }
+    return { code = 0, stdout = '' }
   end
 
-  local compile_cmd = substitute_template(language_config.compile, substitutions)
-  local redirected_cmd = vim.deepcopy(compile_cmd)
-  if #redirected_cmd > 0 then
-    redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
-  end
+  local cmd = substitute_template(language_config.compile, substitutions)
+  local sh = table.concat(cmd, ' ') .. ' 2>&1'
 
-  local start_time = vim.uv.hrtime()
-  local result = vim
-    .system({ 'sh', '-c', table.concat(redirected_cmd, ' ') }, { text = false })
-    :wait()
-  local compile_time = (vim.uv.hrtime() - start_time) / 1000000
+  local t0 = vim.uv.hrtime()
+  local r = vim.system({ 'sh', '-c', sh }, { text = false }):wait()
+  local dt = (vim.uv.hrtime() - t0) / 1e6
 
   local ansi = require('cp.ui.ansi')
-  result.stdout = ansi.bytes_to_string(result.stdout or '')
+  r.stdout = ansi.bytes_to_string(r.stdout or '')
 
-  if result.code == 0 then
-    logger.log(('Compilation successful in %.1fms.'):format(compile_time), vim.log.levels.INFO)
+  if r.code == 0 then
+    logger.log(('Compilation successful in %.1fms.'):format(dt), vim.log.levels.INFO)
   else
-    logger.log(('Compilation failed in %.1fms.'):format(compile_time))
+    logger.log(('Compilation failed in %.1fms.'):format(dt))
   end
 
-  return result
+  return r
 end
 
----@param cmd string[]
----@param input_data string
----@param timeout_ms number
----@return ExecuteResult
-local function execute_command(cmd, input_data, timeout_ms)
-  local redirected_cmd = vim.deepcopy(cmd)
-  if #redirected_cmd > 0 then
-    redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
+local function parse_and_strip_time_v(output, memory_mb)
+  local lines = vim.split(output or '', '\n', { plain = true })
+
+  local timing_idx
+  for i = #lines, 1, -1 do
+    if lines[i]:match('^%s*Command being timed:') then
+      timing_idx = i
+      break
+    end
   end
 
-  local start_time = vim.uv.hrtime()
+  local start_idx = timing_idx
+  local k = timing_idx - 1
+  while k >= 1 and lines[k]:match('^%s*Command ') do
+    start_idx = k
+    k = k - 1
+  end
 
-  local result = vim
-    .system({ 'sh', '-c', table.concat(redirected_cmd, ' ') }, {
-      stdin = input_data,
+  local peak_mb, mled = 0, false
+  for j = timing_idx, #lines do
+    local kb = lines[j]:match('Maximum resident set size %(kbytes%):%s*(%d+)')
+    if kb then
+      peak_mb = tonumber(kb) / 1024.0
+      if memory_mb and memory_mb > 0 and peak_mb > memory_mb then
+        mled = true
+      end
+    end
+  end
+
+  for j = #lines, start_idx, -1 do
+    table.remove(lines, j)
+  end
+
+  while #lines > 0 and lines[#lines]:match('^%s*$') do
+    table.remove(lines, #lines)
+  end
+
+  return table.concat(lines, '\n'), peak_mb, mled
+end
+
+function M.run(cmd, stdin, timeout_ms, memory_mb)
+  local prog = table.concat(cmd, ' ')
+  local pre = {}
+  if memory_mb and memory_mb > 0 then
+    table.insert(pre, ('ulimit -v %d'):format(memory_mb * 1024))
+  end
+  local prefix = (#pre > 0) and (table.concat(pre, '; ') .. '; ') or ''
+  local time_bin = utils.time_path()
+  local sh = prefix .. ('%s -v sh -c %q 2>&1'):format(time_bin, prog)
+
+  local t0 = vim.uv.hrtime()
+  local r = vim
+    .system({ 'sh', '-c', sh }, {
+      stdin = stdin,
       timeout = timeout_ms,
       text = true,
     })
     :wait()
+  local dt = (vim.uv.hrtime() - t0) / 1e6
 
-  local end_time = vim.uv.hrtime()
-  local execution_time = (end_time - start_time) / 1000000
+  local code = r.code or 0
+  local raw = r.stdout or ''
+  local cleaned, peak_mb, mled = parse_and_strip_time_v(raw, memory_mb)
+  local tled = (code == 124)
 
-  local actual_code = result.code or 0
+  local signal = nil
+  if code >= 128 then
+    signal = constants.signal_codes[code]
+  end
 
-  if result.code == 124 then
-    logger.log(('Execution timed out in %.1fms.'):format(execution_time), vim.log.levels.WARN)
-  elseif actual_code ~= 0 then
-    logger.log(
-      ('Execution failed in %.1fms (exit code %d).'):format(execution_time, actual_code),
-      vim.log.levels.WARN
-    )
+  if tled then
+    logger.log(('Execution timed out in %.1fms.'):format(dt), vim.log.levels.WARN)
+  elseif mled then
+    logger.log(('Execution memory limit exceeded in %.1fms.'):format(dt))
+  elseif code ~= 0 then
+    logger.log(('Execution failed in %.1fms (exit code %d).'):format(dt, code))
   else
-    logger.log(('Execution successful in %.1fms.'):format(execution_time))
+    logger.log(('Execution successful in %.1fms.'):format(dt))
   end
 
   return {
-    stdout = result.stdout or '',
-    code = actual_code,
-    time_ms = execution_time,
-    timed_out = result.code == 124,
+    stdout = cleaned,
+    code = code,
+    time_ms = dt,
+    tled = tled,
+    mled = mled,
+    peak_mb = peak_mb,
+    signal = signal,
   }
 end
 
----@param exec_result ExecuteResult
----@param expected_file string
----@param is_debug boolean
----@return string
-local function format_output(exec_result, expected_file, is_debug)
-  local output_lines = { exec_result.stdout }
-  local metadata_lines = {}
-
-  if exec_result.timed_out then
-    table.insert(metadata_lines, '[code]: 124 (TIMEOUT)')
-  elseif exec_result.code >= 128 then
-    local signal_name = constants.signal_codes[exec_result.code] or 'SIGNAL'
-    table.insert(metadata_lines, ('[code]: %d (%s)'):format(exec_result.code, signal_name))
-  else
-    table.insert(metadata_lines, ('[code]: %d'):format(exec_result.code))
-  end
-
-  table.insert(metadata_lines, ('[time]: %.2f ms'):format(exec_result.time_ms))
-  table.insert(metadata_lines, ('[debug]: %s'):format(is_debug and 'true' or 'false'))
-
-  if vim.fn.filereadable(expected_file) == 1 and exec_result.code == 0 then
-    local expected_content = vim.fn.readfile(expected_file)
-    local actual_lines = vim.split(exec_result.stdout, '\n')
-
-    while #actual_lines > 0 and actual_lines[#actual_lines] == '' do
-      table.remove(actual_lines)
-    end
-
-    local ok = #actual_lines == #expected_content
-    if ok then
-      for i, line in ipairs(actual_lines) do
-        if line ~= expected_content[i] then
-          ok = false
-          break
-        end
-      end
-    end
-
-    table.insert(metadata_lines, ('[ok]: %s'):format(ok and 'true' or 'false'))
-  end
-
-  return table.concat(output_lines, '') .. '\n' .. table.concat(metadata_lines, '\n')
-end
-
----@param contest_config ContestConfig
----@param is_debug? boolean
----@return {success: boolean, output: string?}
 function M.compile_problem(contest_config, is_debug)
   local state = require('cp.state')
   local source_file = state.get_source_file()
   if not source_file then
-    logger.log('No source file found.', vim.log.levels.ERROR)
     return { success = false, output = 'No source file found.' }
   end
 
   local language = get_language_from_file(source_file, contest_config)
   local language_config = contest_config[language]
-
   if not language_config then
-    logger.log('No configuration for language: ' .. language, vim.log.levels.ERROR)
     return { success = false, output = ('No configuration for language %s.'):format(language) }
   end
 
   local binary_file = state.get_binary_file()
-  local substitutions = {
-    source = source_file,
-    binary = binary_file,
-  }
+  local substitutions = { source = source_file, binary = binary_file }
 
-  local compile_cmd = (is_debug and language_config.debug) and language_config.debug
+  local chosen = (is_debug and language_config.debug) and language_config.debug
     or language_config.compile
-  if compile_cmd then
-    language_config.compile = compile_cmd
-    local compile_result = M.compile_generic(language_config, substitutions)
-    if compile_result.code ~= 0 then
-      return { success = false, output = compile_result.stdout or 'unknown error' }
-    end
+  if not chosen then
+    return { success = true, output = nil }
   end
 
+  local saved = language_config.compile
+  language_config.compile = chosen
+  local r = M.compile(language_config, substitutions)
+  language_config.compile = saved
+
+  if r.code ~= 0 then
+    return { success = false, output = r.stdout or 'unknown error' }
+  end
   return { success = true, output = nil }
 end
 
----@param contest_config ContestConfig
----@param is_debug boolean
-function M.run_problem(contest_config, is_debug)
-  local state = require('cp.state')
-  local source_file = state.get_source_file()
-  local output_file = state.get_output_file()
-
-  if not source_file or not output_file then
-    logger.log(
-      ('Missing required file paths %s and %s'):format(source_file, output_file),
-      vim.log.levels.ERROR
-    )
-    return
-  end
-
-  vim.system({ 'mkdir', '-p', 'build', 'io' }):wait()
-
-  local language = get_language_from_file(source_file, contest_config)
-  local language_config = contest_config[language]
-
-  if not language_config then
-    vim.fn.writefile({ 'Error: No configuration for language: ' .. language }, output_file)
-    return
-  end
-
-  local binary_file = state.get_binary_file()
-  local substitutions = {
-    source = source_file,
-    binary = binary_file,
-  }
-
-  local compile_cmd = is_debug and language_config.debug or language_config.compile
-  if compile_cmd then
-    local compile_result = M.compile_generic(language_config, substitutions)
-    if compile_result.code ~= 0 then
-      vim.fn.writefile({ compile_result.stdout }, output_file)
-      return
-    end
-  end
-
-  local input_file = state.get_input_file()
-  local input_data = ''
-  if input_file and vim.fn.filereadable(input_file) == 1 then
-    input_data = table.concat(vim.fn.readfile(input_file), '\n') .. '\n'
-  end
-
-  local cache = require('cp.cache')
-  cache.load()
-
-  local platform = state.get_platform()
-  local contest_id = state.get_contest_id()
-  local problem_id = state.get_problem_id()
-  local expected_file = state.get_expected_file()
-
-  if not platform or not contest_id or not expected_file then
-    logger.log('Configure a contest before running a problem', vim.log.levels.ERROR)
-    return
-  end
-  local timeout_ms, _ = cache.get_constraints(platform, contest_id, problem_id)
-  timeout_ms = timeout_ms or 2000
-
-  local run_cmd = build_command(language_config.test, language_config.executable, substitutions)
-  local exec_result = execute_command(run_cmd, input_data, timeout_ms)
-  local formatted_output = format_output(exec_result, expected_file, is_debug)
-
-  local output_buf = vim.fn.bufnr(output_file)
-  if output_buf ~= -1 then
-    local was_modifiable = vim.api.nvim_get_option_value('modifiable', { buf = output_buf })
-    local was_readonly = vim.api.nvim_get_option_value('readonly', { buf = output_buf })
-    vim.api.nvim_set_option_value('readonly', false, { buf = output_buf })
-    vim.api.nvim_set_option_value('modifiable', true, { buf = output_buf })
-    vim.api.nvim_buf_set_lines(output_buf, 0, -1, false, vim.split(formatted_output, '\n'))
-    vim.api.nvim_set_option_value('modifiable', was_modifiable, { buf = output_buf })
-    vim.api.nvim_set_option_value('readonly', was_readonly, { buf = output_buf })
-    vim.api.nvim_buf_call(output_buf, function()
-      vim.cmd.write()
-    end)
-  else
-    vim.fn.writefile(vim.split(formatted_output, '\n'), output_file)
-  end
-end
+M._util = {
+  get_language_from_file = get_language_from_file,
+  substitute_template = substitute_template,
+  build_command = build_command,
+}
 
 return M

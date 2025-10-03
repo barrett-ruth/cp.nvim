@@ -2,7 +2,7 @@
 ---@field index number
 ---@field input string
 ---@field expected string
----@field status "pending"|"pass"|"fail"|"running"|"timeout"
+---@field status "pending"|"pass"|"fail"|"running"|"tle"|"mle"
 ---@field actual string?
 ---@field actual_highlights? Highlight[]
 ---@field time_ms number?
@@ -12,7 +12,8 @@
 ---@field code number?
 ---@field ok boolean?
 ---@field signal string?
----@field timed_out boolean?
+---@field tled boolean?
+---@field mled boolean?
 
 ---@class ProblemConstraints
 ---@field timeout_ms number
@@ -42,221 +43,149 @@ local run_panel_state = {
   constraints = nil,
 }
 
----@param index number
----@param input string
----@param expected string
----@return RanTestCase
-local function create_test_case(index, input, expected)
-  return {
-    index = index,
-    input = input,
-    expected = expected,
-    status = 'pending',
-    actual = nil,
-    time_ms = nil,
-    error = nil,
-    selected = true,
-  }
-end
-
----@param platform string
----@param contest_id string
----@param problem_id string?
----@return RanTestCase[]
 local function parse_test_cases_from_cache(platform, contest_id, problem_id)
   local cache = require('cp.cache')
   cache.load()
-  local cached_test_cases = cache.get_test_cases(platform, contest_id, problem_id) or {}
-
-  if vim.tbl_isempty(cached_test_cases) then
-    return {}
-  end
-
-  local test_cases = {}
-
-  for i, test_case in ipairs(cached_test_cases) do
-    local index = test_case.index or i
-    local expected = test_case.expected or test_case.output or ''
-    table.insert(test_cases, create_test_case(index, test_case.input, expected))
-  end
-
-  return test_cases
+  return cache.get_test_cases(platform, contest_id, problem_id) or {}
 end
 
----@param platform string
----@param contest_id string
----@param problem_id string?
----@return ProblemConstraints?
 local function load_constraints_from_cache(platform, contest_id, problem_id)
   local cache = require('cp.cache')
   cache.load()
   local timeout_ms, memory_mb = cache.get_constraints(platform, contest_id, problem_id)
-
   if timeout_ms and memory_mb then
-    return {
-      timeout_ms = timeout_ms,
-      memory_mb = memory_mb,
-    }
+    return { timeout_ms = timeout_ms, memory_mb = memory_mb }
   end
-
   return nil
 end
 
----@param contest_config ContestConfig
----@param test_case RanTestCase
----@return table
+local function create_sentinal_panel_data(test_cases)
+  local out = {}
+  for i, tc in ipairs(test_cases) do
+    out[i] = {
+      index = tc.index or i,
+      input = tc.input or '',
+      expected = tc.expected or '',
+      status = 'pending',
+      selected = false,
+    }
+  end
+  return out
+end
+
+local function build_command(language_config, substitutions)
+  local exec_util = require('cp.runner.execute')._util
+  return exec_util.build_command(language_config.test, language_config.executable, substitutions)
+end
+
 local function run_single_test_case(contest_config, cp_config, test_case)
   local state = require('cp.state')
+  local exec = require('cp.runner.execute')
+
   local source_file = state.get_source_file()
-
-  local language = vim.fn.fnamemodify(source_file or '', ':e')
-  local language_name = constants.filetype_to_language[language] or contest_config.default_language
-  local language_config = contest_config[language_name]
-
-  local function substitute_template(cmd_template, substitutions)
-    local result = {}
-    for _, arg in ipairs(cmd_template) do
-      local substituted = arg
-      for key, value in pairs(substitutions) do
-        substituted = substituted:gsub('{' .. key .. '}', value)
-      end
-      table.insert(result, substituted)
-    end
-    return result
-  end
-
-  local function build_command(cmd_template, executable, substitutions)
-    local cmd = substitute_template(cmd_template, substitutions)
-    if executable then
-      table.insert(cmd, 1, executable)
-    end
-    return cmd
-  end
+  local ext = vim.fn.fnamemodify(source_file or '', ':e')
+  local lang_name = constants.filetype_to_language[ext] or contest_config.default_language
+  local language_config = contest_config[lang_name]
 
   local binary_file = state.get_binary_file()
-  local substitutions = {
-    source = source_file,
-    binary = binary_file,
-  }
+  local substitutions = { source = source_file, binary = binary_file }
 
   if language_config.compile and binary_file and vim.fn.filereadable(binary_file) == 0 then
-    logger.log('Binary not found - compiling first.')
-    local compile_cmd = substitute_template(language_config.compile, substitutions)
-    local redirected_cmd = vim.deepcopy(compile_cmd)
-    redirected_cmd[#redirected_cmd] = redirected_cmd[#redirected_cmd] .. ' 2>&1'
-    local compile_result = vim
-      .system({ 'sh', '-c', table.concat(redirected_cmd, ' ') }, { text = false })
-      :wait()
-
+    local cr = exec.compile(language_config, substitutions)
     local ansi = require('cp.ui.ansi')
-    compile_result.stdout = ansi.bytes_to_string(compile_result.stdout or '')
-    compile_result.stderr = ansi.bytes_to_string(compile_result.stderr or '')
-
-    if compile_result.code ~= 0 then
+    local clean = ansi.bytes_to_string(cr.stdout or '')
+    if cr.code ~= 0 then
       return {
         status = 'fail',
-        actual = '',
-        error = 'Compilation failed: ' .. (compile_result.stdout or 'Unknown error'),
-        stderr = compile_result.stdout or '',
+        actual = clean,
+        actual_highlights = {},
+        error = 'Compilation failed',
+        stderr = clean,
         time_ms = 0,
-        code = compile_result.code,
+        code = cr.code,
         ok = false,
         signal = nil,
-        timed_out = false,
-        actual_highlights = {},
+        tled = false,
+        mled = false,
       }
     end
   end
 
-  local run_cmd = build_command(language_config.test, language_config.executable, substitutions)
+  local cmd = build_command(language_config, substitutions)
+  local stdin_content = (test_case.input or '') .. '\n'
+  local timeout_ms = (run_panel_state.constraints and run_panel_state.constraints.timeout_ms)
+    or 2000
+  local memory_mb = run_panel_state.constraints and run_panel_state.constraints.memory_mb or nil
 
-  local stdin_content = test_case.input .. '\n'
-
-  local start_time = vim.uv.hrtime()
-  local timeout_ms = run_panel_state.constraints and run_panel_state.constraints.timeout_ms or 2000
-
-  local redirected_run_cmd = vim.deepcopy(run_cmd)
-  redirected_run_cmd[#redirected_run_cmd] = redirected_run_cmd[#redirected_run_cmd] .. ' 2>&1'
-  local result = vim
-    .system({ 'sh', '-c', table.concat(redirected_run_cmd, ' ') }, {
-      stdin = stdin_content,
-      timeout = timeout_ms,
-      text = false,
-    })
-    :wait()
-  local execution_time = (vim.uv.hrtime() - start_time) / 1000000
+  local r = exec.run(cmd, stdin_content, timeout_ms, memory_mb)
 
   local ansi = require('cp.ui.ansi')
-  local stdout_str = ansi.bytes_to_string(result.stdout or '')
-  local actual_output = stdout_str:gsub('\n$', '')
+  local out = (r.stdout or ''):gsub('\n$', '')
 
-  local actual_highlights = {}
-
-  if actual_output ~= '' then
+  local highlights = {}
+  if out ~= '' then
     if cp_config.run_panel.ansi then
-      local parsed = ansi.parse_ansi_text(actual_output)
-      actual_output = table.concat(parsed.lines, '\n')
-      actual_highlights = parsed.highlights
+      local parsed = ansi.parse_ansi_text(out)
+      out = table.concat(parsed.lines, '\n')
+      highlights = parsed.highlights
     else
-      actual_output = actual_output:gsub('\027%[[%d;]*[a-zA-Z]', '')
+      out = out:gsub('\027%[[%d;]*[a-zA-Z]', '')
     end
   end
 
   local max_lines = cp_config.run_panel.max_output_lines
-  local output_lines = vim.split(actual_output, '\n')
-  if #output_lines > max_lines then
-    local trimmed_lines = {}
+  local lines = vim.split(out, '\n')
+  if #lines > max_lines then
+    local trimmed = {}
     for i = 1, max_lines do
-      table.insert(trimmed_lines, output_lines[i])
+      table.insert(trimmed, lines[i])
     end
-    table.insert(trimmed_lines, string.format('... (output trimmed after %d lines)', max_lines))
-    actual_output = table.concat(trimmed_lines, '\n')
+    table.insert(trimmed, string.format('... (output trimmed after %d lines)', max_lines))
+    out = table.concat(trimmed, '\n')
   end
 
-  local expected_output = test_case.expected:gsub('\n$', '')
-  local ok = actual_output == expected_output
+  local expected = (test_case.expected or ''):gsub('\n$', '')
+  local ok = out == expected
+
+  local signal = r.signal
+  if not signal and r.code and r.code >= 128 then
+    signal = constants.signal_codes[r.code]
+  end
 
   local status
-  local timed_out = result.code == 143 or result.code == 124
-  if timed_out then
-    status = 'timeout'
-  elseif result.code == 0 and ok then
+  if r.tled then
+    status = 'tle'
+  elseif r.mled then
+    status = 'mle'
+  elseif ok then
     status = 'pass'
   else
     status = 'fail'
   end
 
-  local signal = nil
-  if result.code >= 128 then
-    signal = constants.signal_codes[result.code]
-  end
-
   return {
     status = status,
-    actual = actual_output,
-    actual_highlights = actual_highlights,
-    error = result.code ~= 0 and actual_output or nil,
+    actual = out,
+    actual_highlights = highlights,
+    error = (r.code ~= 0 and not ok) and out or nil,
     stderr = '',
-    time_ms = execution_time,
-    code = result.code,
+    time_ms = r.time_ms,
+    code = r.code,
     ok = ok,
     signal = signal,
-    timed_out = timed_out,
+    tled = r.tled or false,
+    mled = r.mled or false,
   }
 end
 
----@param state table
----@return boolean
 function M.load_test_cases(state)
-  local test_cases = parse_test_cases_from_cache(
+  local tcs = parse_test_cases_from_cache(
     state.get_platform() or '',
     state.get_contest_id() or '',
     state.get_problem_id()
-  ) or {}
+  )
 
-  -- TODO: re-fetch/cache-populating mechanism to ge the test cases if not in the cache
-
-  run_panel_state.test_cases = test_cases
+  run_panel_state.test_cases = create_sentinal_panel_data(tcs)
   run_panel_state.current_index = 1
   run_panel_state.constraints = load_constraints_from_cache(
     state.get_platform() or '',
@@ -264,50 +193,43 @@ function M.load_test_cases(state)
     state.get_problem_id()
   )
 
-  logger.log(('Loaded %d test case(s)'):format(#test_cases), vim.log.levels.INFO)
-  return #test_cases > 0
+  logger.log(('Loaded %d test case(s)'):format(#tcs), vim.log.levels.INFO)
+  return #tcs > 0
 end
 
----@param contest_config ContestConfig
----@param index number
----@return boolean
 function M.run_test_case(contest_config, cp_config, index)
-  local test_case = run_panel_state.test_cases[index]
-  if not test_case then
+  local tc = run_panel_state.test_cases[index]
+  if not tc then
     return false
   end
 
-  test_case.status = 'running'
+  tc.status = 'running'
+  local r = run_single_test_case(contest_config, cp_config, tc)
 
-  local result = run_single_test_case(contest_config, cp_config, test_case)
-
-  test_case.status = result.status
-  test_case.actual = result.actual
-  test_case.actual_highlights = result.actual_highlights
-  test_case.error = result.error
-  test_case.stderr = result.stderr
-  test_case.time_ms = result.time_ms
-  test_case.code = result.code
-  test_case.ok = result.ok
-  test_case.signal = result.signal
-  test_case.timed_out = result.timed_out
+  tc.status = r.status
+  tc.actual = r.actual
+  tc.actual_highlights = r.actual_highlights
+  tc.error = r.error
+  tc.stderr = r.stderr
+  tc.time_ms = r.time_ms
+  tc.code = r.code
+  tc.ok = r.ok
+  tc.signal = r.signal
+  tc.tled = r.tled
+  tc.mled = r.mled
 
   return true
 end
 
----@param contest_config ContestConfig
----@param cp_config cp.Config
----@return RanTestCase[]
 function M.run_all_test_cases(contest_config, cp_config)
   local results = {}
-  for i, _ in ipairs(run_panel_state.test_cases) do
+  for i = 1, #run_panel_state.test_cases do
     M.run_test_case(contest_config, cp_config, i)
-    table.insert(results, run_panel_state.test_cases[i])
+    results[i] = run_panel_state.test_cases[i]
   end
   return results
 end
 
----@return RunPanelState
 function M.get_run_panel_state()
   return run_panel_state
 end
@@ -316,28 +238,29 @@ function M.handle_compilation_failure(compilation_output)
   local ansi = require('cp.ui.ansi')
   local config = require('cp.config').setup()
 
-  local clean_text
-  local highlights = {}
+  local txt
+  local hl = {}
 
   if config.run_panel.ansi then
-    local parsed = ansi.parse_ansi_text(compilation_output or '')
-    clean_text = table.concat(parsed.lines, '\n')
-    highlights = parsed.highlights
+    local p = ansi.parse_ansi_text(compilation_output or '')
+    txt = table.concat(p.lines, '\n')
+    hl = p.highlights
   else
-    clean_text = (compilation_output or ''):gsub('\027%[[%d;]*[a-zA-Z]', '')
+    txt = (compilation_output or ''):gsub('\027%[[%d;]*[a-zA-Z]', '')
   end
 
-  for _, test_case in ipairs(run_panel_state.test_cases) do
-    test_case.status = 'fail'
-    test_case.actual = clean_text
-    test_case.actual_highlights = highlights
-    test_case.error = 'Compilation failed'
-    test_case.stderr = ''
-    test_case.time_ms = 0
-    test_case.code = 1
-    test_case.ok = false
-    test_case.signal = nil
-    test_case.timed_out = false
+  for _, tc in ipairs(run_panel_state.test_cases) do
+    tc.status = 'fail'
+    tc.actual = txt
+    tc.actual_highlights = hl
+    tc.error = 'Compilation failed'
+    tc.stderr = ''
+    tc.time_ms = 0
+    tc.code = 1
+    tc.ok = false
+    tc.signal = nil
+    tc.tled = false
+    tc.mled = false
   end
 end
 
