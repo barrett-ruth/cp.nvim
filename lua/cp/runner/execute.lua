@@ -63,7 +63,7 @@ function M.compile(language_config, substitutions)
   return r
 end
 
-local function parse_and_strip_time_v(output, memory_mb)
+local function parse_and_strip_time_v(output)
   local lines = vim.split(output or '', '\n', { plain = true })
 
   local timing_idx
@@ -81,14 +81,11 @@ local function parse_and_strip_time_v(output, memory_mb)
     k = k - 1
   end
 
-  local peak_mb, mled = 0, false
+  local peak_mb = 0
   for j = timing_idx, #lines do
     local kb = lines[j]:match('Maximum resident set size %(kbytes%):%s*(%d+)')
     if kb then
       peak_mb = tonumber(kb) / 1024.0
-      if memory_mb and memory_mb > 0 and peak_mb > memory_mb then
-        mled = true
-      end
     end
   end
 
@@ -100,7 +97,7 @@ local function parse_and_strip_time_v(output, memory_mb)
     table.remove(lines, #lines)
   end
 
-  return table.concat(lines, '\n'), peak_mb, mled
+  return table.concat(lines, '\n'), peak_mb
 end
 
 function M.run(cmd, stdin, timeout_ms, memory_mb)
@@ -125,7 +122,7 @@ function M.run(cmd, stdin, timeout_ms, memory_mb)
 
   local code = r.code or 0
   local raw = r.stdout or ''
-  local cleaned, peak_mb, mled = parse_and_strip_time_v(raw, memory_mb)
+  local cleaned, peak_mb = parse_and_strip_time_v(raw)
   local tled = (code == 124)
 
   local signal = nil
@@ -133,8 +130,23 @@ function M.run(cmd, stdin, timeout_ms, memory_mb)
     signal = constants.signal_codes[code]
   end
 
+  local lower = (cleaned or ''):lower()
+  local oom_hint = lower:find('std::bad_alloc', 1, true)
+    or lower:find('cannot allocate memory', 1, true)
+    or lower:find('enomem', 1, true)
+
+  local near_cap = false
+  if memory_mb and memory_mb > 0 then
+    near_cap = (peak_mb >= (0.90 * memory_mb))
+  end
+
+  local mled = false
+  if peak_mb >= memory_mb or (code ~= 0 and not tled) and (near_cap or oom_hint) or code == 137 then
+    mled = true
+  end
+
   if tled then
-    logger.log(('Execution timed out in %.1fms.'):format(dt), vim.log.levels.WARN)
+    logger.log(('Execution timed out in %.1fms.'):format(dt))
   elseif mled then
     logger.log(('Execution memory limit exceeded in %.1fms.'):format(dt))
   elseif code ~= 0 then
