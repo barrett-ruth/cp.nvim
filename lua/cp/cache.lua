@@ -222,8 +222,7 @@ end
 ---@param platform string
 ---@param contest_id string
 ---@param problem_id? string
----@param language? string
-function M.set_file_state(file_path, platform, contest_id, problem_id, language)
+function M.set_file_state(file_path, platform, contest_id, problem_id)
   if not cache_data.file_states then
     cache_data.file_states = {}
   end
@@ -232,7 +231,6 @@ function M.set_file_state(file_path, platform, contest_id, problem_id, language)
     platform = platform,
     contest_id = contest_id,
     problem_id = problem_id,
-    language = language,
   }
 
   M.save()

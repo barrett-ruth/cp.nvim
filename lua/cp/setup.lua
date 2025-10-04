@@ -1,3 +1,4 @@
+-- lua/cp/setup.lua
 local M = {}
 
 local cache = require('cp.cache')
@@ -17,9 +18,7 @@ function M.set_platform(platform)
     )
     return false
   end
-
   state.set_platform(platform)
-
   return true
 end
 
@@ -112,15 +111,10 @@ function M.setup_problem(problem_id)
     if vim.api.nvim_buf_get_lines(source_buf, 0, -1, true)[1] == '' then
       local has_luasnip, luasnip = pcall(require, 'luasnip')
       if has_luasnip then
-        local filetype = vim.api.nvim_get_option_value('filetype', { buf = source_buf })
-        local language_name = constants.filetype_to_language[filetype]
-        local canonical_language = constants.canonical_filetypes[language_name] or language_name
-        local prefixed_trigger = ('cp.nvim/%s.%s'):format(platform, canonical_language)
-
+        local prefixed_trigger = ('cp.nvim/%s.%s'):format(platform, language)
         vim.api.nvim_buf_set_lines(0, 0, -1, false, { prefixed_trigger })
         vim.api.nvim_win_set_cursor(0, { 1, #prefixed_trigger })
         vim.cmd.startinsert({ bang = true })
-
         vim.schedule(function()
           if luasnip.expandable() then
             luasnip.expand()
@@ -141,8 +135,7 @@ function M.setup_problem(problem_id)
       vim.fn.expand('%:p'),
       platform,
       state.get_contest_id() or '',
-      state.get_problem_id(),
-      language
+      state.get_problem_id()
     )
   end)
 end
@@ -177,7 +170,6 @@ function M.navigate_problem(direction)
 
   local problems = contest_data.problems
   local index = contest_data.index_map[current_problem_id]
-
   local new_index = index + direction
   if new_index < 1 or new_index > #problems then
     return

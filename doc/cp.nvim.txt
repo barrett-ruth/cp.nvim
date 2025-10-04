@@ -32,15 +32,13 @@ COMMANDS                                                        *cp-commands*
                                 Automatically detects platform, contest, problem,
                                 and language from cached state. Use this after
                                 switching files to restore your CP environment.
-                                Requires previous setup with full :CP command.
 
         Setup Commands ~
-            :CP {platform} {contest_id} {problem_id}
-                                Full setup: set platform, load contest metadata,
-                                and set up specific problem. Scrapes test cases
-                                and creates source file.
+            :CP {platform} {contest_id}
+                                Full setup: set platform and load contest metadata.
+                                Scrapes test cases and creates source file.
                                 Example: >
-                                    :CP codeforces 1933 a
+                                    :CP codeforces 1933
 <
             :CP {platform} {contest_id}
                                 Contest setup: set platform, load contest metadata,
@@ -52,10 +50,6 @@ COMMANDS                                                        *cp-commands*
                                     :CP atcoder abc324
                                     :CP codeforces 1951
 <
-            :CP {platform}      Platform setup: set platform only.
-                                Example: >
-                                    :CP cses
-<
         Action Commands ~
             :CP run [--debug]   Toggle run panel for individual test case
                                 debugging. Shows per-test results with redesigned
@@ -64,11 +58,12 @@ COMMANDS                                                        *cp-commands*
                                 Requires contest setup first.
 
             :CP pick            Launch configured picker for interactive
-                                platform/contest/problem selection.
+                                platform/contest selection.
 
         Navigation Commands ~
             :CP next            Navigate to next problem in current contest.
                                 Stops at last problem (no wrapping).
+
 
         Navigation Commands ~
             :CP prev            Navigate to previous problem in current contest.
@@ -78,7 +73,7 @@ COMMANDS                                                        *cp-commands*
             :CP cache clear [contest]
                                 Clear the cache data (contest list, problem
                                 data, file states) for the specified contest,
-                                or all contests if none specified
+                                or all contests if none specified.
 
             :CP cache read
                                 View the cache in a pretty-printed lua buffer.
@@ -88,13 +83,16 @@ Command Flags ~
                                                                 *cp-flags*
     Flags can be used with setup and action commands:
 
-    --debug                     Enable debug compilation with additional flags.
-                                Uses the `debug` command template instead of
-                                `compile`. Typically includes debug symbols and
-                                sanitizers for memory error detection.
+    --debug                     Use the debug command template.
+                                For compiled languages, this selects
+                                `commands.debug` (a debug *build*) instead of
+                                `commands.build`. For interpreted languages,
+                                this selects `commands.debug` in place of
+                                `commands.run`.
                                 Example: >
                                     :CP run --debug
 <
+
 Template Variables ~
                                                         *cp-template-vars*
     Command templates support variable substitution using `{variable}` syntax:
@@ -105,7 +103,7 @@ Template Variables ~
     • {problem}     Problem identifier (e.g. "a", "b")
 
     Example template: >
-        compile = { 'g++', '{source}', '-o', '{binary}', '-std=c++17' }
+        build = { 'g++', '{source}', '-o', '{binary}', '-std=c++17' }
 <    Would expand to: >
         g++ abc324a.cpp -o build/abc324a.run -std=c++17
 <
@@ -116,117 +114,161 @@ CONFIGURATION                                                   *cp-config*
 Here's an example configuration with lazy.nvim: >lua
 
     {
-        'barrett-ruth/cp.nvim',
-        cmd = 'CP',
-        build = 'uv sync',
-        opts = {
-            platforms = {
-                cses = {
-                    cpp = {
-                        compile = { 'g++', '{source}', '-o', '{binary}',
-                                   '-std=c++17', '-fdiagnostic-colors=always' },
-                        test = { '{binary}' },
-                        debug = { 'g++', '{source}', '-o', '{binary}',
-                                 '-std=c++17', '-g',
-                                 '-fdiagnostic-colors=always'
-                                 '-fsanitize=address,undefined' },
-                    },
-                    python = {
-                        test = { 'python3', '{source}' },
-                    },
-                },
+      'barrett-ruth/cp.nvim',
+      cmd = 'CP',
+      build = 'uv sync',
+      opts = {
+        languages = {
+          cpp = {
+            extension = 'cc',
+            commands = {
+              build = { 'g++', '-std=c++17', '{source}', '-o', '{binary}' },
+              run   = { '{binary}' },
+              debug = { 'g++', '-std=c++17', '-fsanitize=address,undefined',
+                        '{source}', '-o', '{binary}' },
             },
-            snippets = {},
-            debug = false,
-            run_panel = {
-                ansi = true,
-                diff_mode = 'vim',
-                max_output_lines = 50,
+          },
+          python = {
+            extension = 'py',
+            commands = {
+              run   = { 'python', '{source}' },
+              debug = { 'python', '{source}' },
             },
-            diff = {
-                git = {
-                    args = { 'diff', '--no-index', '--word-diff=plain',
-                            '--word-diff-regex=.', '--no-prefix' },
-                },
+          },
+        },
+
+        platforms = {
+          cses = {
+            enabled_languages = { 'cpp', 'python' },
+            default_language  = 'cpp',
+            overrides = {
+              cpp = { extension = 'cpp', commands = { build = { ... } } }
             },
-            picker = 'telescope',
-        }
+          },
+          atcoder = {
+            enabled_languages = { 'cpp', 'python' },
+            default_language  = 'cpp',
+          },
+          codeforces = {
+            enabled_languages = { 'cpp', 'python' },
+            default_language  = 'cpp',
+          },
+        },
+
+        snippets = {},
+        debug = false,
+
+        ui = {
+          run_panel = {
+            ansi = true,
+            diff_mode = 'vim',
+            max_output_lines = 50,
+          },
+          diff = {
+            git = {
+              args = { 'diff', '--no-index', '--word-diff=plain',
+                       '--word-diff-regex=.', '--no-prefix' },
+            },
+          },
+          picker = 'telescope',
+        },
+      }
     }
 <
 
-By default, all contests are configured to use C++ with the g++ compiler and ISO standard 
-17. Python is also configured with the system executable python.
+By default, C++ (g++ with ISO C++17) and Python are preconfigured under
+`languages`. Platforms select which languages are enabled and which one is
+the default; per-platform overrides can tweak `extension` or `commands`.
 
-For example, to run CodeForces contests with Python, only the following config
-is required:
+For example, to run CodeForces contests with Python by default:
 
+>lua
     {
-        platforms = {
-            codeforces = {
-                default_language = 'python'
-            }
-        }
+      platforms = {
+        codeforces = {
+          enabled_languages = { 'cpp', 'python' },
+          default_language  = 'python',
+        },
+      },
     }
+<
 
 Any language is supported provided the proper configuration. For example, to
-run CSES problems with Rust:
+run CSES problems with Rust using the single schema:
 
+>lua
     {
-        platforms = {
-            codeforces = {
-                rust = {
-                    compile = { 'rustc', '{source}', '-o', '{binary}' },
-                    test = { 'binary' },
-                    extension = 'rs'
-                }
-            }
-        }
+      languages = {
+        rust = {
+          extension = 'rs',
+          commands = {
+            build = { 'rustc', '{source}', '-o', '{binary}' },
+            run   = { '{binary}' },
+          },
+        },
+      },
+      platforms = {
+        cses = {
+          enabled_languages = { 'cpp', 'python', 'rust' },
+          default_language  = 'rust',
+        },
+      },
     }
+<
 
                                                                *cp.Config*
     Fields: ~
-        {platforms}     (table<string,PlatformContestConfig>) Contest configurations.
+        {languages}     (table<string,|CpLanguage|>) Global language registry.
+                        Each language provides an {extension} and {commands}.
+        {platforms}     (table<string,|CpPlatform|>) Per-platform enablement,
+                        default language, and optional overrides.
         {hooks}         (|cp.Hooks|) Hook functions called at various stages.
         {snippets}      (table[]) LuaSnip snippet definitions.
-        {debug}         (boolean, default: false) Show info messages
-                        during operation.
-        {run_panel}     (|RunPanelConfig|) Test panel behavior configuration.
-        {diff}          (|DiffConfig|) Diff backend configuration.
-        {picker}        (string, optional) Picker integration: "telescope",
-                        "fzf-lua", or nil to disable. When enabled, provides
-                        :CP pick for interactive platform/contest/problem selection.
-        {filename}      (function, optional) Custom filename generation.
-                        function(contest, contest_id, problem_id, config, language)
+        {debug}         (boolean, default: false) Show info messages.
+        {scrapers}      (string[]) Supported platform ids.
+        {filename}      (function, optional)
+                        function(contest, contest_id, problem_id, config, language): string
                         Should return full filename with extension.
                         (default: concatenates contest_id and problem_id, lowercased)
+        {ui}            (|CpUI|) UI settings: run panel, diff backend, picker.
 
                                                          *cp.PlatformConfig*
-    Fields: ~
-        {cpp}               (|PlatformLanguageConfig|) C++ language configuration.
-        {python}            (|PlatformLanguageConfig|) Python language configuration.
-        {default_language}  (string, default: "cpp") Default language for
-                            platform contests.
+    Replaced by |CpPlatform|. Platforms no longer inline language tables.
 
-                                                          *cp.LanguageConfig*
+                                                             *CpPlatform*
     Fields: ~
-        {compile}       (string[], optional) Compile command template with
-                        {source}, {binary} placeholders.
-        {test}          (string[]) Test execution command template.
-        {debug}         (string[], optional) Debug compile command template.
-        {executable}    (string, optional) Executable name for interpreted languages.
+        {enabled_languages} (string[]) Language ids enabled on this platform.
+        {default_language}  (string)   One of {enabled_languages}.
+        {overrides}         (table<string,|CpPlatformOverrides|>, optional)
+                            Per-language overrides of {extension} and/or {commands}.
+
+                                                           *CpLanguage*
+    Fields: ~
+        {extension}     (string) File extension without leading dot.
+        {commands}      (|CpLangCommands|) Command templates.
+
+                                                        *CpLangCommands*
+    Fields: ~
+        {build}         (string[], optional) For compiled languages.
+                         Must include {source} and {binary}.
+        {run}           (string[], optional) Runtime command.
+                         Compiled: must include {binary}.
+                         Interpreted: must include {source}.
+        {debug}         (string[], optional) Debug variant; same token rules
+                         as {build} (compiled) or {run} (interpreted).
+
+                                                              *CpUI*
+    Fields: ~
+        {run_panel}     (|RunPanelConfig|) Test panel behavior configuration.
+        {diff}          (|DiffConfig|) Diff backend configuration.
+        {picker}        (string|nil) 'telescope', 'fzf-lua', or nil.
 
                                                         *cp.RunPanelConfig*
     Fields: ~
-        {ansi}             (boolean, default: true) Enable ANSI color parsing and
-                           highlighting. When true, compiler output and test results
-                           display with colored syntax highlighting. When false,
-                           ANSI escape codes are stripped for plain text display.
-                           Requires vim.g.terminal_color_* to be configured for
-                           proper color display.
-        {diff_mode}        (string, default: "none") Diff backend: "none", "vim", or "git".
-                           "none" displays plain buffers without highlighting,
-                           "vim" uses built-in diff, "git" provides character-level precision.
-        {toggle_diff_key}  (string, default: "<c-t>") Key to cycle through diff modes.
+        {ansi}             (boolean, default: true) Enable ANSI color parsing
+                           and highlighting.
+        {diff_mode}        (string, default: "none") Diff backend: "none",
+                           "vim", or "git".
         {max_output_lines} (number, default: 50) Maximum lines of test output.
 
                                                             *cp.DiffConfig*
@@ -247,10 +289,9 @@ run CSES problems with Rust:
     Fields: ~
         {before_run}    (function, optional) Called before test panel opens.
                         function(state: cp.State)
-        {before_debug}  (function, optional) Called before debug compilation.
+        {before_debug}  (function, optional) Called before debug build/run.
                         function(state: cp.State)
         {setup_code}    (function, optional) Called after source file is opened.
-                        Good for configuring buffer settings.
                         function(state: cp.State)
 
     Hook functions receive the cp.nvim state object (cp.State). See the state
@@ -280,41 +321,21 @@ AtCoder ~
 URL format: https://atcoder.jp/contests/abc123/tasks/abc123_a
 
 Usage examples: >
-    :CP atcoder abc324 a        " Full setup: problem A from contest ABC324
     :CP atcoder abc324          " Contest setup: load contest metadata only
-    :CP next                    " Navigate to next problem in contest
-<
-                                Note: AtCoder template includes optimizations
-                                for multi-test case problems commonly found
-                                in contests.
-
-                                AtCoder Heuristic Contests (AHC) are excluded
-                                from the contest list as they don't have
-                                standard sample test cases.
 
 Codeforces ~
                                                           *cp-codeforces*
 URL format: https://codeforces.com/contest/1234/problem/A
 
 Usage examples: >
-    :CP codeforces 1934 a       " Full setup: problem A from contest 1934
     :CP codeforces 1934         " Contest setup: load contest metadata only
-    :CP prev                    " Navigate to previous problem in contest
-<
-                                Note: Problem IDs are automatically converted
-                                to lowercase for consistency.
 
 CSES ~
                                                                 *cp-cses*
 URL format: https://cses.fi/problemset/task/1068
 
 Usage examples: >
-    :CP cses dynamic_programming 1633      " Set up problem 1633 from DP category
     :CP cses dynamic_programming           " Set up ALL problems from DP category
-<
-                                Note: Category name is always required. For bulk
-                                setup, omit the problem ID to scrape all problems
-                                in the category.
 
 ==============================================================================
 

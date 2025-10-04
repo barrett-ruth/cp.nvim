@@ -242,7 +242,6 @@ end
 ---@return nil
 function M.handle_compilation_failure(output)
   local ansi = require('cp.ui.ansi')
-  local config = require('cp.config').setup()
 
   local txt
   local hl = {}
