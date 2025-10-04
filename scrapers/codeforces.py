@@ -115,7 +115,9 @@ def _parse_all_blocks(html: str) -> list[dict[str, Any]]:
     blocks = soup.find_all("div", class_="problem-statement")
     out: list[dict[str, Any]] = []
     for b in blocks:
-        letter, name = _extract_title(b)
+        holder = b.find_parent("div", class_="problemindexholder")
+        letter = (holder.get("problemindex") if holder else "").strip().upper()
+        name = _extract_title(b)[1]  # keep your name extraction
         if not letter:
             continue
         tests = _extract_samples(b)
@@ -148,20 +150,6 @@ def _scrape_contest_problems_sync(contest_id: str) -> list[ProblemSummary]:
     return problems
 
 
-def _scrape_contests_sync() -> list[ContestSummary]:
-    r = requests.get(API_CONTEST_LIST_URL, headers=HEADERS, timeout=TIMEOUT_SECONDS)
-    r.raise_for_status()
-    data = r.json()
-    if data.get("status") != "OK":
-        return []
-    out: list[ContestSummary] = []
-    for c in data["result"]:
-        cid = str(c["id"])
-        name = c["name"]
-        out.append(ContestSummary(id=cid, name=name, display_name=name))
-    return out
-
-
 class CodeforcesScraper(BaseScraper):
     @property
     def platform_name(self) -> str:
@@ -191,12 +179,13 @@ class CodeforcesScraper(BaseScraper):
 
                 contests: list[ContestSummary] = []
                 for c in data["result"]:
-                    if c.get("phase") == "FINISHED":  # only FINISHED contests
-                        cid = str(c["id"])
-                        name = c["name"]
-                        contests.append(
-                            ContestSummary(id=cid, name=name, display_name=name)
-                        )
+                    if c.get("phase") != "FINISHED":
+                        continue
+                    cid = str(c["id"])
+                    name = c["name"]
+                    contests.append(
+                        ContestSummary(id=cid, name=name, display_name=name)
+                    )
 
                 if not contests:
                     return self._create_contests_error("No contests found")
@@ -212,8 +201,9 @@ class CodeforcesScraper(BaseScraper):
         blocks = await asyncio.to_thread(_parse_all_blocks, html)
 
         for b in blocks:
-            pid = f"{category_id}{b['letter'].lower()}"
+            pid = b["letter"].lower()
             tests: list[TestCase] = b["tests"]
+
             if not tests:
                 print(
                     json.dumps(

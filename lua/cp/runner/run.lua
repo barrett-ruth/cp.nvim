@@ -78,8 +78,8 @@ end
 ---@param substitutions table<string, string>
 ---@return string[]
 local function build_command(language_config, substitutions)
-  local exec_util = require('cp.runner.execute')._util
-  return exec_util.build_command(language_config.test, language_config.executable, substitutions)
+  local execute = require('cp.runner.execute')
+  return execute.build_command(language_config.test, language_config.executable, substitutions)
 end
 
 ---@param contest_config ContestConfig
@@ -97,28 +97,6 @@ local function run_single_test_case(contest_config, cp_config, test_case)
 
   local binary_file = state.get_binary_file()
   local substitutions = { source = source_file, binary = binary_file }
-
-  if language_config.compile and binary_file and vim.fn.filereadable(binary_file) == 0 then
-    local cr = exec.compile(language_config, substitutions)
-    local ansi = require('cp.ui.ansi')
-    local clean = ansi.bytes_to_string(cr.stdout or '')
-    if cr.code ~= 0 then
-      return {
-        status = 'fail',
-        actual = clean,
-        actual_highlights = {},
-        error = 'Compilation failed',
-        stderr = clean,
-        time_ms = 0,
-        rss_mb = 0,
-        code = cr.code,
-        ok = false,
-        signal = nil,
-        tled = false,
-        mled = false,
-      }
-    end
-  end
 
   local cmd = build_command(language_config, substitutions)
   local stdin_content = (test_case.input or '') .. '\n'

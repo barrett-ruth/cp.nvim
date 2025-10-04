@@ -177,12 +177,8 @@ function M.scrape_all_tests(platform, contest_id, callback)
           local expected_file = 'io/' .. base_name .. '.' .. i .. '.cpout'
           local input_content = t.input:gsub('\r', '')
           local expected_content = t.expected:gsub('\r', '')
-          pcall(vim.fn.writefile, vim.split(input_content, '\n', { trimempty = true }), input_file)
-          pcall(
-            vim.fn.writefile,
-            vim.split(expected_content, '\n', { trimempty = true }),
-            expected_file
-          )
+          vim.fn.writefile(vim.split(input_content, '\n', { trimempty = true }), input_file)
+          vim.fn.writefile(vim.split(expected_content, '\n', { trimempty = true }), expected_file)
         end
         if type(callback) == 'function' then
           callback({
