@@ -92,9 +92,7 @@ end
 ---@param platform string
 ---@param contest_id string
 ---@param problems Problem[]
----@param contest_name? string
----@param display_name? string
-function M.set_contest_data(platform, contest_id, problems, contest_name, display_name)
+function M.set_contest_data(platform, contest_id, problems)
   vim.validate({
     platform = { platform, 'string' },
     contest_id = { contest_id, 'string' },
@@ -102,9 +100,11 @@ function M.set_contest_data(platform, contest_id, problems, contest_name, displa
   })
 
   cache_data[platform] = cache_data[platform] or {}
+  local prev = cache_data[platform][contest_id] or {}
+
   local out = {
-    name = contest_name,
-    display_name = display_name,
+    name = prev.name,
+    display_name = prev.display_name,
     problems = vim.deepcopy(problems),
     index_map = {},
   }
@@ -151,7 +151,7 @@ function M.get_test_cases(platform, contest_id, problem_id)
   end
 
   local index = cache_data[platform][contest_id].index_map[problem_id]
-  return cache_data[platform][contest_id].problems[index].test_cases
+  return cache_data[platform][contest_id].problems[index].test_cases or {}
 end
 
 ---@param platform string

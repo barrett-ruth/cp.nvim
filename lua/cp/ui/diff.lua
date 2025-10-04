@@ -13,7 +13,7 @@ local M = {}
 local vim_backend = {
   name = 'vim',
   render = function(_, actual)
-    local actual_lines = vim.split(actual, '\n', { plain = true, trimempty = true })
+    local actual_lines = vim.split(actual, '\n', { plain = true })
 
     return {
       content = actual_lines,
@@ -27,7 +27,7 @@ local none_backend = {
   name = 'none',
   render = function(expected, actual)
     local expected_lines = vim.split(expected, '\n', { plain = true, trimempty = true })
-    local actual_lines = vim.split(actual, '\n', { plain = true, trimempty = true })
+    local actual_lines = vim.split(actual, '\n', { plain = true })
 
     return {
       content = { expected = expected_lines, actual = actual_lines },
@@ -64,7 +64,7 @@ local git_backend = {
 
     if result.code == 0 then
       return {
-        content = vim.split(actual, '\n', { plain = true, trimempty = true }),
+        content = vim.split(actual, '\n', { plain = true }),
         highlights = {},
       }
     else

@@ -22,7 +22,7 @@ local function create_none_diff_layout(parent_win, expected_content, actual_cont
   vim.api.nvim_set_option_value('winbar', 'Actual', { win = actual_win })
 
   local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
-  local actual_lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
+  local actual_lines = vim.split(actual_content, '\n', { plain = true })
 
   utils.update_buffer_content(expected_buf, expected_lines, {})
   utils.update_buffer_content(actual_buf, actual_lines, {})
@@ -59,7 +59,7 @@ local function create_vim_diff_layout(parent_win, expected_content, actual_conte
   vim.api.nvim_set_option_value('winbar', 'Actual', { win = actual_win })
 
   local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
-  local actual_lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
+  local actual_lines = vim.split(actual_content, '\n', { plain = true })
 
   utils.update_buffer_content(expected_buf, expected_lines, {})
   utils.update_buffer_content(actual_buf, actual_lines, {})
@@ -108,7 +108,7 @@ local function create_git_diff_layout(parent_win, expected_content, actual_conte
   if diff_result.raw_diff and diff_result.raw_diff ~= '' then
     highlight.parse_and_apply_diff(diff_buf, diff_result.raw_diff, diff_namespace)
   else
-    local lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
+    local lines = vim.split(actual_content, '\n', { plain = true })
     utils.update_buffer_content(diff_buf, lines, {})
   end
 
@@ -124,7 +124,7 @@ end
 
 local function create_single_layout(parent_win, content)
   local buf = utils.create_buffer_with_options()
-  local lines = vim.split(content, '\n', { plain = true, trimempty = true })
+  local lines = vim.split(content, '\n', { plain = true })
   utils.update_buffer_content(buf, lines, {})
 
   vim.api.nvim_set_current_win(parent_win)
@@ -218,7 +218,7 @@ function M.update_diff_panes(
     end
   else
     if desired_mode == 'single' then
-      local lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
+      local lines = vim.split(actual_content, '\n', { plain = true })
       utils.update_buffer_content(
         current_diff_layout.buffers[1],
         lines,
@@ -237,7 +237,7 @@ function M.update_diff_panes(
           diff_namespace
         )
       else
-        local lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
+        local lines = vim.split(actual_content, '\n', { plain = true })
         utils.update_buffer_content(
           current_diff_layout.buffers[1],
           lines,
@@ -247,7 +247,7 @@ function M.update_diff_panes(
       end
     elseif desired_mode == 'none' then
       local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
-      local actual_lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
+      local actual_lines = vim.split(actual_content, '\n', { plain = true })
       utils.update_buffer_content(current_diff_layout.buffers[1], expected_lines, {})
       utils.update_buffer_content(
         current_diff_layout.buffers[2],
@@ -257,7 +257,7 @@ function M.update_diff_panes(
       )
     else
       local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
-      local actual_lines = vim.split(actual_content, '\n', { plain = true, trimempty = true })
+      local actual_lines = vim.split(actual_content, '\n', { plain = true })
       utils.update_buffer_content(current_diff_layout.buffers[1], expected_lines, {})
       utils.update_buffer_content(
         current_diff_layout.buffers[2],

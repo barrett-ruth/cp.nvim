@@ -25,7 +25,7 @@ end
 ---@return AnsiParseResult
 function M.parse_ansi_text(text)
   local clean_text = text:gsub('\027%[[%d;]*[a-zA-Z]', '')
-  local lines = vim.split(clean_text, '\n', { plain = true, trimempty = false })
+  local lines = vim.split(clean_text, '\n', { plain = true })
 
   local highlights = {}
   local line_num = 0

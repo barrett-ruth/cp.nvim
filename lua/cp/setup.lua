@@ -63,10 +63,11 @@ function M.setup_contest(platform, contest_id, language, problem_id)
     M.setup_problem(pid, language)
 
     local cached_len = #vim.tbl_filter(function(p)
-      return cache.get_test_cases(platform, contest_id, p.id) ~= nil
+      return not vim.tbl_isempty(cache.get_test_cases(platform, contest_id, p.id))
     end, problems)
 
     if cached_len ~= #problems then
+      logger.log(('Found %s problems, expected %s; re-fetching'):format(cached_len, #problems))
       scraper.scrape_all_tests(platform, contest_id, function(ev)
         local cached_tests = {}
         for i, t in ipairs(ev.tests) do
@@ -89,7 +90,7 @@ function M.setup_contest(platform, contest_id, language, problem_id)
     logger.log('Fetching contests problems...', vim.log.levels.INFO, true)
     scraper.scrape_contest_metadata(platform, contest_id, function(result)
       local problems = result.problems or {}
-      cache.set_contest_data(platform, contest_id, problems, result.name, result.display_name)
+      cache.set_contest_data(platform, contest_id, problems)
       logger.log(('Found %d problems for %s contest %s.'):format(#problems, platform, contest_id))
       proceed(cache.get_contest_data(platform, contest_id))
     end)

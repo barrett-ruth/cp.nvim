@@ -98,7 +98,6 @@ local function parse_and_strip_time_v(output)
   end
 
   local peak_mb = peak_kb / 1024.0
-  head = head:gsub('\n+$', '')
   return head, peak_mb
 end
 

@@ -58,6 +58,22 @@ local function load_constraints_from_cache(platform, contest_id, problem_id)
   return nil
 end
 
+--- Normalize raw problem output to a "canonical" version
+--- Usually, most contests ignore leading/trailing whitespace and empty lines
+---@param lines string
+local function normalize_lines(lines)
+  local normalized = {}
+  for _, line in
+    ipairs(vim.tbl_values(vim.split(((lines or ''):gsub('\r', '')), '\n', { plain = true })))
+  do
+    local trimmed_line = vim.trim(line)
+    if trimmed_line ~= '' then
+      table.insert(normalized, trimmed_line)
+    end
+  end
+  return table.concat(normalized, '\n')
+end
+
 ---@param test_cases TestCase[]
 ---@return RanTestCase[]
 local function create_sentinal_panel_data(test_cases)
@@ -106,8 +122,7 @@ local function run_single_test_case(contest_config, cp_config, test_case)
   local r = exec.run(cmd, stdin_content, timeout_ms, memory_mb)
 
   local ansi = require('cp.ui.ansi')
-  local out = (r.stdout or ''):gsub('\n$', '')
-
+  local out = r.stdout or ''
   local highlights = {}
   if out ~= '' then
     if cp_config.run_panel.ansi then
@@ -130,8 +145,8 @@ local function run_single_test_case(contest_config, cp_config, test_case)
     out = table.concat(trimmed, '\n')
   end
 
-  local expected = (test_case.expected or ''):gsub('\n$', '')
-  local ok = out == expected
+  local expected = test_case.expected or ''
+  local ok = normalize_lines(out) == normalize_lines(expected)
 
   local signal = r.signal
   if not signal and r.code and r.code >= 128 then
