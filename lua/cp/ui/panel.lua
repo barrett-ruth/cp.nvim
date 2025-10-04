@@ -9,6 +9,22 @@ local utils = require('cp.utils')
 local current_diff_layout = nil
 local current_mode = nil
 
+function M.disable()
+  local active_panel = state.get_active_panel()
+  if not active_panel then
+    logger.log('No active panel to close')
+    return
+  end
+
+  if active_panel == 'run' then
+    M.toggle_run_panel()
+  elseif active_panel == 'interactive' then
+    M.toggle_interactive()
+  else
+    logger.log(('Unknown panel type: %s'):format(tostring(active_panel)))
+  end
+end
+
 function M.toggle_interactive()
   if state.get_active_panel() == 'interactive' then
     if state.interactive_buf and vim.api.nvim_buf_is_valid(state.interactive_buf) then
@@ -102,7 +118,6 @@ function M.toggle_interactive()
   state.interactive_buf = term_buf
   state.interactive_win = term_win
   state.set_active_panel('interactive')
-  logger.log(('interactive opened, running %s'):format(binary))
 end
 
 function M.toggle_run_panel(is_debug)
@@ -118,7 +133,6 @@ function M.toggle_run_panel(is_debug)
       state.saved_session = nil
     end
     state.set_active_panel(nil)
-    logger.log('test panel closed')
     return
   end
 
@@ -301,11 +315,7 @@ function M.toggle_run_panel(is_debug)
   state.test_buffers = test_buffers
   state.test_windows = test_windows
   state.set_active_panel('run')
-  local test_state = run.get_run_panel_state()
-  logger.log(
-    string.format('test panel opened (%d test cases)', #test_state.test_cases),
-    vim.log.levels.INFO
-  )
+  logger.log('test panel opened')
 end
 
 return M

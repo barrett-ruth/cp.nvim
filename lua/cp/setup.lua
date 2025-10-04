@@ -67,7 +67,7 @@ function M.setup_contest(platform, contest_id, language, problem_id)
     end, problems)
 
     if cached_len ~= #problems then
-      logger.log(('Found %s problems, expected %s; re-fetching'):format(cached_len, #problems))
+      logger.log(('Fetching test cases...'):format(cached_len, #problems))
       scraper.scrape_all_tests(platform, contest_id, function(ev)
         local cached_tests = {}
         for i, t in ipairs(ev.tests) do
@@ -81,6 +81,7 @@ function M.setup_contest(platform, contest_id, language, problem_id)
           ev.timeout_ms or 0,
           ev.memory_mb or 0
         )
+        logger.log('Test cases loaded.')
       end)
     end
   end
@@ -203,6 +204,7 @@ function M.navigate_problem(direction, language)
     return
   end
 
+  require('cp.ui.panel').disable()
   M.setup_contest(platform, contest_id, language, problems[new_index].id)
 end
 

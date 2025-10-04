@@ -114,4 +114,6 @@ function M.set_active_panel(panel)
   state.active_panel = panel
 end
 
+M._state = state
+
 return M
