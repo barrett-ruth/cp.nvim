@@ -18,12 +18,7 @@ function M.set_platform(platform)
     return false
   end
 
-  if state.get_platform() == platform then
-    logger.log(('platform already set to %s'):format(platform))
-  else
-    state.set_platform(platform)
-    logger.log(('platform set to %s'):format(platform))
-  end
+  state.set_platform(platform)
 
   return true
 end

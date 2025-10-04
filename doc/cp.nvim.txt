@@ -129,6 +129,7 @@ Here's an example configuration with lazy.nvim: >lua
     {
         'barrett-ruth/cp.nvim',
         cmd = 'CP',
+        build = 'uv sync',
         opts = {
             contests = {
                 default = {
@@ -152,8 +153,6 @@ Here's an example configuration with lazy.nvim: >lua
             run_panel = {
                 ansi = true,
                 diff_mode = 'vim',
-                next_test_key = '<c-n>',
-                prev_test_key = '<c-p>',
                 max_output_lines = 50,
             },
             diff = {
@@ -162,7 +161,7 @@ Here's an example configuration with lazy.nvim: >lua
                             '--word-diff-regex=.', '--no-prefix' },
                 },
             },
-            picker = 'telescope',  -- 'telescope', 'fzf-lua', or nil (disabled)
+            picker = 'telescope',
         }
     }
 <
@@ -228,8 +227,6 @@ is required:
         {diff_mode}        (string, default: "none") Diff backend: "none", "vim", or "git".
                            "none" displays plain buffers without highlighting,
                            "vim" uses built-in diff, "git" provides character-level precision.
-        {next_test_key}    (string, default: "<c-n>") Key to navigate to next test case.
-        {prev_test_key}    (string, default: "<c-p>") Key to navigate to previous test case.
         {toggle_diff_key}  (string, default: "<c-t>") Key to cycle through diff modes.
         {max_output_lines} (number, default: 50) Maximum lines of test output.
 
@@ -533,10 +530,8 @@ prevent them from being overridden: >lua
 
 ==============================================================================
 RUN PANEL KEYMAPS                                           *cp-test-keys*
-<c-n>   Navigate to next test case (configurable via
-                                run_panel.next_test_key)
-<c-p>   Navigate to previous test case (configurable via
-                                run_panel.prev_test_key)
+<c-n>   Navigate to next test case
+<c-p>   Navigate to previous test case
 t       Cycle through diff modes: none → git → vim
 q       Exit run panel and restore layout
 <c-q>   Exit interactive terminal and restore layout

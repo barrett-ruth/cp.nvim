@@ -105,7 +105,7 @@ function M.set_contest_data(platform, contest_id, problems)
   local out = {
     name = prev.name,
     display_name = prev.display_name,
-    problems = vim.deepcopy(problems),
+    problems = problems,
     index_map = {},
   }
   for i, p in ipairs(out.problems) do

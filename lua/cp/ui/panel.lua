@@ -273,20 +273,13 @@ function M.toggle_run_panel(is_debug)
       config.run_panel.diff_mode = modes[(current_idx % #modes) + 1]
       refresh_run_panel()
     end, { buffer = buf, silent = true })
-    vim.keymap.set('n', config.run_panel.next_test_key, function()
+    vim.keymap.set('n', '<c-n>', function()
       navigate_test_case(1)
     end, { buffer = buf, silent = true })
-    vim.keymap.set('n', config.run_panel.prev_test_key, function()
+    vim.keymap.set('n', '<c-p>', function()
       navigate_test_case(-1)
     end, { buffer = buf, silent = true })
   end
-
-  vim.keymap.set('n', config.run_panel.next_test_key, function()
-    navigate_test_case(1)
-  end, { buffer = test_buffers.tab_buf, silent = true })
-  vim.keymap.set('n', config.run_panel.prev_test_key, function()
-    navigate_test_case(-1)
-  end, { buffer = test_buffers.tab_buf, silent = true })
 
   setup_keybindings_for_buffer(test_buffers.tab_buf)
 

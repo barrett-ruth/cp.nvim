@@ -19,8 +19,6 @@
 ---@class RunPanelConfig
 ---@field ansi boolean Enable ANSI color parsing and highlighting
 ---@field diff_mode "none"|"vim"|"git" Diff backend to use
----@field next_test_key string Key to navigate to next test case
----@field prev_test_key string Key to navigate to previous test case
 ---@field max_output_lines number Maximum lines of test output to display
 
 ---@class DiffGitConfig
@@ -90,8 +88,6 @@ M.defaults = {
   run_panel = {
     ansi = true,
     diff_mode = 'none',
-    next_test_key = '<c-n>',
-    prev_test_key = '<c-p>',
     max_output_lines = 50,
   },
   diff = {
@@ -195,20 +191,6 @@ function M.setup(user_config)
         return vim.tbl_contains({ 'none', 'vim', 'git' }, value)
       end,
       "diff_mode must be 'none', 'vim', or 'git'",
-    },
-    next_test_key = {
-      config.run_panel.next_test_key,
-      function(value)
-        return type(value) == 'string' and value ~= ''
-      end,
-      'next_test_key must be a non-empty string',
-    },
-    prev_test_key = {
-      config.run_panel.prev_test_key,
-      function(value)
-        return type(value) == 'string' and value ~= ''
-      end,
-      'prev_test_key must be a non-empty string',
     },
     max_output_lines = {
       config.run_panel.max_output_lines,
