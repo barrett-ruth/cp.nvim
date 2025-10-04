@@ -28,7 +28,7 @@
 ---@field git DiffGitConfig
 
 ---@class cp.Config
----@field contests table<string, ContestConfig>
+---@field platforms table<string, ContestConfig>
 ---@field snippets any[]
 ---@field hooks Hooks
 ---@field debug boolean
@@ -39,7 +39,7 @@
 ---@field picker string|nil
 
 ---@class cp.PartialConfig
----@field contests? table<string, ContestConfig>
+---@field platforms? table<string, ContestConfig>
 ---@field snippets? any[]
 ---@field hooks? Hooks
 ---@field debug? boolean
@@ -71,7 +71,7 @@ local default_contest_config = {
 
 ---@type cp.Config
 M.defaults = {
-  contests = {
+  platforms = {
     codeforces = default_contest_config,
     atcoder = default_contest_config,
     cses = default_contest_config,
@@ -107,7 +107,7 @@ function M.setup(user_config)
 
   if user_config then
     vim.validate({
-      contests = { user_config.contests, { 'table', 'nil' }, true },
+      platforms = { user_config.platforms, { 'table', 'nil' }, true },
       snippets = { user_config.snippets, { 'table', 'nil' }, true },
       hooks = { user_config.hooks, { 'table', 'nil' }, true },
       debug = { user_config.debug, { 'boolean', 'nil' }, true },
@@ -118,11 +118,11 @@ function M.setup(user_config)
       picker = { user_config.picker, { 'string', 'nil' }, true },
     })
 
-    if user_config.contests then
-      for contest_name, contest_config in pairs(user_config.contests) do
+    if user_config.platforms then
+      for platform_name, platform_config in pairs(user_config.platforms) do
         vim.validate({
-          [contest_name] = {
-            contest_config,
+          [platform_name] = {
+            platform_config,
             function(config)
               if type(config) ~= 'table' then
                 return false
@@ -205,8 +205,8 @@ function M.setup(user_config)
     git = { config.diff.git, { 'table', 'nil' }, true },
   })
 
-  for _, contest_config in pairs(config.contests) do
-    for lang_name, lang_config in pairs(contest_config) do
+  for _, platform_config in pairs(config.platforms) do
+    for lang_name, lang_config in pairs(platform_config) do
       if type(lang_config) == 'table' and not lang_config.extension then
         if lang_name == 'cpp' then
           lang_config.extension = 'cpp'
@@ -216,9 +216,10 @@ function M.setup(user_config)
       end
     end
 
-    if not contest_config.default_language then
+    vim.print(platform_config)
+    if not platform_config.default_language then
       local available_langs = {}
-      for lang_name, lang_config in pairs(contest_config) do
+      for lang_name, lang_config in pairs(platform_config) do
         if type(lang_config) == 'table' and lang_name ~= 'default_language' then
           table.insert(available_langs, lang_name)
         end
@@ -228,8 +229,11 @@ function M.setup(user_config)
         error('No language configurations found')
       end
 
+      vim.print('sorting langs')
+      --- arbitrarily break ties
       table.sort(available_langs)
-      contest_config.default_language = available_langs[1]
+      vim.print(available_langs)
+      platform_config.default_language = available_langs[1]
     end
   end
 

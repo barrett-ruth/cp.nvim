@@ -72,7 +72,7 @@ function M.get_source_file(language)
   end
 
   local config = require('cp.config').get_config()
-  local contest_config = config.contests[M.get_platform()]
+  local contest_config = config.platforms[M.get_platform()]
   if not contest_config then
     return nil
   end

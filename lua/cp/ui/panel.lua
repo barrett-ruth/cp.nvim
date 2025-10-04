@@ -91,7 +91,7 @@ function M.toggle_interactive()
   vim.cmd('silent only')
 
   local config = config_module.get_config()
-  local contest_config = config.contests[state.get_platform() or '']
+  local contest_config = config.platforms[state.get_platform() or '']
   local execute = require('cp.runner.execute')
   local compile_result = execute.compile_problem(contest_config, false)
   if not compile_result.success then
@@ -284,7 +284,7 @@ function M.toggle_run_panel(is_debug)
   setup_keybindings_for_buffer(test_buffers.tab_buf)
 
   local execute = require('cp.runner.execute')
-  local contest_config = config.contests[state.get_platform() or '']
+  local contest_config = config.platforms[state.get_platform() or '']
   local compile_result = execute.compile_problem(contest_config, is_debug)
   if compile_result.success then
     run.run_all_test_cases(contest_config, config)

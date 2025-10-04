@@ -25,7 +25,7 @@ function M.get_platforms()
   local result = {}
 
   for _, platform in ipairs(constants.PLATFORMS) do
-    if config.contests[platform] then
+    if config.platforms[platform] then
       table.insert(result, {
         id = platform,
         display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform,
