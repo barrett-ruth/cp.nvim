@@ -168,11 +168,19 @@ is required:
         }
     }
 
-Any language is supported, provided the proper configuration. For example, to
+Any language is supported provided the proper configuration. For example, to
 run CSES problems with Rust:
 
     {
-        
+        platforms = {
+            codeforces = {
+                rust = {
+                    compile = { 'rustc', '{source}', '-o', '{binary}' },
+                    test = { 'binary' },
+                    extension = 'rs'
+                }
+            }
+        }
     }
 
                                                                *cp.Config*
@@ -182,8 +190,6 @@ run CSES problems with Rust:
         {snippets}      (table[]) LuaSnip snippet definitions.
         {debug}         (boolean, default: false) Show info messages
                         during operation.
-        {scrapers}      (table<string>) List of enabled scrapers.
-                        Default: all scrapers enabled
         {run_panel}     (|RunPanelConfig|) Test panel behavior configuration.
         {diff}          (|DiffConfig|) Diff backend configuration.
         {picker}        (string, optional) Picker integration: "telescope",
