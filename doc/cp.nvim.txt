@@ -196,8 +196,8 @@ run CSES problems with Rust:
 
                                                          *cp.PlatformConfig*
     Fields: ~
-        {cpp}               (|LanguageConfig|) C++ language configuration.
-        {python}            (|LanguageConfig|) Python language configuration.
+        {cpp}               (|PlatformLanguageConfig|) C++ language configuration.
+        {python}            (|PlatformLanguageConfig|) Python language configuration.
         {default_language}  (string, default: "cpp") Default language for
                             platform contests.
 
