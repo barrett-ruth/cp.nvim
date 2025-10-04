@@ -86,7 +86,9 @@ function M.get_contest_data(platform, contest_id)
     contest_id = { contest_id, 'string' },
   })
 
-  return cache_data[platform][contest_id] or {}
+  cache_data[platform] = cache_data[platform] or {}
+  cache_data[platform][contest_id] = cache_data[platform][contest_id] or {}
+  return cache_data[platform][contest_id]
 end
 
 ---@param platform string
