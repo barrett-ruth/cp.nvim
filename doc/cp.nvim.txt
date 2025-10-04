@@ -35,13 +35,12 @@ COMMANDS                                                        *cp-commands*
                                 Requires previous setup with full :CP command.
 
         Setup Commands ~
-            :CP {platform} {contest_id} {problem_id} [--lang={language}]
+            :CP {platform} {contest_id} {problem_id}
                                 Full setup: set platform, load contest metadata,
                                 and set up specific problem. Scrapes test cases
                                 and creates source file.
                                 Example: >
                                     :CP codeforces 1933 a
-                                    :CP codeforces 1933 a --lang=python
 <
             :CP {platform} {contest_id}
                                 Contest setup: set platform, load contest metadata,
@@ -89,13 +88,6 @@ Command Flags ~
                                                                 *cp-flags*
     Flags can be used with setup and action commands:
 
-    --lang={language}           Specify language for the problem.
-    --lang {language}           Alternative syntax for language specification.
-                                Supported languages: cpp, python
-                                Example: >
-                                    :CP atcoder abc324 a --lang=python
-                                    :CP b --lang cpp
-<
     --debug                     Enable debug compilation with additional flags.
                                 Uses the `debug` command template instead of
                                 `compile`. Typically includes debug symbols and
@@ -103,9 +95,6 @@ Command Flags ~
                                 Example: >
                                     :CP run --debug
 <
-                                Note: Debug compilation may be slower but provides
-                                better error reporting for runtime issues.
-
 Template Variables ~
                                                         *cp-template-vars*
     Command templates support variable substitution using `{variable}` syntax:
@@ -204,8 +193,7 @@ is required:
     Fields: ~
         {cpp}               (|LanguageConfig|) C++ language configuration.
         {python}            (|LanguageConfig|) Python language configuration.
-        {default_language}  (string, default: "cpp") Default language when
-                            --lang not specified.
+        {default_language}  (string, default: "cpp") Default language for contests.
 
                                                           *cp.LanguageConfig*
     Fields: ~

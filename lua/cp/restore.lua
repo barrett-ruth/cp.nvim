@@ -14,10 +14,7 @@ function M.restore_from_current_file()
   cache.load()
   local file_state = cache.get_file_state(current_file)
   if not file_state then
-    logger.log(
-      'No cached state found for current file. Use :CP <platform> <contest> [--{lang=<lang>,debug}...] first.',
-      vim.log.levels.ERROR
-    )
+    logger.log('No cached state found for current file.', vim.log.levels.ERROR)
     return false
   end
 
@@ -37,12 +34,7 @@ function M.restore_from_current_file()
   state.set_contest_id(file_state.contest_id)
   state.set_problem_id(file_state.problem_id)
 
-  setup.setup_contest(
-    file_state.platform,
-    file_state.contest_id,
-    file_state.language,
-    file_state.problem_id
-  )
+  setup.setup_contest(file_state.platform, file_state.contest_id, file_state.problem_id)
 
   return true
 end

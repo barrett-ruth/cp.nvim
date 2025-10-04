@@ -40,9 +40,8 @@ end
 
 ---@param platform string
 ---@param contest_id string
----@param language string|nil
 ---@param problem_id string|nil
-function M.setup_contest(platform, contest_id, language, problem_id)
+function M.setup_contest(platform, contest_id, problem_id)
   local config = config_module.get_config()
   if not vim.tbl_contains(config.scrapers, platform) then
     logger.log(('Scraping disabled for %s.'):format(platform), vim.log.levels.WARN)
@@ -101,10 +100,7 @@ end
 function M.setup_problem(problem_id, language)
   local platform = state.get_platform()
   if not platform then
-    logger.log(
-      'No platform set. run :CP <platform> <contest> [--{lang=<lang>,debug}]',
-      vim.log.levels.ERROR
-    )
+    logger.log('No platform set.', vim.log.levels.ERROR)
     return
   end
 
@@ -160,7 +156,7 @@ function M.setup_problem(problem_id, language)
   end)
 end
 
-function M.navigate_problem(direction, language)
+function M.navigate_problem(direction)
   if direction == 0 then
     return
   end
@@ -171,10 +167,7 @@ function M.navigate_problem(direction, language)
   local current_problem_id = state.get_problem_id()
 
   if not platform or not contest_id or not current_problem_id then
-    logger.log(
-      'No platform configured. Use :CP <platform> <contest> [--{lang=<lang>,debug}] first.',
-      vim.log.levels.ERROR
-    )
+    logger.log('No platform configured.', vim.log.levels.ERROR)
     return
   end
 
@@ -200,7 +193,7 @@ function M.navigate_problem(direction, language)
   end
 
   require('cp.ui.panel').disable()
-  M.setup_contest(platform, contest_id, language, problems[new_index].id)
+  M.setup_contest(platform, contest_id, problems[new_index].id)
 end
 
 return M
