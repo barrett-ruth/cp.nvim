@@ -29,10 +29,6 @@ TIMEOUT_S = 15.0
 CONNECTIONS = 8
 
 
-def _run(coro):
-    return asyncio.run(coro)
-
-
 def normalize_category_name(category_name: str) -> str:
     return category_name.lower().replace(" ", "_").replace("&", "and")
 
@@ -196,34 +192,6 @@ class CSESScraper(BaseScraper):
             )
         return MetadataResult(
             success=True, error="", contest_id=contest_id, problems=problems
-        )
-
-    async def scrape_problem_tests(
-        self, contest_id: str, problem_id: str
-    ) -> TestsResult:
-        path = task_path(problem_id)
-        async with httpx.AsyncClient() as client:
-            html = await fetch_text(client, path)
-        tests = parse_tests(html)
-        timeout_ms, memory_mb = parse_limits(html)
-        if not tests:
-            return TestsResult(
-                success=False,
-                error=f"{self.platform_name}: No tests found for {problem_id}",
-                problem_id=problem_id if problem_id.isdigit() else "",
-                url=BASE_URL + path,
-                tests=[],
-                timeout_ms=timeout_ms,
-                memory_mb=memory_mb,
-            )
-        return TestsResult(
-            success=True,
-            error="",
-            problem_id=problem_id if problem_id.isdigit() else "",
-            url=BASE_URL + path,
-            tests=tests,
-            timeout_ms=timeout_ms,
-            memory_mb=memory_mb,
         )
 
     async def scrape_contest_list(self) -> ContestListResult:

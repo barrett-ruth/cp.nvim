@@ -26,11 +26,6 @@ class BaseScraper(ABC):
     async def scrape_contest_metadata(self, contest_id: str) -> MetadataResult: ...
 
     @abstractmethod
-    async def scrape_problem_tests(
-        self, contest_id: str, problem_id: str
-    ) -> TestsResult: ...
-
-    @abstractmethod
     async def scrape_contest_list(self) -> ContestListResult: ...
 
     @abstractmethod
