@@ -31,7 +31,7 @@ local function substitute_template(cmd_template, substitutions)
   return out
 end
 
-local function build_command(cmd_template, executable, substitutions)
+function M.build_command(cmd_template, executable, substitutions)
   local cmd = substitute_template(cmd_template, substitutions)
   if executable then
     table.insert(cmd, 1, executable)
@@ -197,11 +197,5 @@ function M.compile_problem(contest_config, is_debug)
   end
   return { success = true, output = nil }
 end
-
-M._util = {
-  get_language_from_file = get_language_from_file,
-  substitute_template = substitute_template,
-  build_command = build_command,
-}
 
 return M

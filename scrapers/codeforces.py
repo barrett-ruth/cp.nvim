@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
+import asyncio
 import json
+import logging
 import re
 import sys
 from dataclasses import asdict
+from typing import Any
 
 import requests
 from bs4 import BeautifulSoup, Tag
@@ -19,224 +22,132 @@ from .models import (
     TestsResult,
 )
 
-
-def scrape(url: str) -> list[TestCase]:
-    try:
-        page = StealthyFetcher.fetch(url, headless=True, solve_cloudflare=True)
-        html = page.html_content
-
-        soup = BeautifulSoup(html, "html.parser")
-        input_sections = soup.find_all("div", class_="input")
-        output_sections = soup.find_all("div", class_="output")
-
-        individual_inputs: dict[str, list[str]] = {}
-        individual_outputs: dict[str, list[str]] = {}
-
-        for inp_section in input_sections:
-            inp_pre = inp_section.find("pre")
-            if not inp_pre or not isinstance(inp_pre, Tag):
-                continue
-
-            test_line_divs = inp_pre.find_all(
-                "div", class_=lambda x: x and "test-example-line-" in x
-            )
-            if not test_line_divs:
-                continue
-
-            for div in test_line_divs:
-                classes = div.get("class", [])
-                class_name = next(
-                    (
-                        cls
-                        for cls in classes
-                        if "test-example-line-" in cls and cls.split("-")[-1].isdigit()
-                    ),
-                    None,
-                )
-                if not class_name:
-                    continue
-
-                test_num = class_name.replace("test-example-line-", "")
-                if test_num not in individual_inputs:
-                    individual_inputs[test_num] = []
-                individual_inputs[test_num].append(div.get_text().strip())
-
-        for out_section in output_sections:
-            out_pre = out_section.find("pre")
-            if not out_pre or not isinstance(out_pre, Tag):
-                continue
-
-            test_line_divs = out_pre.find_all(
-                "div", class_=lambda x: x and "test-example-line-" in x
-            )
-            if not test_line_divs:
-                continue
-
-            for div in test_line_divs:
-                classes = div.get("class", [])
-                class_name = next(
-                    (
-                        cls
-                        for cls in classes
-                        if "test-example-line-" in cls and cls.split("-")[-1].isdigit()
-                    ),
-                    None,
-                )
-                if not class_name:
-                    continue
-
-                test_num = class_name.replace("test-example-line-", "")
-                if test_num not in individual_outputs:
-                    individual_outputs[test_num] = []
-                individual_outputs[test_num].append(div.get_text().strip())
-
-        if individual_inputs and individual_outputs:
-            common_tests = set(individual_inputs.keys()) & set(
-                individual_outputs.keys()
-            )
-            if common_tests:
-                tests = []
-                for test_num in sorted(common_tests):
-                    input_text = "\n".join(individual_inputs[test_num])
-                    output_text = "\n".join(individual_outputs[test_num])
-                    prefixed_input = "1\n" + input_text
-                    tests.append(TestCase(input=prefixed_input, expected=output_text))
-                return tests
-        all_inputs = []
-        all_outputs = []
-
-        for inp_section in input_sections:
-            inp_pre = inp_section.find("pre")
-            if not inp_pre or not isinstance(inp_pre, Tag):
-                continue
-
-            divs = inp_pre.find_all("div")
-            if divs:
-                lines = [div.get_text().strip() for div in divs if isinstance(div, Tag)]
-                text = "\n".join(lines)
-            else:
-                text = inp_pre.get_text().replace("\r", "").strip()
-            all_inputs.append(text)
-
-        for out_section in output_sections:
-            out_pre = out_section.find("pre")
-            if not out_pre or not isinstance(out_pre, Tag):
-                continue
-
-            divs = out_pre.find_all("div")
-            if divs:
-                lines = [div.get_text().strip() for div in divs if isinstance(div, Tag)]
-                text = "\n".join(lines)
-            else:
-                text = out_pre.get_text().replace("\r", "").strip()
-            all_outputs.append(text)
-
-        if not all_inputs or not all_outputs:
-            return []
-
-        combined_input = "\n".join(all_inputs)
-        combined_output = "\n".join(all_outputs)
-        return [TestCase(input=combined_input, expected=combined_output)]
-
-    except Exception as e:
-        print(f"Scrapling failed: {e}", file=sys.stderr)
-        return []
+# suppress scrapling logging - https://github.com/D4Vinci/Scrapling/issues/31)
+logging.getLogger("scrapling").setLevel(logging.CRITICAL)
 
 
-def parse_problem_url(contest_id: str, problem_letter: str) -> str:
+BASE_URL = "https://codeforces.com"
+API_CONTEST_LIST_URL = f"{BASE_URL}/api/contest.list"
+TIMEOUT_SECONDS = 30
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+}
+
+
+def _text_from_pre(pre: Tag) -> str:
     return (
-        f"https://codeforces.com/contest/{contest_id}/problem/{problem_letter.upper()}"
+        pre.get_text(separator="\n", strip=False)
+        .replace("\r", "")
+        .replace("\xa0", " ")
+        .rstrip("\n")
     )
 
 
-def extract_problem_limits(soup: BeautifulSoup) -> tuple[int, float]:
-    timeout_ms = None
-    memory_mb = None
-
-    time_limit_div = soup.find("div", class_="time-limit")
-    if time_limit_div:
-        text = time_limit_div.get_text().strip()
-        match = re.search(r"(\d+) seconds?", text)
-        if match:
-            seconds = int(match.group(1))
-            timeout_ms = seconds * 1000
-
-    if timeout_ms is None:
-        raise ValueError("Could not find valid timeout in time-limit section")
-
-    memory_limit_div = soup.find("div", class_="memory-limit")
-    if memory_limit_div:
-        text = memory_limit_div.get_text().strip()
-        match = re.search(r"(\d+) megabytes", text)
-        if match:
-            memory_mb = float(match.group(1))
-
-    if memory_mb is None:
-        raise ValueError("Could not find valid memory limit in memory-limit section")
-
+def _extract_limits(block: Tag) -> tuple[int, float]:
+    tdiv = block.find("div", class_="time-limit")
+    mdiv = block.find("div", class_="memory-limit")
+    timeout_ms = 0
+    memory_mb = 0.0
+    if tdiv:
+        ttxt = tdiv.get_text(" ", strip=True)
+        ts = re.search(r"(\d+)\s*seconds?", ttxt)
+        if ts:
+            timeout_ms = int(ts.group(1)) * 1000
+    if mdiv:
+        mtxt = mdiv.get_text(" ", strip=True)
+        ms = re.search(r"(\d+)\s*megabytes?", mtxt)
+        if ms:
+            memory_mb = float(ms.group(1))
     return timeout_ms, memory_mb
 
 
-def scrape_contest_problems(contest_id: str) -> list[ProblemSummary]:
-    try:
-        contest_url: str = f"https://codeforces.com/contest/{contest_id}"
-        page = StealthyFetcher.fetch(contest_url, headless=True, solve_cloudflare=True)
-        html = page.html_content
+def _extract_title(block: Tag) -> tuple[str, str]:
+    t = block.find("div", class_="title")
+    if not t:
+        return "", ""
+    s = t.get_text(" ", strip=True)
+    parts = s.split(".", 1)
+    if len(parts) != 2:
+        return "", s.strip()
+    return parts[0].strip().upper(), parts[1].strip()
 
-        soup = BeautifulSoup(html, "html.parser")
-        problems: list[ProblemSummary] = []
 
-        problem_links = soup.find_all(
-            "a", href=lambda x: x and f"/contest/{contest_id}/problem/" in x
+def _extract_samples(block: Tag) -> list[TestCase]:
+    st = block.find("div", class_="sample-test")
+    if not st:
+        return []
+
+    inputs = [
+        _text_from_pre(pre)
+        for inp in st.find_all("div", class_="input")  # type: ignore[union-attr]
+        for pre in [inp.find("pre")]
+        if isinstance(pre, Tag)
+    ]
+    outputs = [
+        _text_from_pre(pre)
+        for out in st.find_all("div", class_="output")  # type: ignore[union-attr]
+        for pre in [out.find("pre")]
+        if isinstance(pre, Tag)
+    ]
+
+    n = min(len(inputs), len(outputs))
+    return [TestCase(input=inputs[i], expected=outputs[i]) for i in range(n)]
+
+
+def _is_interactive(block: Tag) -> bool:
+    ps = block.find("div", class_="problem-statement")
+    txt = ps.get_text(" ", strip=True) if ps else block.get_text(" ", strip=True)
+    return "This is an interactive problem" in txt
+
+
+def _fetch_problems_html(contest_id: str) -> str:
+    url = f"{BASE_URL}/contest/{contest_id}/problems"
+    page = StealthyFetcher.fetch(
+        url,
+        headless=True,
+        solve_cloudflare=True,
+    )
+    return page.html_content
+
+
+def _parse_all_blocks(html: str) -> list[dict[str, Any]]:
+    soup = BeautifulSoup(html, "html.parser")
+    blocks = soup.find_all("div", class_="problem-statement")
+    out: list[dict[str, Any]] = []
+    for b in blocks:
+        holder = b.find_parent("div", class_="problemindexholder")
+        letter = (holder.get("problemindex") if holder else "").strip().upper()
+        name = _extract_title(b)[1]  # keep your name extraction
+        if not letter:
+            continue
+        tests = _extract_samples(b)
+        timeout_ms, memory_mb = _extract_limits(b)
+        interactive = _is_interactive(b)
+        out.append(
+            {
+                "letter": letter,
+                "name": name,
+                "tests": tests,
+                "timeout_ms": timeout_ms,
+                "memory_mb": memory_mb,
+                "interactive": interactive,
+            }
         )
-
-        for link in problem_links:
-            if not isinstance(link, Tag):
-                continue
-            href: str = str(link.get("href", ""))
-            if f"/contest/{contest_id}/problem/" in href:
-                problem_letter: str = href.split("/")[-1].lower()
-                problem_name: str = link.get_text(strip=True)
-
-                if not (problem_letter and problem_name):
-                    continue
-
-                problems.append(ProblemSummary(id=problem_letter, name=problem_name))
-
-        seen: set[str] = set()
-        unique_problems: list[ProblemSummary] = []
-        for p in problems:
-            if p.id not in seen:
-                seen.add(p.id)
-                unique_problems.append(p)
-
-        return unique_problems
-
-    except Exception as e:
-        print(f"Failed to scrape contest problems: {e}", file=sys.stderr)
-        return []
+    return out
 
 
-def scrape_sample_tests(url: str) -> list[TestCase]:
-    print(f"Scraping: {url}", file=sys.stderr)
-    return scrape(url)
-
-
-def scrape_contests() -> list[ContestSummary]:
-    response = requests.get("https://codeforces.com/api/contest.list", timeout=10)
-    response.raise_for_status()
-
-    data = response.json()
-    if data["status"] != "OK":
-        return []
-
-    contests = []
-    for contest in data["result"]:
-        contest_id = str(contest["id"])
-        name = contest["name"]
-        contests.append(ContestSummary(id=contest_id, name=name, display_name=name))
-
-    return contests
+def _scrape_contest_problems_sync(contest_id: str) -> list[ProblemSummary]:
+    html = _fetch_problems_html(contest_id)
+    blocks = _parse_all_blocks(html)
+    problems: list[ProblemSummary] = []
+    seen: set[str] = set()
+    for b in blocks:
+        pid = b["letter"].upper()
+        if pid in seen:
+            continue
+        seen.add(pid)
+        problems.append(ProblemSummary(id=pid.lower(), name=b["name"]))
+    return problems
 
 
 class CodeforcesScraper(BaseScraper):
@@ -244,81 +155,94 @@ class CodeforcesScraper(BaseScraper):
     def platform_name(self) -> str:
         return "codeforces"
 
-    def scrape_contest_metadata(self, contest_id: str) -> MetadataResult:
-        return self._safe_execute(
-            "metadata", self._scrape_contest_metadata_impl, contest_id
-        )
-
-    def scrape_problem_tests(self, contest_id: str, problem_id: str) -> TestsResult:
-        return self._safe_execute(
-            "tests", self._scrape_problem_tests_impl, contest_id, problem_id
-        )
-
-    def scrape_contest_list(self) -> ContestListResult:
-        return self._safe_execute("contests", self._scrape_contest_list_impl)
-
-    def _scrape_contest_metadata_impl(self, contest_id: str) -> MetadataResult:
-        problems = scrape_contest_problems(contest_id)
-        if not problems:
-            return self._create_metadata_error(
-                f"No problems found for contest {contest_id}", contest_id
-            )
-        return MetadataResult(
-            success=True, error="", contest_id=contest_id, problems=problems
-        )
-
-    def _scrape_problem_tests_impl(
-        self, contest_id: str, problem_letter: str
-    ) -> TestsResult:
-        problem_id = contest_id + problem_letter.lower()
-        url = parse_problem_url(contest_id, problem_letter)
-        tests = scrape_sample_tests(url)
-
-        page = StealthyFetcher.fetch(url, headless=True, solve_cloudflare=True)
-        html = page.html_content
-        soup = BeautifulSoup(html, "html.parser")
-        timeout_ms, memory_mb = extract_problem_limits(soup)
-
-        problem_statement_div = soup.find("div", class_="problem-statement")
-        interactive = bool(
-            problem_statement_div
-            and "This is an interactive problem" in problem_statement_div.get_text()
-        )
-
-        if not tests:
-            return self._create_tests_error(
-                f"No tests found for {contest_id} {problem_letter}", problem_id, url
+    async def scrape_contest_metadata(self, contest_id: str) -> MetadataResult:
+        async def impl(cid: str) -> MetadataResult:
+            problems = await asyncio.to_thread(_scrape_contest_problems_sync, cid)
+            if not problems:
+                return self._create_metadata_error(
+                    f"No problems found for contest {cid}", cid
+                )
+            return MetadataResult(
+                success=True, error="", contest_id=cid, problems=problems
             )
 
-        return TestsResult(
-            success=True,
-            error="",
-            problem_id=problem_id,
-            url=url,
-            tests=tests,
-            timeout_ms=timeout_ms,
-            memory_mb=memory_mb,
-            interactive=interactive,
-        )
+        return await self._safe_execute("metadata", impl, contest_id)
 
-    def _scrape_contest_list_impl(self) -> ContestListResult:
-        contests = scrape_contests()
-        if not contests:
-            return self._create_contests_error("No contests found")
-        return ContestListResult(success=True, error="", contests=contests)
+    async def scrape_contest_list(self) -> ContestListResult:
+        async def impl() -> ContestListResult:
+            try:
+                r = requests.get(API_CONTEST_LIST_URL, timeout=TIMEOUT_SECONDS)
+                r.raise_for_status()
+                data = r.json()
+                if data.get("status") != "OK":
+                    return self._create_contests_error("Invalid API response")
+
+                contests: list[ContestSummary] = []
+                for c in data["result"]:
+                    if c.get("phase") != "FINISHED":
+                        continue
+                    cid = str(c["id"])
+                    name = c["name"]
+                    contests.append(
+                        ContestSummary(id=cid, name=name, display_name=name)
+                    )
+
+                if not contests:
+                    return self._create_contests_error("No contests found")
+
+                return ContestListResult(success=True, error="", contests=contests)
+            except Exception as e:
+                return self._create_contests_error(str(e))
+
+        return await self._safe_execute("contests", impl)
+
+    async def stream_tests_for_category_async(self, category_id: str) -> None:
+        html = await asyncio.to_thread(_fetch_problems_html, category_id)
+        blocks = await asyncio.to_thread(_parse_all_blocks, html)
+
+        for b in blocks:
+            pid = b["letter"].lower()
+            tests: list[TestCase] = b["tests"]
+
+            if not tests:
+                print(
+                    json.dumps(
+                        {
+                            "problem_id": pid,
+                            "error": f"{self.platform_name}: no tests found",
+                        }
+                    ),
+                    flush=True,
+                )
+                continue
+
+            print(
+                json.dumps(
+                    {
+                        "problem_id": pid,
+                        "tests": [
+                            {"input": t.input, "expected": t.expected} for t in tests
+                        ],
+                        "timeout_ms": b["timeout_ms"],
+                        "memory_mb": b["memory_mb"],
+                        "interactive": bool(b["interactive"]),
+                    }
+                ),
+                flush=True,
+            )
 
 
-def main() -> None:
+async def main_async() -> int:
     if len(sys.argv) < 2:
         result = MetadataResult(
             success=False,
-            error="Usage: codeforces.py metadata <contest_id> OR codeforces.py tests <contest_id> <problem_letter> OR codeforces.py contests",
+            error="Usage: codeforces.py metadata <contest_id> OR codeforces.py tests <contest_id> OR codeforces.py contests",
         )
         print(json.dumps(asdict(result)))
-        sys.exit(1)
+        return 1
 
-    scraper = CodeforcesScraper()
     mode: str = sys.argv[1]
+    scraper = CodeforcesScraper()
 
     if mode == "metadata":
         if len(sys.argv) != 3:
@@ -326,17 +250,17 @@ def main() -> None:
                 success=False, error="Usage: codeforces.py metadata <contest_id>"
             )
             print(json.dumps(asdict(result)))
-            sys.exit(1)
-
-        contest_id: str = sys.argv[2]
-        result = scraper.scrape_contest_metadata(contest_id)
+            return 1
+        contest_id = sys.argv[2]
+        result = await scraper.scrape_contest_metadata(contest_id)
         print(json.dumps(asdict(result)))
+        return 0 if result.success else 1
 
-    elif mode == "tests":
-        if len(sys.argv) != 4:
+    if mode == "tests":
+        if len(sys.argv) != 3:
             tests_result = TestsResult(
                 success=False,
-                error="Usage: codeforces.py tests <contest_id> <problem_letter>",
+                error="Usage: codeforces.py tests <contest_id>",
                 problem_id="",
                 url="",
                 tests=[],
@@ -344,31 +268,32 @@ def main() -> None:
                 memory_mb=0,
             )
             print(json.dumps(asdict(tests_result)))
-            sys.exit(1)
+            return 1
+        contest_id = sys.argv[2]
+        await scraper.stream_tests_for_category_async(contest_id)
+        return 0
 
-        tests_contest_id: str = sys.argv[2]
-        problem_letter: str = sys.argv[3]
-        tests_result = scraper.scrape_problem_tests(tests_contest_id, problem_letter)
-        print(json.dumps(asdict(tests_result)))
-
-    elif mode == "contests":
+    if mode == "contests":
         if len(sys.argv) != 2:
             contest_result = ContestListResult(
                 success=False, error="Usage: codeforces.py contests"
             )
             print(json.dumps(asdict(contest_result)))
-            sys.exit(1)
-
-        contest_result = scraper.scrape_contest_list()
+            return 1
+        contest_result = await scraper.scrape_contest_list()
         print(json.dumps(asdict(contest_result)))
+        return 0 if contest_result.success else 1
 
-    else:
-        result = MetadataResult(
-            success=False,
-            error=f"Unknown mode: {mode}. Use 'metadata', 'tests', or 'contests'",
-        )
-        print(json.dumps(asdict(result)))
-        sys.exit(1)
+    result = MetadataResult(
+        success=False,
+        error="Unknown mode. Use 'metadata <contest_id>', 'tests <contest_id>', or 'contests'",
+    )
+    print(json.dumps(asdict(result)))
+    return 1
+
+
+def main() -> None:
+    sys.exit(asyncio.run(main_async()))
 
 
 if __name__ == "__main__":
