@@ -40,27 +40,29 @@ end
 ---@param refresh? boolean
 ---@return cp.ContestItem[]
 function M.get_platform_contests(platform, refresh)
-  logger.log(
-    ('Loading %s contests...'):format(constants.PLATFORM_DISPLAY_NAMES[platform]),
-    vim.log.levels.INFO,
-    true
-  )
-
   cache.load()
   local picker_contests = cache.get_contest_summaries(platform)
 
   if refresh or vim.tbl_isempty(picker_contests) then
-    logger.log(('Cache miss on %s contests'):format(platform))
-    local contests = scraper.scrape_contest_list(platform) -- sync
-    cache.set_contest_summaries(platform, contests)
-    picker_contests = cache.get_contest_summaries(platform) -- <-- reload after write
-  end
+    logger.log(
+      ('Loading %s contests...'):format(constants.PLATFORM_DISPLAY_NAMES[platform]),
+      vim.log.levels.INFO,
+      true
+    )
 
-  logger.log(
-    ('Loaded %d %s contests.'):format(#picker_contests, constants.PLATFORM_DISPLAY_NAMES[platform]),
-    vim.log.levels.INFO,
-    true
-  )
+    local contests = scraper.scrape_contest_list(platform)
+    cache.set_contest_summaries(platform, contests)
+    picker_contests = cache.get_contest_summaries(platform)
+
+    logger.log(
+      ('Loaded %d %s contests.'):format(
+        #picker_contests,
+        constants.PLATFORM_DISPLAY_NAMES[platform]
+      ),
+      vim.log.levels.INFO,
+      true
+    )
+  end
 
   return picker_contests
 end
