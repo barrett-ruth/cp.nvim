@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import re
 import sys
 from dataclasses import asdict
@@ -20,6 +21,10 @@ from .models import (
     TestCase,
     TestsResult,
 )
+
+# suppress scrapling logging - https://github.com/D4Vinci/Scrapling/issues/31)
+logging.getLogger("scrapling").setLevel(logging.CRITICAL)
+
 
 BASE_URL = "https://codeforces.com"
 API_CONTEST_LIST_URL = f"{BASE_URL}/api/contest.list"
