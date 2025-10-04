@@ -72,18 +72,18 @@ function M.get_source_file(language)
   end
 
   local config = require('cp.config').get_config()
-  local contest_config = config.platforms[M.get_platform()]
-  if not contest_config then
+  local plat = M.get_platform()
+  local platform_cfg = config.platforms[plat]
+  if not platform_cfg then
     return nil
   end
-
-  local target_language = language or contest_config.default_language
-  local language_config = contest_config[target_language]
-  if not language_config or not language_config.extension then
+  local target_language = language or platform_cfg.default_language
+  local eff = config.runtime.effective[plat] and config.runtime.effective[plat][target_language]
+    or nil
+  if not eff or not eff.extension then
     return nil
   end
-
-  return base_name .. '.' .. language_config.extension
+  return base_name .. '.' .. eff.extension
 end
 
 function M.get_binary_file()

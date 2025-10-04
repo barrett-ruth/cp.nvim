@@ -209,30 +209,27 @@ function M.get_constraints(platform, contest_id, problem_id)
 end
 
 ---@param file_path string
----@return FileState?
+---@return FileState|nil
 function M.get_file_state(file_path)
-  if not cache_data.file_states then
-    return nil
-  end
-
+  M.load()
+  cache_data.file_states = cache_data.file_states or {}
   return cache_data.file_states[file_path]
 end
 
----@param file_path string
+---@param path string
 ---@param platform string
 ---@param contest_id string
----@param problem_id? string
-function M.set_file_state(file_path, platform, contest_id, problem_id)
-  if not cache_data.file_states then
-    cache_data.file_states = {}
-  end
-
-  cache_data.file_states[file_path] = {
+---@param problem_id string
+---@param language string|nil
+function M.set_file_state(path, platform, contest_id, problem_id, language)
+  M.load()
+  cache_data.file_states = cache_data.file_states or {}
+  cache_data.file_states[path] = {
     platform = platform,
     contest_id = contest_id,
     problem_id = problem_id,
+    language = language,
   }
-
   M.save()
 end
 
@@ -255,7 +252,7 @@ end
 function M.set_contest_summaries(platform, contests)
   cache_data[platform] = cache_data[platform] or {}
   for _, contest in ipairs(contests) do
-    cache_data[platform][contest.id] = cache_data[platform][contest] or {}
+    cache_data[platform][contest.id] = cache_data[platform][contest.id] or {}
     cache_data[platform][contest.id].display_name = contest.display_name
     cache_data[platform][contest.id].name = contest.name
   end
@@ -283,5 +280,7 @@ function M.get_data_pretty()
 
   return vim.inspect(cache_data)
 end
+
+M._cache = cache_data
 
 return M

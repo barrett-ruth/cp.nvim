@@ -8,9 +8,9 @@ local logger = require('cp.log')
 function M.handle_pick_action()
   local config = config_module.get_config()
 
-  if not config.picker then
+  if not (config.ui and config.ui.picker) then
     logger.log(
-      'No picker configured. Set picker = "{telescope,fzf-lua}" in your config.',
+      'No picker configured. Set ui.picker = "{telescope,fzf-lua}" in your config.',
       vim.log.levels.ERROR
     )
     return
@@ -18,7 +18,8 @@ function M.handle_pick_action()
 
   local picker
 
-  if config.picker == 'telescope' then
+  local picker_name = config.ui.picker
+  if picker_name == 'telescope' then
     local ok = pcall(require, 'telescope')
     if not ok then
       logger.log(
@@ -34,7 +35,7 @@ function M.handle_pick_action()
     end
 
     picker = telescope_picker
-  elseif config.picker == 'fzf-lua' then
+  elseif picker_name == 'fzf-lua' then
     local ok, _ = pcall(require, 'fzf-lua')
     if not ok then
       logger.log(

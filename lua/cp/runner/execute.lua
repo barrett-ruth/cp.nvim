@@ -33,12 +33,8 @@ local function substitute_template(cmd_template, substitutions)
   return out
 end
 
-function M.build_command(cmd_template, executable, substitutions)
-  local cmd = substitute_template(cmd_template, substitutions)
-  if executable then
-    table.insert(cmd, 1, executable)
-  end
-  return cmd
+function M.build_command(cmd_template, substitutions)
+  return substitute_template(cmd_template, substitutions)
 end
 
 ---@param compile_cmd string[]
@@ -166,11 +162,12 @@ end
 
 function M.compile_problem()
   local state = require('cp.state')
-
   local config = require('cp.config').get_config()
   local platform = state.get_platform() or ''
   local language = config.platforms[platform].default_language
-  local compile_config = config.platforms[platform][language].compile
+  local eff = config.runtime.effective[platform][language]
+  local compile_config = eff and eff.commands and eff.commands.build
+
   if not compile_config then
     return { success = true, output = nil }
   end

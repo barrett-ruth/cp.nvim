@@ -94,10 +94,9 @@ local function create_sentinal_panel_data(test_cases)
 end
 
 ---@param cmd string[]
----@param executable string
 ---@return string[]
-local function build_command(cmd, executable, substitutions)
-  return execute.build_command(cmd, executable, substitutions)
+local function build_command(cmd, substitutions)
+  return execute.build_command(cmd, substitutions)
 end
 
 ---@param test_case RanTestCase
@@ -109,8 +108,10 @@ local function run_single_test_case(test_case)
   local substitutions = { source = source_file, binary = binary_file }
 
   local platform_config = config.platforms[state.get_platform() or '']
-  local language_config = platform_config[platform_config.default_language]
-  local cmd = build_command(language_config.test, language_config.executable, substitutions)
+  local language = platform_config.default_language
+  local eff = config.runtime.effective[state.get_platform() or ''][language]
+  local run_template = eff and eff.commands and eff.commands.run or {}
+  local cmd = build_command(run_template, substitutions)
   local stdin_content = (test_case.input or '') .. '\n'
   local timeout_ms = (run_panel_state.constraints and run_panel_state.constraints.timeout_ms) or 0
   local memory_mb = run_panel_state.constraints and run_panel_state.constraints.memory_mb or 0
@@ -121,7 +122,7 @@ local function run_single_test_case(test_case)
   local out = r.stdout or ''
   local highlights = {}
   if out ~= '' then
-    if config.run_panel.ansi then
+    if config.ui.run_panel.ansi then
       local parsed = ansi.parse_ansi_text(out)
       out = table.concat(parsed.lines, '\n')
       highlights = parsed.highlights
@@ -130,7 +131,7 @@ local function run_single_test_case(test_case)
     end
   end
 
-  local max_lines = config.run_panel.max_output_lines
+  local max_lines = config.ui.run_panel.max_output_lines
   local lines = vim.split(out, '\n')
   if #lines > max_lines then
     local trimmed = {}
@@ -246,7 +247,7 @@ function M.handle_compilation_failure(output)
   local txt
   local hl = {}
 
-  if config.run_panel.ansi then
+  if config.ui.run_panel.ansi then
     local p = ansi.parse_ansi_text(output or '')
     txt = table.concat(p.lines, '\n')
     hl = p.highlights

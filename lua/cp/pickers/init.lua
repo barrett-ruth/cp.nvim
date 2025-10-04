@@ -1,7 +1,6 @@
 local M = {}
 
 local cache = require('cp.cache')
-local config = require('cp.config').get_config()
 local constants = require('cp.constants')
 local logger = require('cp.log')
 local scraper = require('cp.scraper')
@@ -22,8 +21,8 @@ local scraper = require('cp.scraper')
 
 ---@return cp.PlatformItem[]
 function M.get_platforms()
+  local config = require('cp.config').get_config()
   local result = {}
-
   for _, platform in ipairs(constants.PLATFORMS) do
     if config.platforms[platform] then
       table.insert(result, {
@@ -32,7 +31,6 @@ function M.get_platforms()
       })
     end
   end
-
   return result
 end
 

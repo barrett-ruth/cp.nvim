@@ -263,13 +263,13 @@ function M.toggle_run_panel(debug)
       local modes = { 'none', 'git', 'vim' }
       local current_idx = nil
       for i, mode in ipairs(modes) do
-        if config.run_panel.diff_mode == mode then
+        if config.ui.run_panel.diff_mode == mode then
           current_idx = i
           break
         end
       end
       current_idx = current_idx or 1
-      config.run_panel.diff_mode = modes[(current_idx % #modes) + 1]
+      config.ui.run_panel.diff_mode = modes[(current_idx % #modes) + 1]
       refresh_run_panel()
     end, { buffer = buf, silent = true })
     vim.keymap.set('n', '<c-n>', function()
@@ -293,7 +293,7 @@ function M.toggle_run_panel(debug)
   refresh_run_panel()
 
   vim.schedule(function()
-    if config.run_panel.ansi then
+    if config.ui.run_panel.ansi then
       local ansi = require('cp.ui.ansi')
       ansi.setup_highlight_groups()
     end

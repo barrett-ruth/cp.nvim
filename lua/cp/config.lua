@@ -121,7 +121,7 @@ local function is_string_list(t)
   if type(t) ~= 'table' then
     return false
   end
-  for i, v in ipairs(t) do
+  for _, v in ipairs(t) do
     if type(v) ~= 'string' then
       return false
     end
@@ -263,7 +263,6 @@ function M.setup(user_config)
     error('[cp.nvim] ' .. err)
   end
 
-  current_config = cfg
   return cfg
 end
 
@@ -272,6 +271,7 @@ local current_config = nil
 function M.set_current_config(config)
   current_config = config
 end
+
 function M.get_config()
   return current_config or M.defaults
 end
