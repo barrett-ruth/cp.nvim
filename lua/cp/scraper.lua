@@ -4,7 +4,6 @@ local utils = require('cp.utils')
 
 local function syshandle(result)
   if result.code ~= 0 then
-    vim.print(('<%s>'):format(result.stderr))
     local msg = 'Scraper failed: ' .. (result.stderr or 'Unknown error')
     return { success = false, error = msg }
   end

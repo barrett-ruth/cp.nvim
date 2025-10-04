@@ -1,14 +1,12 @@
----@class LanguageConfig
+---@class PlatformLanguageConfig
 ---@field compile? string[] Compile command template
 ---@field test string[] Test execution command template
 ---@field debug? string[] Debug command template
 ---@field executable? string Executable name
----@field version? number Language version
 ---@field extension? string File extension
 
----@class ContestConfig
----@field cpp LanguageConfig
----@field python LanguageConfig
+---@class PlatformConfig
+---@field [string] PlatformLanguageConfig
 ---@field default_language? string
 
 ---@class Hooks
@@ -28,22 +26,20 @@
 ---@field git DiffGitConfig
 
 ---@class cp.Config
----@field platforms table<string, ContestConfig>
+---@field platforms table<string, PlatformConfig>
 ---@field snippets any[]
 ---@field hooks Hooks
 ---@field debug boolean
----@field scrapers string[]
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 ---@field run_panel RunPanelConfig
 ---@field diff DiffConfig
 ---@field picker string|nil
 
 ---@class cp.PartialConfig
----@field platforms? table<string, ContestConfig>
+---@field platforms? table<string, PlatformConfig>
 ---@field snippets? any[]
 ---@field hooks? Hooks
 ---@field debug? boolean
----@field scrapers? string[]
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 ---@field run_panel? RunPanelConfig
 ---@field diff? DiffConfig
@@ -64,7 +60,6 @@ local default_contest_config = {
     test = { '{source}' },
     debug = { '{source}' },
     executable = 'python',
-    extension = 'py',
   },
   default_language = 'cpp',
 }
@@ -111,7 +106,6 @@ function M.setup(user_config)
       snippets = { user_config.snippets, { 'table', 'nil' }, true },
       hooks = { user_config.hooks, { 'table', 'nil' }, true },
       debug = { user_config.debug, { 'boolean', 'nil' }, true },
-      scrapers = { user_config.scrapers, { 'table', 'nil' }, true },
       filename = { user_config.filename, { 'function', 'nil' }, true },
       run_panel = { user_config.run_panel, { 'table', 'nil' }, true },
       diff = { user_config.diff, { 'table', 'nil' }, true },
@@ -133,22 +127,6 @@ function M.setup(user_config)
             'contest configuration',
           },
         })
-      end
-    end
-
-    if user_config.scrapers then
-      for _, platform_name in ipairs(user_config.scrapers) do
-        if type(platform_name) ~= 'string' then
-          error(('Invalid scraper value type. Expected string, got %s'):format(type(platform_name)))
-        end
-        if not vim.tbl_contains(constants.PLATFORMS, platform_name) then
-          error(
-            ("Invalid platform '%s' in scrapers config. Valid platforms: %s"):format(
-              platform_name,
-              table.concat(constants.PLATFORMS, ', ')
-            )
-          )
-        end
       end
     end
 
@@ -206,34 +184,9 @@ function M.setup(user_config)
   })
 
   for _, platform_config in pairs(config.platforms) do
-    for lang_name, lang_config in pairs(platform_config) do
-      if type(lang_config) == 'table' and not lang_config.extension then
-        if lang_name == 'cpp' then
-          lang_config.extension = 'cpp'
-        elseif lang_name == 'python' then
-          lang_config.extension = 'py'
-        end
-      end
-    end
-
-    vim.print(platform_config)
     if not platform_config.default_language then
-      local available_langs = {}
-      for lang_name, lang_config in pairs(platform_config) do
-        if type(lang_config) == 'table' and lang_name ~= 'default_language' then
-          table.insert(available_langs, lang_name)
-        end
-      end
-
-      if vim.tbl_isemtpy(available_langs) then
-        error('No language configurations found')
-      end
-
-      vim.print('sorting langs')
-      --- arbitrarily break ties
-      table.sort(available_langs)
-      vim.print(available_langs)
-      platform_config.default_language = available_langs[1]
+      -- arbitrarily choose a language
+      platform_config.default_language = vim.tbl_keys(platform_config)[1]
     end
   end
 

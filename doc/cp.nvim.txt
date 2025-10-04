@@ -120,8 +120,8 @@ Here's an example configuration with lazy.nvim: >lua
         cmd = 'CP',
         build = 'uv sync',
         opts = {
-            contests = {
-                default = {
+            platforms = {
+                cses = {
                     cpp = {
                         compile = { 'g++', '{source}', '-o', '{binary}',
                                    '-std=c++17', '-fdiagnostic-colors=always' },
@@ -138,7 +138,6 @@ Here's an example configuration with lazy.nvim: >lua
             },
             snippets = {},
             debug = false,
-            scrapers = { 'atcoder', 'codeforces', 'cses' },
             run_panel = {
                 ansi = true,
                 diff_mode = 'vim',
@@ -156,23 +155,29 @@ Here's an example configuration with lazy.nvim: >lua
 <
 
 By default, all contests are configured to use C++ with the g++ compiler and ISO standard 
-17. Python is also configured with the system executable python as a non-default option. Consult lua/cp/config.lua for
-more information.
+17. Python is also configured with the system executable python.
 
 For example, to run CodeForces contests with Python, only the following config
 is required:
 
     {
-        contests = {
+        platforms = {
             codeforces = {
-                default_langauge = 'python'
+                default_language = 'python'
             }
         }
     }
 
+Any language is supported, provided the proper configuration. For example, to
+run CSES problems with Rust:
+
+    {
+        
+    }
+
                                                                *cp.Config*
     Fields: ~
-        {contests}      (table<string,ContestConfig>) Contest configurations.
+        {platforms}     (table<string,PlatformContestConfig>) Contest configurations.
         {hooks}         (|cp.Hooks|) Hook functions called at various stages.
         {snippets}      (table[]) LuaSnip snippet definitions.
         {debug}         (boolean, default: false) Show info messages
@@ -189,11 +194,12 @@ is required:
                         Should return full filename with extension.
                         (default: concatenates contest_id and problem_id, lowercased)
 
-                                                         *cp.ContestConfig*
+                                                         *cp.PlatformConfig*
     Fields: ~
         {cpp}               (|LanguageConfig|) C++ language configuration.
         {python}            (|LanguageConfig|) Python language configuration.
-        {default_language}  (string, default: "cpp") Default language for contests.
+        {default_language}  (string, default: "cpp") Default language for
+                            platform contests.
 
                                                           *cp.LanguageConfig*
     Fields: ~
@@ -201,7 +207,6 @@ is required:
                         {source}, {binary} placeholders.
         {test}          (string[]) Test execution command template.
         {debug}         (string[], optional) Debug compile command template.
-        {extension}     (string) File extension (e.g. "cc", "py").
         {executable}    (string, optional) Executable name for interpreted languages.
 
                                                         *cp.RunPanelConfig*

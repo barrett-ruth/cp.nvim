@@ -42,19 +42,13 @@ end
 ---@param contest_id string
 ---@param problem_id string|nil
 function M.setup_contest(platform, contest_id, problem_id)
-  local config = config_module.get_config()
-  if not vim.tbl_contains(config.scrapers, platform) then
-    logger.log(('Scraping disabled for %s.'):format(platform), vim.log.levels.WARN)
-    return
-  end
-
   state.set_contest_id(contest_id)
   cache.load()
 
   local function proceed(contest_data)
     local problems = contest_data.problems
     local pid = problems[(problem_id and contest_data.index_map[problem_id] or 1)].id
-    M.setup_problem(pid, language)
+    M.setup_problem(pid)
 
     local cached_len = #vim.tbl_filter(function(p)
       return not vim.tbl_isempty(cache.get_test_cases(platform, contest_id, p.id))
@@ -96,8 +90,7 @@ function M.setup_contest(platform, contest_id, problem_id)
 end
 
 ---@param problem_id string
----@param language? string
-function M.setup_problem(problem_id, language)
+function M.setup_problem(problem_id)
   local platform = state.get_platform()
   if not platform then
     logger.log('No platform set.', vim.log.levels.ERROR)
@@ -111,10 +104,8 @@ function M.setup_problem(problem_id, language)
   vim.schedule(function()
     vim.cmd.only({ mods = { silent = true } })
 
+    local language = config.platforms[platform].default_language
     local source_file = state.get_source_file(language)
-    if not source_file then
-      return
-    end
     vim.cmd.e(source_file)
     local source_buf = vim.api.nvim_get_current_buf()
 

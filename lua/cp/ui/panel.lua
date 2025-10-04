@@ -90,10 +90,8 @@ function M.toggle_interactive()
   vim.cmd(('mksession! %s'):format(state.saved_interactive_session))
   vim.cmd('silent only')
 
-  local config = config_module.get_config()
-  local contest_config = config.platforms[state.get_platform() or '']
   local execute = require('cp.runner.execute')
-  local compile_result = execute.compile_problem(contest_config, false)
+  local compile_result = execute.compile_problem()
   if not compile_result.success then
     require('cp.runner.run').handle_compilation_failure(compile_result.output)
     return
@@ -120,7 +118,8 @@ function M.toggle_interactive()
   state.set_active_panel('interactive')
 end
 
-function M.toggle_run_panel(is_debug)
+---@param debug? boolean
+function M.toggle_run_panel(debug)
   if state.get_active_panel() == 'run' then
     if current_diff_layout then
       current_diff_layout.cleanup()
@@ -191,7 +190,7 @@ function M.toggle_run_panel(is_debug)
   if config.hooks and config.hooks.before_run then
     config.hooks.before_run(state)
   end
-  if is_debug and config.hooks and config.hooks.before_debug then
+  if debug and config.hooks and config.hooks.before_debug then
     config.hooks.before_debug(state)
   end
 
@@ -199,7 +198,7 @@ function M.toggle_run_panel(is_debug)
   local input_file = state.get_input_file()
   logger.log(('run panel: checking test cases for %s'):format(input_file or 'none'))
 
-  if not run.load_test_cases(state) then
+  if not run.load_test_cases() then
     logger.log('no test cases found', vim.log.levels.WARN)
     return
   end
@@ -284,10 +283,9 @@ function M.toggle_run_panel(is_debug)
   setup_keybindings_for_buffer(test_buffers.tab_buf)
 
   local execute = require('cp.runner.execute')
-  local contest_config = config.platforms[state.get_platform() or '']
-  local compile_result = execute.compile_problem(contest_config, is_debug)
+  local compile_result = execute.compile_problem()
   if compile_result.success then
-    run.run_all_test_cases(contest_config, config)
+    run.run_all_test_cases()
   else
     run.handle_compilation_failure(compile_result.output)
   end

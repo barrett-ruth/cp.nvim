@@ -24,6 +24,12 @@ M.canonical_filetypes = {
   [M.PYTHON] = 'python',
 }
 
+---@type table<string, string>
+M.canonical_filetype_to_extension = {
+  [M.CPP] = 'cc',
+  [M.PYTHON] = 'py',
+}
+
 ---@type table<number, string>
 M.signal_codes = {
   [128] = 'SIGILL',

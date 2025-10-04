@@ -31,8 +31,11 @@
 
 local M = {}
 local cache = require('cp.cache')
+local config = require('cp.config').get_config()
 local constants = require('cp.constants')
+local execute = require('cp.runner.execute')
 local logger = require('cp.log')
+local state = require('cp.state')
 
 ---@type RunPanelState
 local run_panel_state = {
@@ -90,42 +93,35 @@ local function create_sentinal_panel_data(test_cases)
   return out
 end
 
----@param language_config LanguageConfig
----@param substitutions table<string, string>
+---@param cmd string[]
+---@param executable string
 ---@return string[]
-local function build_command(language_config, substitutions)
-  local execute = require('cp.runner.execute')
-  return execute.build_command(language_config.test, language_config.executable, substitutions)
+local function build_command(cmd, executable, substitutions)
+  return execute.build_command(cmd, executable, substitutions)
 end
 
----@param contest_config ContestConfig
----@param cp_config cp.Config
 ---@param test_case RanTestCase
 ---@return { status: "pass"|"fail"|"tle"|"mle", actual: string, actual_highlights: Highlight[], error: string, stderr: string, time_ms: number, code: integer, ok: boolean, signal: string, tled: boolean, mled: boolean, rss_mb: number }
-local function run_single_test_case(contest_config, cp_config, test_case)
-  local state = require('cp.state')
-  local exec = require('cp.runner.execute')
-
+local function run_single_test_case(test_case)
   local source_file = state.get_source_file()
-  local ext = vim.fn.fnamemodify(source_file or '', ':e')
-  local lang_name = constants.filetype_to_language[ext] or contest_config.default_language
-  local language_config = contest_config[lang_name]
 
   local binary_file = state.get_binary_file()
   local substitutions = { source = source_file, binary = binary_file }
 
-  local cmd = build_command(language_config, substitutions)
+  local platform_config = config.platforms[state.get_platform() or '']
+  local language_config = platform_config[platform_config.default_language]
+  local cmd = build_command(language_config.test, language_config.executable, substitutions)
   local stdin_content = (test_case.input or '') .. '\n'
   local timeout_ms = (run_panel_state.constraints and run_panel_state.constraints.timeout_ms) or 0
   local memory_mb = run_panel_state.constraints and run_panel_state.constraints.memory_mb or 0
 
-  local r = exec.run(cmd, stdin_content, timeout_ms, memory_mb)
+  local r = execute.run(cmd, stdin_content, timeout_ms, memory_mb)
 
   local ansi = require('cp.ui.ansi')
   local out = r.stdout or ''
   local highlights = {}
   if out ~= '' then
-    if cp_config.run_panel.ansi then
+    if config.run_panel.ansi then
       local parsed = ansi.parse_ansi_text(out)
       out = table.concat(parsed.lines, '\n')
       highlights = parsed.highlights
@@ -134,7 +130,7 @@ local function run_single_test_case(contest_config, cp_config, test_case)
     end
   end
 
-  local max_lines = cp_config.run_panel.max_output_lines
+  local max_lines = config.run_panel.max_output_lines
   local lines = vim.split(out, '\n')
   if #lines > max_lines then
     local trimmed = {}
@@ -180,9 +176,8 @@ local function run_single_test_case(contest_config, cp_config, test_case)
   }
 end
 
----@param state table
 ---@return boolean
-function M.load_test_cases(state)
+function M.load_test_cases()
   local tcs = cache.get_test_cases(
     state.get_platform() or '',
     state.get_contest_id() or '',
@@ -201,18 +196,16 @@ function M.load_test_cases(state)
   return #tcs > 0
 end
 
----@param contest_config ContestConfig
----@param cp_config cp.Config
 ---@param index number
 ---@return boolean
-function M.run_test_case(contest_config, cp_config, index)
+function M.run_test_case(index)
   local tc = run_panel_state.test_cases[index]
   if not tc then
     return false
   end
 
   tc.status = 'running'
-  local r = run_single_test_case(contest_config, cp_config, tc)
+  local r = run_single_test_case(tc)
 
   tc.status = r.status
   tc.actual = r.actual
@@ -230,13 +223,11 @@ function M.run_test_case(contest_config, cp_config, index)
   return true
 end
 
----@param contest_config ContestConfig
----@param cp_config cp.Config
 ---@return RanTestCase[]
-function M.run_all_test_cases(contest_config, cp_config)
+function M.run_all_test_cases()
   local results = {}
   for i = 1, #run_panel_state.test_cases do
-    M.run_test_case(contest_config, cp_config, i)
+    M.run_test_case(i)
     results[i] = run_panel_state.test_cases[i]
   end
   return results
