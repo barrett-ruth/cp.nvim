@@ -197,9 +197,9 @@ def _extract_samples(html: str) -> list[TestCase]:
         mi = re.search(r"Sample\s*Input\s*(\d+)", title, flags=re.I)
         mo = re.search(r"Sample\s*Output\s*(\d+)", title, flags=re.I)
         if mi:
-            inputs[mi.group(1)] = t
+            inputs[mi.group(1)] = t.strip()
         elif mo:
-            outputs[mo.group(1)] = t
+            outputs[mo.group(1)] = t.strip()
     cases: list[TestCase] = []
     for k in sorted(set(inputs) & set(outputs), key=lambda s: int(s)):
         cases.append(TestCase(input=inputs[k], expected=outputs[k]))

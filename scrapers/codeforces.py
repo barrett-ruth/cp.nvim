@@ -39,7 +39,7 @@ def _text_from_pre(pre: Tag) -> str:
         pre.get_text(separator="\n", strip=False)
         .replace("\r", "")
         .replace("\xa0", " ")
-        .rstrip("\n")
+        .strip()
     )
 
 
@@ -61,6 +61,20 @@ def _extract_limits(block: Tag) -> tuple[int, float]:
     return timeout_ms, memory_mb
 
 
+def _group_lines_by_id(pre: Tag) -> dict[int, list[str]]:
+    groups: dict[int, list[str]] = {}
+    if not isinstance(pre, Tag):
+        return groups
+    for div in pre.find_all("div", class_="test-example-line"):
+        cls = " ".join(div.get("class", []))
+        m = re.search(r"\btest-example-line-(\d+)\b", cls)
+        if not m:
+            continue
+        gid = int(m.group(1))
+        groups.setdefault(gid, []).append(div.get_text("", strip=False))
+    return groups
+
+
 def _extract_title(block: Tag) -> tuple[str, str]:
     t = block.find("div", class_="title")
     if not t:
@@ -77,19 +91,47 @@ def _extract_samples(block: Tag) -> list[TestCase]:
     if not st:
         return []
 
-    inputs = [
-        _text_from_pre(pre)
+    input_pres: list[Tag] = [  # type: ignore[misc]
+        inp.find("pre")  # type: ignore[misc]
         for inp in st.find_all("div", class_="input")  # type: ignore[union-attr]
-        for pre in [inp.find("pre")]
-        if isinstance(pre, Tag)
+        if isinstance(inp, Tag) and inp.find("pre")
     ]
-    outputs = [
-        _text_from_pre(pre)
+    output_pres: list[Tag] = [
+        out.find("pre")  # type: ignore[misc]
         for out in st.find_all("div", class_="output")  # type: ignore[union-attr]
-        for pre in [out.find("pre")]
-        if isinstance(pre, Tag)
+        if isinstance(out, Tag) and out.find("pre")
     ]
+    input_pres = [p for p in input_pres if isinstance(p, Tag)]
+    output_pres = [p for p in output_pres if isinstance(p, Tag)]
 
+    has_grouped = any(
+        p.find("div", class_="test-example-line") for p in input_pres + output_pres
+    )
+    if has_grouped:
+        inputs_by_gid: dict[int, list[str]] = {}
+        outputs_by_gid: dict[int, list[str]] = {}
+        for p in input_pres:
+            g = _group_lines_by_id(p)
+            for k, v in g.items():
+                inputs_by_gid.setdefault(k, []).extend(v)
+        for p in output_pres:
+            g = _group_lines_by_id(p)
+            for k, v in g.items():
+                outputs_by_gid.setdefault(k, []).extend(v)
+        inputs_by_gid.pop(0, None)
+        outputs_by_gid.pop(0, None)
+        keys = sorted(set(inputs_by_gid.keys()) & set(outputs_by_gid.keys()))
+        if keys:
+            return [
+                TestCase(
+                    input="\n".join(inputs_by_gid[k]).strip(),
+                    expected="\n".join(outputs_by_gid[k]).strip(),
+                )
+                for k in keys
+            ]
+
+    inputs = [_text_from_pre(p) for p in input_pres]
+    outputs = [_text_from_pre(p) for p in output_pres]
     n = min(len(inputs), len(outputs))
     return [TestCase(input=inputs[i], expected=outputs[i]) for i in range(n)]
 
