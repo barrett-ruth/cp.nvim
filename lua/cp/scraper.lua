@@ -34,7 +34,8 @@ local function run_scraper(platform, subcommand, args, opts)
     local stderr = uv.new_pipe(false)
     local buf = ''
 
-    local handle = uv.spawn(
+    local handle
+    handle = uv.spawn(
       cmd[1],
       { args = vim.list_slice(cmd, 2), stdio = { nil, stdout, stderr } },
       function(code, signal)
