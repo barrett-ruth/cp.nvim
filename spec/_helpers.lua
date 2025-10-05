@@ -36,4 +36,16 @@ function M.capture_system(map)
   end
 end
 
+function M.tmpdir()
+  local dir = vim.fn.tempname()
+  vim.fn.mkdir(dir, 'p')
+  return dir
+end
+
+function M.exec(cmd)
+  local ok, res = pcall(vim.api.nvim_exec2, cmd, { output = true })
+  assert(ok, res)
+  return res.output
+end
+
 return M
