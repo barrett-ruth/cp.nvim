@@ -326,14 +326,13 @@ function M.toggle_run_panel(run_opts)
     end, { buffer = buf, silent = true })
     vim.keymap.set('n', 't', function()
       local modes = { 'none', 'git', 'vim' }
-      local current_idx = nil
+      local current_idx = 1
       for i, mode in ipairs(modes) do
         if config.ui.run_panel.diff_mode == mode then
           current_idx = i
           break
         end
       end
-      current_idx = current_idx or 1
       config.ui.run_panel.diff_mode = modes[(current_idx % #modes) + 1]
       refresh_run_panel()
     end, { buffer = buf, silent = true })
