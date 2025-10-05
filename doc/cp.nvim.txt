@@ -51,8 +51,6 @@ COMMANDS                                                        *cp-commands*
             :CP run             Toggle run panel for individual test cases.
                                 Shows per-test results with redesigned
                                 layout for efficient comparison.
-                                Use --debug flag to compile with debug flags.
-                                Requires contest setup first.
 
             :CP debug
                                 Same as above but with the debug mode configured
@@ -79,20 +77,6 @@ COMMANDS                                                        *cp-commands*
             :CP cache read
                                 View the cache in a pretty-printed lua buffer.
                                 Exit with q.
-
-Command Flags ~
-                                                                *cp-flags*
-    Flags can be used with setup and action commands:
-
-    --debug                     Use the debug command template.
-                                For compiled languages, this selects
-                                `commands.debug` (a debug *build*) instead of
-                                `commands.build`. For interpreted languages,
-                                this selects `commands.debug` in place of
-                                `commands.run`.
-                                Example: >
-                                    :CP run --debug
-<
 
 Template Variables ~
                                                         *cp-template-vars*
@@ -355,22 +339,18 @@ Example: Setting up and solving AtCoder contest ABC324
 <   Navigate with j/k, run specific tests with <enter>
     Exit test panel with q or :CP run when done
 
-5. If needed, debug with sanitizers: >
-    :CP run --debug
-<
-
-6. Move to next problem: >
+5. Move to next problem: >
     :CP next
 <   This automatically sets up problem B
 
-7. Continue solving problems with :CP next/:CP prev navigation
+6. Continue solving problems with :CP next/:CP prev navigation
 
-8. Switch to another file (e.g. previous contest): >
+7. Switch to another file (e.g. previous contest): >
     :e ~/contests/abc323/a.cpp
     :CP
 <   Automatically restores abc323 contest context
 
-9. Submit solutions on AtCoder website
+8. Submit solutions on AtCoder website
 
 ==============================================================================
 PICKER INTEGRATION                                              *cp-picker*
@@ -392,18 +372,9 @@ PICKER KEYMAPS                                                  *cp-picker-keys*
 ==============================================================================
 RUN PANEL                                                           *cp-run*
 
-The run panel provides individual test case debugging with a streamlined
-layout optimized for modern screens. Shows test status with competitive
-programming terminology and efficient space usage.
-
-Activation ~
-                                                                  *:CP-run*
-:CP run [--debug]               Toggle run panel on/off. When activated,
-                                replaces current layout with test interface.
-                                Automatically compiles and runs all tests.
-                                Use --debug flag to compile with debug symbols
-                                and sanitizers. Toggle again to restore original
-                                layout.
+The run panel provides individual test case debugging. Problem time/memory
+limit constraints are in columns Time/Mem respectively. Used time/memory are
+in columns Runtime/RSS respectively.
 
 Interface ~
 
@@ -437,7 +408,7 @@ Test cases use competitive programming terminology with color highlighting:
     TLE     Time Limit Exceeded (timeout)
     MLE     Memory Limit Exceeded Error (heuristic)
     RTE     Runtime Error (other non-zero exit code)
-    NA      Any other state (undecipherable, error, running)
+    NA      Any other state
 <
 
 ==============================================================================
@@ -446,12 +417,27 @@ ANSI COLORS AND HIGHLIGHTING                                    *cp-ansi*
 cp.nvim provides comprehensive ANSI color support and highlighting for
 compiler output, program stderr, and diff visualization.
 
+If you cannot see color highlighting in your config, it is likely due to an
+erroneous config. Most tools (GCC, Python, Clang, Rustc) color stdout based on
+whether stdout is connected to a terminal. One can usually get aorund this by
+leveraging flags to force colored output. For example, to force colors with GCC,
+alter your config as follows:
+
+    {
+        commands = {
+            build = {
+                'g++',
+                '-fdiagnostics-color=always',
+                ...
+            }
+       }
+    }
+
+
 ==============================================================================
 HIGHLIGHT GROUPS                                            *cp-highlights*
 
 Test Status Groups ~
-
-Test cases use competitive programming terminology with color highlighting:
 
     CpTestAC        Green foreground for AC status
     CpTestWA        Red foreground for WA status
@@ -498,24 +484,19 @@ Example combinations:
 
 Diff Highlighting ~
 
-Diff visualization uses Neovim's built-in highlight groups that automatically
+The git diff backend uses Neovim's built-in highlight groups that automatically
 adapt to your colorscheme:
 
     DiffAdd                 Highlights added text in git diffs
     DiffDelete              Highlights removed text in git diffs
 
-These groups are automatically used by the git diff backend for character-level
-difference visualization with optimal colorscheme integration.
-
 ==============================================================================
 TERMINAL COLOR INTEGRATION                          *cp-terminal-colors*
 
-ANSI colors automatically use your terminal's color palette through Neovim's
-vim.g.terminal_color_* variables. This ensures compiler colors match your
-colorscheme without manual configuration.
+ANSI colors automatically use the terminal's color palette through Neovim's
+vim.g.terminal_color_* variables.
 
-If your colorscheme doesn't set terminal colors, cp.nvim will warn you and
-ANSI colors won't display properly - set them like so: >vim
+If your colorscheme doesn't set terminal colors, set them like so: >vim
     let g:terminal_color_1 = '#ff6b6b'
     ...
 
@@ -546,6 +527,7 @@ prevent them from being overridden: >lua
 
 ==============================================================================
 RUN PANEL KEYMAPS                                           *cp-test-keys*
+
 <c-n>   Navigate to next test case
 <c-p>   Navigate to previous test case
 t       Cycle through diff modes: none → git → vim
@@ -554,27 +536,27 @@ q       Exit run panel and restore layout
 
 Diff Modes ~
 
-Two diff backends are available:
+Three diff backends are available:
 
+    none    Nothing
     vim     Built-in vim diff (default, always available)
     git     Character-level git word-diff (requires git, more precise)
 
 The git backend shows character-level changes with [-removed-] and {+added+}
-markers for precise difference analysis.
+markers.
 
 Execution Details ~
 
 Test cases are executed individually using the same compilation and
 execution pipeline, but with isolated input/output for
-precise failure analysis. All tests are automatically run when the
-panel opens.
+precise failure analysis.
 
 ==============================================================================
 FILE STRUCTURE                                                  *cp-files*
 
 cp.nvim creates the following file structure upon problem setup: >
 
-    {problem_id}.{ext}              " Source file (e.g. a.cc, b.py)
+    {problem_id}.{ext}              " Source file
     build/
       {problem_id}.run              " Compiled binary
     io/

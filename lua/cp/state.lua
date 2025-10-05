@@ -65,6 +65,10 @@ function M.get_base_name()
   end
 end
 
+function M.get_language()
+  return
+end
+
 function M.get_source_file(language)
   local base_name = M.get_base_name()
   if not base_name or not M.get_platform() then
