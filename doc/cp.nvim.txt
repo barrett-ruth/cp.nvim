@@ -452,36 +452,6 @@ cp.nvim preserves ANSI colors from compiler output and program stderr using
 a sophisticated parsing system. Colors are automatically mapped to your
 terminal colorscheme via vim.g.terminal_color_* variables.
 
-Basic formatting groups:
-    CpAnsiBold              Bold text formatting
-    CpAnsiItalic            Italic text formatting
-    CpAnsiBoldItalic        Combined bold and italic formatting
-
-Standard terminal colors (each supports Bold, Italic, BoldItalic variants):
-    CpAnsiRed               Standard red (terminal_color_1)
-    CpAnsiGreen             Standard green (terminal_color_2)
-    CpAnsiYellow            Standard yellow (terminal_color_3)
-    CpAnsiBlue              Standard blue (terminal_color_4)
-    CpAnsiMagenta           Standard magenta (terminal_color_5)
-    CpAnsiCyan              Standard cyan (terminal_color_6)
-    CpAnsiWhite             Standard white (terminal_color_7)
-    CpAnsiBlack             Standard black (terminal_color_0)
-
-Bright color variants:
-    CpAnsiBrightRed         Bright red (terminal_color_9)
-    CpAnsiBrightGreen       Bright green (terminal_color_10)
-    CpAnsiBrightYellow      Bright yellow (terminal_color_11)
-    CpAnsiBrightBlue        Bright blue (terminal_color_12)
-    CpAnsiBrightMagenta     Bright magenta (terminal_color_13)
-    CpAnsiBrightCyan        Bright cyan (terminal_color_14)
-    CpAnsiBrightWhite       Bright white (terminal_color_15)
-    CpAnsiBrightBlack       Bright black (terminal_color_8)
-
-Example combinations:
-    CpAnsiBoldRed           Bold red combination
-    CpAnsiItalicGreen       Italic green combination
-    CpAnsiBoldItalicYellow  Bold italic yellow combination
-
 Diff Highlighting ~
 
 The git diff backend uses Neovim's built-in highlight groups that automatically
