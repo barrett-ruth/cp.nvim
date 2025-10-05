@@ -16,4 +16,3 @@ describe('navigation commands', function()
     pending('jump to C (or any); assert buffer/state')
   end)
 end)
-

@@ -12,4 +12,3 @@ describe('error handling & validation', function()
     pending('platform enabled without default language; expect message')
   end)
 end)
-

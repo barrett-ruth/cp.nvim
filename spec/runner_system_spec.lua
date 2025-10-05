@@ -12,4 +12,3 @@ describe('runner / system integration', function()
     pending('force timeout/exit 1 and assert status mapping')
   end)
 end)
-

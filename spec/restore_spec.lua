@@ -4,4 +4,3 @@ describe('state restoration (:CP with no args)', function()
     pending('open a problem source; call :CP; assert restored state')
   end)
 end)
-

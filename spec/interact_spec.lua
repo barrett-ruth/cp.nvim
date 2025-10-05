@@ -8,4 +8,3 @@ describe('interactive mode (:CP interact)', function()
     pending('provide dummy interactor; assert both processes wired; <c-q> restores layout')
   end)
 end)
-

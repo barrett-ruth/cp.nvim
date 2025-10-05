@@ -8,4 +8,3 @@ describe('cache commands', function()
     pending('clear subset and all; verify files removed and state updated')
   end)
 end)
-

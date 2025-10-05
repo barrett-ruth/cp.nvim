@@ -12,4 +12,3 @@ describe('picker integration (:CP pick)', function()
     pending('ensure no crash; maybe echo guidance')
   end)
 end)
-

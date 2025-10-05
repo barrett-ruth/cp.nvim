@@ -12,4 +12,3 @@ describe('run panel (:CP run / :CP debug)', function()
     pending('assert chosen command tokens differ from normal run/build')
   end)
 end)
-

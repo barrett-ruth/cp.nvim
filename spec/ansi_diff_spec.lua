@@ -8,4 +8,3 @@ describe('ANSI and diff integration', function()
     pending('simulate keypress or call API; assert mode changes and view updates')
   end)
 end)
-
