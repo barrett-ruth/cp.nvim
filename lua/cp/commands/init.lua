@@ -102,7 +102,7 @@ function M.handle_command(opts)
     if cmd.action == 'interact' then
       ui.toggle_interactive()
     elseif cmd.action == 'run' then
-      ui.toggle_run_panel({ debug = false })
+      ui.toggle_run_panel()
     elseif cmd.action == 'debug' then
       ui.toggle_run_panel({ debug = true })
     elseif cmd.action == 'next' then

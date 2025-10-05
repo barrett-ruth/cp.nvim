@@ -115,7 +115,7 @@ function M.toggle_interactive()
   state.set_active_panel('interactive')
 end
 
----@param run_opts RunOpts
+---@param run_opts? RunOpts
 function M.toggle_run_panel(run_opts)
   if state.get_active_panel() == 'run' then
     if current_diff_layout then
@@ -274,7 +274,7 @@ function M.toggle_run_panel(run_opts)
       config.hooks.before_run(state)
     end)
   end
-  if run_opts.debug and config.hooks and config.hooks.before_debug then
+  if run_opts and run_opts.debug and config.hooks and config.hooks.before_debug then
     vim.schedule_wrap(function()
       config.hooks.before_debug(state)
     end)
