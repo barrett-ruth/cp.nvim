@@ -1,4 +1,6 @@
 local M = {}
+
+local constants = require('cp.log')
 local logger = require('cp.log')
 local utils = require('cp.utils')
 
@@ -113,7 +115,10 @@ function M.scrape_contest_metadata(platform, contest_id, callback)
     on_exit = function(result)
       if not result or not result.success then
         logger.log(
-          ("Failed to scrape metadata for %s contest '%s'."):format(platform, contest_id),
+          ("Failed to scrape metadata for %s contest '%s'."):format(
+            constants.PLATFORM_DISPLAY_NAMES[platform],
+            contest_id
+          ),
           vim.log.levels.ERROR
         )
         return
@@ -121,7 +126,10 @@ function M.scrape_contest_metadata(platform, contest_id, callback)
       local data = result.data or {}
       if not data.problems or #data.problems == 0 then
         logger.log(
-          ("No problems returned for %s contest '%s'."):format(platform, contest_id),
+          ("No problems returned for %s contest '%s'."):format(
+            constants.PLATFORM_DISPLAY_NAMES[platform],
+            contest_id
+          ),
           vim.log.levels.ERROR
         )
         return

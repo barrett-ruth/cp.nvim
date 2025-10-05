@@ -43,18 +43,12 @@ function M.handle_cache_command(cmd)
       if vim.tbl_contains(platforms, cmd.platform) then
         cache.clear_platform(cmd.platform)
         logger.log(
-          ('Cache cleared for platform %s'):format(cmd.platform),
+          ("Cache cleared for platform '%s'"):format(constants.PLATFORM_DISPLAY_NAMES[cmd.platform]),
           vim.log.levels.INFO,
           true
         )
       else
-        logger.log(
-          ("Unknown platform: '%s'. Available: %s"):format(
-            cmd.platform,
-            table.concat(platforms, ', ')
-          ),
-          vim.log.levels.ERROR
-        )
+        logger.log(("Unknown platform '%s'."):format(cmd.platform), vim.log.levels.ERROR)
       end
     else
       cache.clear_all()

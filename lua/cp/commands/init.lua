@@ -15,6 +15,7 @@ local actions = constants.ACTIONS
 ---@field contest? string
 ---@field platform? string
 ---@field problem_id? string
+---@field interactor_cmd? string
 
 --- Turn raw args into normalized structure to later dispatch
 ---@param args string[] The raw command-line mode args
@@ -32,7 +33,7 @@ local function parse_command(args)
     if first == 'cache' then
       local subcommand = args[2]
       if not subcommand then
-        return { type = 'error', message = 'cache command requires subcommand: clear' }
+        return { type = 'error', message = 'cache command requires subcommand' }
       end
       if vim.tbl_contains({ 'clear', 'read' }, subcommand) then
         local platform = args[3]
@@ -43,6 +44,13 @@ local function parse_command(args)
         }
       else
         return { type = 'error', message = 'unknown cache subcommand: ' .. subcommand }
+      end
+    elseif first == 'interact' then
+      local inter = args[2]
+      if inter and inter ~= '' then
+        return { type = 'action', action = 'interact', interactor_cmd = inter }
+      else
+        return { type = 'action', action = 'interact' }
       end
     else
       return { type = 'action', action = first }
@@ -99,7 +107,7 @@ function M.handle_command(opts)
     local ui = require('cp.ui.panel')
 
     if cmd.action == 'interact' then
-      ui.toggle_interactive()
+      ui.toggle_interactive(cmd.interactor_cmd)
     elseif cmd.action == 'run' then
       ui.toggle_run_panel()
     elseif cmd.action == 'debug' then
@@ -128,7 +136,11 @@ function M.handle_command(opts)
 
     if not (contest_data and contest_data.index_map and contest_data.index_map[problem_id]) then
       logger.log(
-        ("%s contest '%s' has no problem '%s'."):format(platform, contest_id, problem_id),
+        ("%s contest '%s' has no problem '%s'."):format(
+          constants.PLATFORM_DISPLAY_NAMES[platform],
+          contest_id,
+          problem_id
+        ),
         vim.log.levels.ERROR
       )
       return

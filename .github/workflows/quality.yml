@@ -29,8 +29,9 @@ jobs:
               - '.luarc.json'
               - '*.toml'
             python:
-              - 'scrapers/**'
-              - 'tests/scrapers/**'
+              - 'scripts/**/.py'
+              - 'scrapers/**/*.py'
+              - 'tests/**/*.py'
               - 'pyproject.toml'
               - 'uv.lock'
             markdown:
@@ -103,7 +104,7 @@ jobs:
       - name: Install ruff
         run: uv tool install ruff
       - name: Lint Python files with ruff
-        run: ruff check scrapers/ tests/scrapers/
+        run: ruff check scripts/ scrapers/ tests/scrapers/
 
   python-typecheck:
     name: Python Type Check
@@ -117,7 +118,7 @@ jobs:
       - name: Install dependencies with mypy
         run: uv sync --dev
       - name: Type check Python files with mypy
-        run: uv run mypy scrapers/ tests/scrapers/
+        run: uv run mypy scripts/ scrapers/ tests/scrapers/
 
   markdown-format:
     name: Markdown Format Check

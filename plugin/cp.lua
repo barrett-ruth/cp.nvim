@@ -3,6 +3,8 @@ if vim.g.loaded_cp then
 end
 vim.g.loaded_cp = 1
 
+local utils = require('cp.utils')
+
 vim.api.nvim_create_user_command('CP', function(opts)
   local cp = require('cp')
   cp.handle_command(opts)
@@ -51,6 +53,11 @@ end, {
         return vim.tbl_filter(function(cmd)
           return cmd:find(ArgLead, 1, true) == 1
         end, { 'clear', 'read' })
+      elseif args[2] == 'interact' then
+        local cands = utils.cwd_executables()
+        return vim.tbl_filter(function(cmd)
+          return cmd:find(ArgLead, 1, true) == 1
+        end, cands)
       end
     elseif num_args == 4 then
       if args[2] == 'cache' and args[3] == 'clear' then

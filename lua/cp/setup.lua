@@ -11,10 +11,7 @@ local platforms = constants.PLATFORMS
 
 function M.set_platform(platform)
   if not vim.tbl_contains(platforms, platform) then
-    logger.log(
-      ('unknown platform: %s. supported: %s'):format(platform, table.concat(platforms, ', ')),
-      vim.log.levels.ERROR
-    )
+    logger.log(("Unknown platform '%s'"):format(platform), vim.log.levels.ERROR)
     return false
   end
   state.set_platform(platform)
@@ -57,7 +54,7 @@ function M.setup_contest(platform, contest_id, problem_id, language)
       logger.log(('Fetching test cases...'):format(cached_len, #problems))
       scraper.scrape_all_tests(platform, contest_id, function(ev)
         local cached_tests = {}
-        if vim.tbl_isempty(ev.tests) then
+        if not ev.interactive and vim.tbl_isempty(ev.tests) then
           logger.log(
             ("No tests found for problem '%s'."):format(ev.problem_id),
             vim.log.levels.WARN
