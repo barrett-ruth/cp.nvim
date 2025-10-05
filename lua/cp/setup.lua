@@ -72,7 +72,8 @@ function M.setup_contest(platform, contest_id, problem_id, language)
           ev.problem_id,
           cached_tests,
           ev.timeout_ms or 0,
-          ev.memory_mb or 0
+          ev.memory_mb or 0,
+          ev.interactive
         )
         logger.log('Test cases loaded.')
       end)

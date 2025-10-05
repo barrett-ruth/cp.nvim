@@ -160,9 +160,9 @@ end
 ---@param contest_id string
 ---@param problem_id string
 ---@param test_cases TestCase[]
----@param timeout_ms? number
----@param memory_mb? number
----@param interactive? boolean
+---@param timeout_ms number
+---@param memory_mb number
+---@param interactive boolean
 function M.set_test_cases(
   platform,
   contest_id,
@@ -185,8 +185,9 @@ function M.set_test_cases(
   local index = cache_data[platform][contest_id].index_map[problem_id]
 
   cache_data[platform][contest_id].problems[index].test_cases = test_cases
-  cache_data[platform][contest_id].problems[index].timeout_ms = timeout_ms or 0
-  cache_data[platform][contest_id].problems[index].memory_mb = memory_mb or 0
+  cache_data[platform][contest_id].problems[index].timeout_ms = timeout_ms
+  cache_data[platform][contest_id].problems[index].memory_mb = memory_mb
+  cache_data[platform][contest_id].problems[index].interactive = interactive
 
   M.save()
 end
