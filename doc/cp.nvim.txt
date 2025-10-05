@@ -16,10 +16,7 @@ REQUIREMENTS                                                *cp-requirements*
 
 - Neovim 0.10.0+
 - Unix-like operating system
-
-Optional:
 - uv package manager (https://docs.astral.sh/uv/)
-- LuaSnip for template expansion (https://github.com/L3MON4D3/LuaSnip)
 
 ==============================================================================
 COMMANDS                                                        *cp-commands*
@@ -51,11 +48,15 @@ COMMANDS                                                        *cp-commands*
                                     :CP codeforces 1951
 <
         Action Commands ~
-            :CP run [--debug]   Toggle run panel for individual test case
-                                debugging. Shows per-test results with redesigned
+            :CP run             Toggle run panel for individual test cases.
+                                Shows per-test results with redesigned
                                 layout for efficient comparison.
                                 Use --debug flag to compile with debug flags.
                                 Requires contest setup first.
+
+            :CP debug
+                                Same as above but with the debug mode configured
+                                settings.
 
             :CP pick            Launch configured picker for interactive
                                 platform/contest selection.
@@ -136,7 +137,6 @@ Here's an example configuration with lazy.nvim: >lua
             },
           },
         },
-
         platforms = {
           cses = {
             enabled_languages = { 'cpp', 'python' },
@@ -154,10 +154,7 @@ Here's an example configuration with lazy.nvim: >lua
             default_language  = 'cpp',
           },
         },
-
-        snippets = {},
         debug = false,
-
         ui = {
           run_panel = {
             ansi = true,
@@ -223,7 +220,6 @@ run CSES problems with Rust using the single schema:
         {platforms}     (table<string,|CpPlatform|>) Per-platform enablement,
                         default language, and optional overrides.
         {hooks}         (|cp.Hooks|) Hook functions called at various stages.
-        {snippets}      (table[]) LuaSnip snippet definitions.
         {debug}         (boolean, default: false) Show info messages.
         {scrapers}      (string[]) Supported platform ids.
         {filename}      (function, optional)
@@ -586,27 +582,6 @@ cp.nvim creates the following file structure upon problem setup: >
       {problem_id}.n.cpout          " nth program output
       {problem_id}.expected         " Expected output
 <
-==============================================================================
-SNIPPETS                                                        *cp-snippets*
-
-cp.nvim integrates with LuaSnip for automatic template expansion. Built-in
-snippets include basic C++ and Python templates for each contest type.
-
-Snippet trigger names must match the following format exactly: >
-
-    cp.nvim/{platform}.{language}
-<
-Where {platform} is the contest platform (atcoder, codeforces, cses) and
-{language} is the programming language (cpp, python).
-
-Examples: >
-    cp.nvim/atcoder.cpp
-    cp.nvim/codeforces.python
-    cp.nvim/cses.cpp
-<
-
-Custom snippets can be added via the `snippets` configuration field.
-
 ==============================================================================
 HEALTH CHECK                                                    *cp-health*
 

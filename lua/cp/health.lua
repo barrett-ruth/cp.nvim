@@ -2,7 +2,7 @@ local M = {}
 
 local utils = require('cp.utils')
 
-local function check_required()
+local function check()
   vim.health.start('cp.nvim [required] ~')
 
   if vim.fn.has('nvim-0.10.0') == 1 then
@@ -49,24 +49,12 @@ local function check_required()
   end
 end
 
-local function check_optional()
-  vim.health.start('cp.nvim [optional] ~')
-
-  local has_luasnip = pcall(require, 'luasnip')
-  if has_luasnip then
-    vim.health.ok('LuaSnip integration available')
-  else
-    vim.health.info('LuaSnip not available (templates optional)')
-  end
-end
-
 function M.check()
   local version = require('cp.version')
   vim.health.start('cp.nvim health check ~')
   vim.health.info('Version: ' .. version.version)
 
-  check_required()
-  check_optional()
+  check()
 end
 
 return M

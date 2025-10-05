@@ -1,5 +1,8 @@
 local M = {}
 
+---@class RunOpts
+---@field debug? boolean
+
 local config_module = require('cp.config')
 local layouts = require('cp.ui.layouts')
 local logger = require('cp.log')
@@ -51,19 +54,13 @@ function M.toggle_interactive()
   local platform, contest_id = state.get_platform(), state.get_contest_id()
 
   if not platform then
-    logger.log(
-      'No platform configured. Use :CP <platform> <contest> [--{lang=<lang>,debug}] first.',
-      vim.log.levels.ERROR
-    )
+    logger.log('No platform configured.', vim.log.levels.ERROR)
     return
   end
 
   if not contest_id then
     logger.log(
-      ('No contest %s configured for platform %s. Use :CP <platform> <contest> [--{lang=<lang>,debug}] to set up first.'):format(
-        contest_id,
-        platform
-      ),
+      ('No contest %s configured for platform %s.'):format(contest_id, platform),
       vim.log.levels.ERROR
     )
     return
@@ -118,8 +115,8 @@ function M.toggle_interactive()
   state.set_active_panel('interactive')
 end
 
----@param debug? boolean
-function M.toggle_run_panel(debug)
+---@param run_opts? RunOpts
+function M.toggle_run_panel(run_opts)
   if state.get_active_panel() == 'run' then
     if current_diff_layout then
       current_diff_layout.cleanup()
@@ -152,10 +149,7 @@ function M.toggle_run_panel(debug)
 
   if not contest_id then
     logger.log(
-      ('No contest %s configured for platform %s. Use :CP <platform> <contest> [--{lang=<lang>,debug}] to set up first.'):format(
-        contest_id,
-        platform
-      ),
+      ('No contest %s configured for platform %s.'):format(contest_id, platform),
       vim.log.levels.ERROR
     )
     return
@@ -187,13 +181,6 @@ function M.toggle_run_panel(debug)
   )
 
   local config = config_module.get_config()
-  if config.hooks and config.hooks.before_run then
-    config.hooks.before_run(state)
-  end
-  if debug and config.hooks and config.hooks.before_debug then
-    config.hooks.before_debug(state)
-  end
-
   local run = require('cp.runner.run')
   local input_file = state.get_input_file()
   logger.log(('run panel: checking test cases for %s'):format(input_file or 'none'))
@@ -210,7 +197,7 @@ function M.toggle_run_panel(debug)
   local tab_buf = utils.create_buffer_with_options()
   local main_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(main_win, tab_buf)
-  vim.api.nvim_set_option_value('filetype', 'cptest', { buf = tab_buf })
+  vim.api.nvim_set_option_value('filetype', 'cp', { buf = tab_buf })
 
   local test_windows = { tab_win = main_win }
   local test_buffers = { tab_buf = tab_buf }
@@ -281,6 +268,13 @@ function M.toggle_run_panel(debug)
   end
 
   setup_keybindings_for_buffer(test_buffers.tab_buf)
+
+  if config.hooks and config.hooks.before_run then
+    config.hooks.before_run(state)
+  end
+  if run_opts.debug and config.hooks and config.hooks.before_debug then
+    config.hooks.before_debug(state)
+  end
 
   local execute = require('cp.runner.execute')
   local compile_result = execute.compile_problem()

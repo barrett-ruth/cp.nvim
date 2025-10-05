@@ -10,7 +10,6 @@ local actions = constants.ACTIONS
 ---@class ParsedCommand
 ---@field type string
 ---@field error string?
----@field debug? boolean
 ---@field action? string
 ---@field message? string
 ---@field contest? string
@@ -26,22 +25,16 @@ local function parse_command(args)
     }
   end
 
-  local debug = vim.tbl_contains(args, '--debug')
-
-  local filtered_args = vim.tbl_filter(function(arg)
-    return arg ~= '--debug'
-  end, args)
-
-  local first = filtered_args[1]
+  local first = args[1]
 
   if vim.tbl_contains(actions, first) then
     if first == 'cache' then
-      local subcommand = filtered_args[2]
+      local subcommand = args[2]
       if not subcommand then
         return { type = 'error', message = 'cache command requires subcommand: clear' }
       end
       if vim.tbl_contains({ 'clear', 'read' }, subcommand) then
-        local platform = filtered_args[3]
+        local platform = args[3]
         return {
           type = 'cache',
           subcommand = subcommand,
@@ -51,26 +44,26 @@ local function parse_command(args)
         return { type = 'error', message = 'unknown cache subcommand: ' .. subcommand }
       end
     else
-      return { type = 'action', action = first, debug = debug }
+      return { type = 'action', action = first }
     end
   end
 
   if vim.tbl_contains(platforms, first) then
-    if #filtered_args == 1 then
+    if #args == 1 then
       return {
         type = 'error',
         message = 'Too few arguments - specify a contest.',
       }
-    elseif #filtered_args == 2 then
+    elseif #args == 2 then
       return {
         type = 'contest_setup',
         platform = first,
-        contest = filtered_args[2],
+        contest = args[2],
       }
-    elseif #filtered_args == 3 then
+    elseif #args == 3 then
       return {
         type = 'error',
-        message = 'Setup contests with :CP <platform> <contest_id>',
+        message = 'Setup contests with :CP <platform> <contest_id>.',
       }
     else
       return { type = 'error', message = 'Too many arguments' }
@@ -109,7 +102,9 @@ function M.handle_command(opts)
     if cmd.action == 'interact' then
       ui.toggle_interactive()
     elseif cmd.action == 'run' then
-      ui.toggle_run_panel(cmd.debug)
+      ui.toggle_run_panel()
+    elseif cmd.action == 'debug' then
+      ui.toggle_run_panel({ debug = true })
     elseif cmd.action == 'next' then
       setup.navigate_problem(1)
     elseif cmd.action == 'prev' then
