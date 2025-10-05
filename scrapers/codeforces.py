@@ -244,20 +244,7 @@ class CodeforcesScraper(BaseScraper):
 
         for b in blocks:
             pid = b["letter"].lower()
-            tests: list[TestCase] = b["tests"]
-
-            if not tests:
-                print(
-                    json.dumps(
-                        {
-                            "problem_id": pid,
-                            "error": f"{self.platform_name}: no tests found",
-                        }
-                    ),
-                    flush=True,
-                )
-                continue
-
+            tests: list[TestCase] = b.get("tests", [])
             print(
                 json.dumps(
                     {
@@ -265,9 +252,9 @@ class CodeforcesScraper(BaseScraper):
                         "tests": [
                             {"input": t.input, "expected": t.expected} for t in tests
                         ],
-                        "timeout_ms": b["timeout_ms"],
-                        "memory_mb": b["memory_mb"],
-                        "interactive": bool(b["interactive"]),
+                        "timeout_ms": b.get("timeout_ms", 0),
+                        "memory_mb": b.get("memory_mb", 0),
+                        "interactive": bool(b.get("interactive")),
                     }
                 ),
                 flush=True,
