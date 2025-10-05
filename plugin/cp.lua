@@ -23,22 +23,26 @@ end, {
     if num_args == 2 then
       local candidates = {}
       local state = require('cp.state')
-      local platform, contest_id = state.get_platform(), state.get_contest_id()
+      local platform = state.get_platform()
+      local contest_id = state.get_contest_id()
+
       if platform and contest_id then
         vim.list_extend(candidates, actions)
         local cache = require('cp.cache')
         cache.load()
         local contest_data = cache.get_contest_data(platform, contest_id)
-        if contest_data and contest_data.problems then
-          for _, problem in ipairs(contest_data.problems) do
-            table.insert(candidates, problem.id)
-          end
+
+        if contest_data and contest_data.index_map then
+          local ids = vim.tbl_keys(contest_data.index_map)
+          table.sort(ids)
+          vim.list_extend(candidates, ids)
         end
       else
         vim.list_extend(candidates, platforms)
         table.insert(candidates, 'cache')
         table.insert(candidates, 'pick')
       end
+
       return vim.tbl_filter(function(cmd)
         return cmd:find(ArgLead, 1, true) == 1
       end, candidates)

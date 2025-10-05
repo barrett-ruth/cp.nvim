@@ -64,9 +64,11 @@ COMMANDS                                                        *cp-commands*
                                 Stops at last problem (no wrapping).
 
 
-        Navigation Commands ~
             :CP prev            Navigate to previous problem in current contest.
                                 Stops at first problem (no wrapping).
+
+            :CP {problem_id}    Jump to problem {problem_id} in a contest.
+                                Requires that a contest has already been set up.
 
         Cache Commands ~
             :CP cache clear [contest]
