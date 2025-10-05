@@ -50,6 +50,13 @@ COMMANDS                                                        *cp-commands*
             :CP pick            Launch configured picker for interactive
                                 platform/contest selection.
 
+            :CP interact [script]
+                                Open an interactive terminal for the current problem.
+                                If an executable interactor is provided, runs the compiled
+                                binary against the source file (see
+                                *cp-interact*). Otherwise, runs the source
+                                file. Only valid for interactive problems.
+
         Navigation Commands ~
             :CP next            Navigate to next problem in current contest.
                                 Stops at last problem (no wrapping).
@@ -78,7 +85,7 @@ COMMANDS                                                        *cp-commands*
 
 Template Variables ~
                                                         *cp-template-vars*
-    Command templates support variable substitution using `{variable}` syntax:
+    Command templates support variable substitution using {variable} syntax:
 
     • {source}      Source file path (e.g. "abc324a.cpp")
     • {binary}      Output binary path (e.g. "build/abc324a.run")
@@ -155,8 +162,8 @@ Here's an example configuration with lazy.nvim:
 <
 
 By default, C++ (g++ with ISO C++17) and Python are preconfigured under
-`languages`. Platforms select which languages are enabled and which one is
-the default; per-platform overrides can tweak `extension` or `commands`.
+'languages'. Platforms select which languages are enabled and which one is
+the default; per-platform overrides can tweak 'extension' or 'commands'.
 
 For example, to run CodeForces contests with Python by default:
 >lua
@@ -397,6 +404,37 @@ Test cases use competitive programming terminology with color highlighting:
     RTE     Runtime Error (other non-zero exit code)
     NA      Any other state
 <
+
+==============================================================================
+INTERACTIVE MODE                                                  *cp-interact*
+
+Run interactive problems manually or with an orchestrator. :CP interact is
+available for interactive problems. Test cases are ignored in interactive mode
+(no run panel, no diffs).
+
+When using :CP interact {interactor}, the interactor must be executable
+(chmod +x). Completion after :CP interact suggests executables in CWD.
+
+1) Terminal-only ~
+    :CP interact
+        Execute the current program and open an interactive terminal running
+        it directly. Use this for manual testing.
+
+2) Orchestrated ~
+    :CP interact {interactor}
+        Execute the current program and open an interactive terminal that runs
+        your interactor script against it.
+        {interactor} is an executable file relative to the CWD.
+        Example:
+            :CP interact my-executable-interactor.py
+
+
+Keymaps ~
+    <c-q>   Close the terminal and restore the previous layout.
+
+==============================================================================
+COMMANDS (update)                                             *cp-commands*
+
 
 ==============================================================================
 ANSI COLORS AND HIGHLIGHTING                                    *cp-ansi*
