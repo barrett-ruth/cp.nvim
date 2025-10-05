@@ -10,9 +10,45 @@
 
 local M = {}
 
-local logger = require('cp.log')
-
 local dyn_hl_cache = {}
+
+local ANSI_TERMINAL_COLOR_CODE_FALLBACK = {
+  [0] = '#000000',
+  [1] = '#800000',
+  [2] = '#008000',
+  [3] = '#808000',
+  [4] = '#000080',
+  [5] = '#800080',
+  [6] = '#008080',
+  [7] = '#c0c0c0',
+  [8] = '#808080',
+  [9] = '#ff0000',
+  [10] = '#00ff00',
+  [11] = '#ffff00',
+  [12] = '#0000ff',
+  [13] = '#ff00ff',
+  [14] = '#00ffff',
+  [15] = '#ffffff',
+}
+
+local function xterm_to_hex(n)
+  if n >= 0 and n <= 15 then
+    local key = 'terminal_color_' .. n
+    return vim.g[key] or ANSI_TERMINAL_COLOR_CODE_FALLBACK[n]
+  end
+  if n >= 16 and n <= 231 then
+    local c = n - 16
+    local r = math.floor(c / 36) % 6
+    local g = math.floor(c / 6) % 6
+    local b = c % 6
+    local function level(x)
+      return x == 0 and 0 or 55 + 40 * x
+    end
+    return ('#%02x%02x%02x'):format(level(r), level(g), level(b))
+  end
+  local l = 8 + 10 * (n - 232)
+  return ('#%02x%02x%02x'):format(l, l, l)
+end
 
 ---@param s string|table
 ---@return string
@@ -40,24 +76,7 @@ local function ensure_hl_for(fg, bold, italic)
     suffix = fg.name
   elseif fg and fg.kind == 'xterm' then
     suffix = ('X%03d'):format(fg.idx)
-    local function xterm_to_hex(n)
-      if n >= 0 and n <= 15 then
-        local key = 'terminal_color_' .. n
-        return vim.g[key]
-      end
-      if n >= 16 and n <= 231 then
-        local c = n - 16
-        local r = math.floor(c / 36) % 6
-        local g = math.floor(c / 6) % 6
-        local b = c % 6
-        local function level(x)
-          return x == 0 and 0 or 55 + 40 * x
-        end
-        return ('#%02x%02x%02x'):format(level(r), level(g), level(b))
-      end
-      local l = 8 + 10 * (n - 232)
-      return ('#%02x%02x%02x'):format(l, l, l)
-    end
+
     opts.fg = xterm_to_hex(fg.idx) or 'NONE'
   elseif fg and fg.kind == 'rgb' then
     suffix = ('Rgb%02x%02x%02x'):format(fg.r, fg.g, fg.b)
@@ -256,30 +275,23 @@ end
 ---@return nil
 function M.setup_highlight_groups()
   local color_map = {
-    Black = vim.g.terminal_color_0,
-    Red = vim.g.terminal_color_1,
-    Green = vim.g.terminal_color_2,
-    Yellow = vim.g.terminal_color_3,
-    Blue = vim.g.terminal_color_4,
-    Magenta = vim.g.terminal_color_5,
-    Cyan = vim.g.terminal_color_6,
-    White = vim.g.terminal_color_7,
-    BrightBlack = vim.g.terminal_color_8,
-    BrightRed = vim.g.terminal_color_9,
-    BrightGreen = vim.g.terminal_color_10,
-    BrightYellow = vim.g.terminal_color_11,
-    BrightBlue = vim.g.terminal_color_12,
-    BrightMagenta = vim.g.terminal_color_13,
-    BrightCyan = vim.g.terminal_color_14,
-    BrightWhite = vim.g.terminal_color_15,
+    Black = vim.g.terminal_color_0 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[0],
+    Red = vim.g.terminal_color_1 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[1],
+    Green = vim.g.terminal_color_2 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[2],
+    Yellow = vim.g.terminal_color_3 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[3],
+    Blue = vim.g.terminal_color_4 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[4],
+    Magenta = vim.g.terminal_color_5 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[5],
+    Cyan = vim.g.terminal_color_6 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[6],
+    White = vim.g.terminal_color_7 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[7],
+    BrightBlack = vim.g.terminal_color_8 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[8],
+    BrightRed = vim.g.terminal_color_9 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[9],
+    BrightGreen = vim.g.terminal_color_10 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[10],
+    BrightYellow = vim.g.terminal_color_11 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[11],
+    BrightBlue = vim.g.terminal_color_12 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[12],
+    BrightMagenta = vim.g.terminal_color_13 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[13],
+    BrightCyan = vim.g.terminal_color_14 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[14],
+    BrightWhite = vim.g.terminal_color_15 or ANSI_TERMINAL_COLOR_CODE_FALLBACK[15],
   }
-
-  if vim.tbl_count(color_map) < 16 then
-    logger.log(
-      'ansi terminal colors (vim.g.terminal_color_*) not configured. ANSI colors will not display properly.',
-      vim.log.levels.WARN
-    )
-  end
 
   local combinations = {
     { bold = false, italic = false },

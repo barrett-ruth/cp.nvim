@@ -10,15 +10,13 @@ https://github.com/user-attachments/assets/50b19481-8e6d-47b4-bebc-15e16c61a9c9
 
 - **Multi-platform support**: AtCoder, Codeforces, CSES with consistent interface
 - **Automatic problem setup**: Scrape test cases and metadata in seconds
-- **Rich test output**: ANSI color support for compiler errors and program output
-- **Language agnostic**: Works with any compiled language
-- **Template integration**: Contest-specific snippets via LuaSnip
-- **Diff viewer**: Compare expected vs actual output with precision
+- **Rich test output**: 256 color ANSI support for compiler errors and program output
+- **Language agnostic**: Works with any language
+- **Diff viewer**: Compare expected vs actual output with 3 diff modes
 
 ## Optional Dependencies
 
 - [uv](https://docs.astral.sh/uv/) for problem scraping
-- [LuaSnip](https://github.com/L3MON4D3/LuaSnip) for templates
 - GNU [time](https://www.gnu.org/software/time/) and [timeout](https://www.gnu.org/software/coreutils/manual/html_node/timeout-invocation.html)
 
 ## Quick Start

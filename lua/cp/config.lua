@@ -42,7 +42,6 @@
 ---@field languages table<string, CpLanguage>
 ---@field platforms table<string, CpPlatform>
 ---@field hooks Hooks
----@field snippets any[]
 ---@field debug boolean
 ---@field scrapers string[]
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
@@ -100,7 +99,6 @@ M.defaults = {
       default_language = 'cpp',
     },
   },
-  snippets = {},
   hooks = { before_run = nil, before_debug = nil, setup_code = nil },
   debug = false,
   scrapers = constants.PLATFORMS,

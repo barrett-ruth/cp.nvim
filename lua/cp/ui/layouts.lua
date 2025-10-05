@@ -16,8 +16,8 @@ local function create_none_diff_layout(parent_win, expected_content, actual_cont
   local expected_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(expected_win, expected_buf)
 
-  vim.api.nvim_set_option_value('filetype', 'cptest', { buf = expected_buf })
-  vim.api.nvim_set_option_value('filetype', 'cptest', { buf = actual_buf })
+  vim.api.nvim_set_option_value('filetype', 'cp', { buf = expected_buf })
+  vim.api.nvim_set_option_value('filetype', 'cp', { buf = actual_buf })
   vim.api.nvim_set_option_value('winbar', 'Expected', { win = expected_win })
   vim.api.nvim_set_option_value('winbar', 'Actual', { win = actual_win })
 
@@ -53,8 +53,8 @@ local function create_vim_diff_layout(parent_win, expected_content, actual_conte
   local expected_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(expected_win, expected_buf)
 
-  vim.api.nvim_set_option_value('filetype', 'cptest', { buf = expected_buf })
-  vim.api.nvim_set_option_value('filetype', 'cptest', { buf = actual_buf })
+  vim.api.nvim_set_option_value('filetype', 'cp', { buf = expected_buf })
+  vim.api.nvim_set_option_value('filetype', 'cp', { buf = actual_buf })
   vim.api.nvim_set_option_value('winbar', 'Expected', { win = expected_win })
   vim.api.nvim_set_option_value('winbar', 'Actual', { win = actual_win })
 
@@ -96,7 +96,7 @@ local function create_git_diff_layout(parent_win, expected_content, actual_conte
   local diff_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(diff_win, diff_buf)
 
-  vim.api.nvim_set_option_value('filetype', 'cptest', { buf = diff_buf })
+  vim.api.nvim_set_option_value('filetype', 'cp', { buf = diff_buf })
   vim.api.nvim_set_option_value('winbar', 'Expected vs Actual', { win = diff_win })
 
   local diff_backend = require('cp.ui.diff')
@@ -132,7 +132,7 @@ local function create_single_layout(parent_win, content)
   vim.cmd('resize ' .. math.floor(vim.o.lines * 0.35))
   local win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(win, buf)
-  vim.api.nvim_set_option_value('filetype', 'cptest', { buf = buf })
+  vim.api.nvim_set_option_value('filetype', 'cp', { buf = buf })
 
   return {
     buffers = { buf },

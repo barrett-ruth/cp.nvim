@@ -107,26 +107,6 @@ function M.setup_problem(problem_id, language)
     local lang = language or config.platforms[platform].default_language
     local source_file = state.get_source_file(lang)
     vim.cmd.e(source_file)
-    local source_buf = vim.api.nvim_get_current_buf()
-
-    if vim.api.nvim_buf_get_lines(source_buf, 0, -1, true)[1] == '' then
-      local ok, luasnip = pcall(require, 'luasnip')
-      if ok then
-        local trigger = ('cp.nvim/%s.%s'):format(platform, lang)
-        vim.api.nvim_buf_set_lines(0, 0, -1, false, { trigger })
-        vim.api.nvim_win_set_cursor(0, { 1, #trigger })
-        vim.cmd.startinsert({ bang = true })
-        vim.schedule(function()
-          if luasnip.expandable() then
-            luasnip.expand()
-          else
-            vim.api.nvim_buf_set_lines(0, 0, 1, false, { '' })
-            vim.api.nvim_win_set_cursor(0, { 1, 0 })
-          end
-          vim.cmd.stopinsert()
-        end)
-      end
-    end
 
     if config.hooks and config.hooks.setup_code then
       config.hooks.setup_code(state)
