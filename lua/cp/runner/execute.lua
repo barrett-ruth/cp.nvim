@@ -7,44 +7,40 @@
 ---@field peak_mb number
 ---@field signal string|nil
 
+---@class SubstitutableCommand
+---@field source string substituted via '{source}'
+---@field binary string substitued via '{binary}'
+
 local M = {}
 local constants = require('cp.constants')
 local logger = require('cp.log')
 local utils = require('cp.utils')
 
-local filetype_to_language = constants.filetype_to_language
-
-local function get_language_from_file(source_file, contest_config)
-  local ext = vim.fn.fnamemodify(source_file, ':e')
-  return filetype_to_language[ext] or contest_config.default_language
-end
-
+---@param cmd_template string[]
+---@param substitutions SubstitutableCommand
+---@return string[] string normalized with substitutions
 local function substitute_template(cmd_template, substitutions)
   local out = {}
-  for _, a in ipairs(cmd_template) do
-    local s = a
-    for k, v in pairs(substitutions) do
-      s = s:gsub('{' .. k .. '}', v)
+  for _, arg in ipairs(cmd_template) do
+    if arg == '{source}' and substitutions.source then
+      table.insert(out, substitutions.source)
+    elseif arg == '{binary}' and substitutions.binary then
+      table.insert(out, substitutions.binary)
+    else
+      table.insert(out, arg)
     end
-    table.insert(out, s)
   end
   return out
 end
 
-function M.build_command(cmd_template, executable, substitutions)
-  local cmd = substitute_template(cmd_template, substitutions)
-  if executable then
-    table.insert(cmd, 1, executable)
-  end
-  return cmd
+function M.build_command(cmd_template, substitutions)
+  return substitute_template(cmd_template, substitutions)
 end
 
-function M.compile(language_config, substitutions)
-  if not language_config.compile then
-    return { code = 0, stdout = '' }
-  end
-
-  local cmd = substitute_template(language_config.compile, substitutions)
+---@param compile_cmd string[]
+---@param substitutions SubstitutableCommand
+function M.compile(compile_cmd, substitutions)
+  local cmd = substitute_template(compile_cmd, substitutions)
   local sh = table.concat(cmd, ' ') .. ' 2>&1'
 
   local t0 = vim.uv.hrtime()
@@ -164,32 +160,20 @@ function M.run(cmd, stdin, timeout_ms, memory_mb)
   }
 end
 
-function M.compile_problem(contest_config, is_debug)
+function M.compile_problem()
   local state = require('cp.state')
-  local source_file = state.get_source_file()
-  if not source_file then
-    return { success = false, output = 'No source file found.' }
-  end
+  local config = require('cp.config').get_config()
+  local platform = state.get_platform() or ''
+  local language = config.platforms[platform].default_language
+  local eff = config.runtime.effective[platform][language]
+  local compile_config = eff and eff.commands and eff.commands.build
 
-  local language = get_language_from_file(source_file, contest_config)
-  local language_config = contest_config[language]
-  if not language_config then
-    return { success = false, output = ('No configuration for language %s.'):format(language) }
-  end
-
-  local binary_file = state.get_binary_file()
-  local substitutions = { source = source_file, binary = binary_file }
-
-  local chosen = (is_debug and language_config.debug) and language_config.debug
-    or language_config.compile
-  if not chosen then
+  if not compile_config then
     return { success = true, output = nil }
   end
 
-  local saved = language_config.compile
-  language_config.compile = chosen
-  local r = M.compile(language_config, substitutions)
-  language_config.compile = saved
+  local substitutions = { source = state.get_source_file(), binary = state.get_binary_file() }
+  local r = M.compile(compile_config, substitutions)
 
   if r.code ~= 0 then
     return { success = false, output = r.stdout or 'unknown error' }

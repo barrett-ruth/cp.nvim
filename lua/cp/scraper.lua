@@ -5,7 +5,6 @@ local utils = require('cp.utils')
 local function syshandle(result)
   if result.code ~= 0 then
     local msg = 'Scraper failed: ' .. (result.stderr or 'Unknown error')
-    logger.log(msg, vim.log.levels.ERROR)
     return { success = false, error = msg }
   end
 
@@ -114,7 +113,7 @@ function M.scrape_contest_metadata(platform, contest_id, callback)
     on_exit = function(result)
       if not result or not result.success then
         logger.log(
-          ('Failed to scrape metadata for %s contest %s.'):format(platform, contest_id),
+          ("Failed to scrape metadata for %s contest '%s'."):format(platform, contest_id),
           vim.log.levels.ERROR
         )
         return
@@ -122,7 +121,7 @@ function M.scrape_contest_metadata(platform, contest_id, callback)
       local data = result.data or {}
       if not data.problems or #data.problems == 0 then
         logger.log(
-          ('No problems returned for %s contest %s.'):format(platform, contest_id),
+          ("No problems returned for %s contest '%s'."):format(platform, contest_id),
           vim.log.levels.ERROR
         )
         return
@@ -161,7 +160,7 @@ function M.scrape_all_tests(platform, contest_id, callback)
       end
       if ev.error and ev.problem_id then
         logger.log(
-          ('Failed to load tests for %s/%s: %s'):format(contest_id, ev.problem_id, ev.error),
+          ("Failed to load tests for problem '%s': %s"):format(contest_id, ev.problem_id, ev.error),
           vim.log.levels.WARN
         )
         return

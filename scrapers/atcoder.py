@@ -265,14 +265,26 @@ class AtcoderScraper(BaseScraper):
 
     async def scrape_contest_metadata(self, contest_id: str) -> MetadataResult:
         async def impl(cid: str) -> MetadataResult:
-            rows = await asyncio.to_thread(_scrape_tasks_sync, cid)
+            try:
+                rows = await asyncio.to_thread(_scrape_tasks_sync, cid)
+            except requests.HTTPError as e:
+                if e.response is not None and e.response.status_code == 404:
+                    return self._create_metadata_error(
+                        f"No problems found for contest {cid}", cid
+                    )
+                raise
+
             problems = _to_problem_summaries(rows)
             if not problems:
                 return self._create_metadata_error(
                     f"No problems found for contest {cid}", cid
                 )
+
             return MetadataResult(
-                success=True, error="", contest_id=cid, problems=problems
+                success=True,
+                error="",
+                contest_id=cid,
+                problems=problems,
             )
 
         return await self._safe_execute("metadata", impl, contest_id)

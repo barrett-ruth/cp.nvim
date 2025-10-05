@@ -28,7 +28,7 @@ cp.nvim follows a simple principle: **solve locally, submit remotely**.
 ### Basic Usage
 
 1. **Find a contest or problem** on the judge website
-2. **Set up locally** with `:CP <platform> <contest> [--{lang=<lang>,debug}]`
+2. **Set up locally** with `:CP <platform> <contest>`
 
    ```
    :CP codeforces 1848

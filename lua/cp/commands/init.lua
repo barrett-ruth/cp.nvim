@@ -10,7 +10,6 @@ local actions = constants.ACTIONS
 ---@class ParsedCommand
 ---@field type string
 ---@field error string?
----@field language? string
 ---@field debug? boolean
 ---@field action? string
 ---@field message? string
@@ -27,26 +26,10 @@ local function parse_command(args)
     }
   end
 
-  local language = nil
-  local debug = false
-
-  for i, arg in ipairs(args) do
-    local lang_match = arg:match('^--lang=(.+)$')
-    if lang_match then
-      language = lang_match
-    elseif arg == '--lang' then
-      if i + 1 <= #args then
-        language = args[i + 1]
-      else
-        return { type = 'error', message = '--lang requires a value' }
-      end
-    elseif arg == '--debug' then
-      debug = true
-    end
-  end
+  local debug = vim.tbl_contains(args, '--debug')
 
   local filtered_args = vim.tbl_filter(function(arg)
-    return not (arg:match('^--lang') or arg == language or arg == '--debug')
+    return arg ~= '--debug'
   end, args)
 
   local first = filtered_args[1]
@@ -68,7 +51,7 @@ local function parse_command(args)
         return { type = 'error', message = 'unknown cache subcommand: ' .. subcommand }
       end
     else
-      return { type = 'action', action = first, language = language, debug = debug }
+      return { type = 'action', action = first, debug = debug }
     end
   end
 
@@ -83,12 +66,11 @@ local function parse_command(args)
         type = 'contest_setup',
         platform = first,
         contest = filtered_args[2],
-        language = language,
       }
     elseif #filtered_args == 3 then
       return {
         type = 'error',
-        message = 'Setup contests with :CP <platform> <contest_id> [--{lang=<lang>,debug}]',
+        message = 'Setup contests with :CP <platform> <contest_id>',
       }
     else
       return { type = 'error', message = 'Too many arguments' }
@@ -129,9 +111,9 @@ function M.handle_command(opts)
     elseif cmd.action == 'run' then
       ui.toggle_run_panel(cmd.debug)
     elseif cmd.action == 'next' then
-      setup.navigate_problem(1, cmd.language)
+      setup.navigate_problem(1)
     elseif cmd.action == 'prev' then
-      setup.navigate_problem(-1, cmd.language)
+      setup.navigate_problem(-1)
     elseif cmd.action == 'pick' then
       local picker = require('cp.commands.picker')
       picker.handle_pick_action()
@@ -142,7 +124,7 @@ function M.handle_command(opts)
   elseif cmd.type == 'contest_setup' then
     local setup = require('cp.setup')
     if setup.set_platform(cmd.platform) then
-      setup.setup_contest(cmd.platform, cmd.contest, cmd.language, nil)
+      setup.setup_contest(cmd.platform, cmd.contest, nil)
     end
     return
   end

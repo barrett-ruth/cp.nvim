@@ -4,14 +4,15 @@ local config_module = require('cp.config')
 local logger = require('cp.log')
 local snippets = require('cp.snippets')
 
-if not vim.fn.has('nvim-0.10.0') then
+if vim.fn.has('nvim-0.10.0') == 0 then
   logger.log('Requires nvim-0.10.0+', vim.log.levels.ERROR)
   return {}
 end
 
 local user_config = {}
-local config = config_module.setup(user_config)
+local config = nil
 local snippets_initialized = false
+local initialized = false
 
 --- Root handler for all `:CP ...` commands
 ---@return nil
@@ -30,10 +31,11 @@ function M.setup(opts)
     snippets.setup(config)
     snippets_initialized = true
   end
+  initialized = true
 end
 
 function M.is_initialized()
-  return true
+  return initialized
 end
 
 return M
