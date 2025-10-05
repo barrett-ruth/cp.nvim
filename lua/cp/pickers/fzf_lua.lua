@@ -4,13 +4,13 @@ local M = {}
 
 local function contest_picker(platform, refresh)
   local constants = require('cp.constants')
-  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform] or platform
+  local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform]
   local fzf = require('fzf-lua')
   local contests = picker_utils.get_platform_contests(platform, refresh)
 
   if vim.tbl_isempty(contests) then
     vim.notify(
-      ('No contests found for platform: %s'):format(platform_display_name),
+      ("No contests found for platform '%s'"):format(platform_display_name),
       vim.log.levels.WARN
     )
     return

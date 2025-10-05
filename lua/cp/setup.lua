@@ -11,10 +11,7 @@ local platforms = constants.PLATFORMS
 
 function M.set_platform(platform)
   if not vim.tbl_contains(platforms, platform) then
-    logger.log(
-      ('unknown platform: %s. supported: %s'):format(platform, table.concat(platforms, ', ')),
-      vim.log.levels.ERROR
-    )
+    logger.log(("Unknown platform '%s'"):format(platform), vim.log.levels.ERROR)
     return false
   end
   state.set_platform(platform)

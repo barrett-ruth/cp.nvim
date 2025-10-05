@@ -4,6 +4,7 @@ local M = {}
 ---@field debug? boolean
 
 local config_module = require('cp.config')
+local constants = require('cp.constants')
 local layouts = require('cp.ui.layouts')
 local logger = require('cp.log')
 local state = require('cp.state')
@@ -58,7 +59,10 @@ function M.toggle_interactive(interactor_cmd)
   end
   if not contest_id then
     logger.log(
-      ('No contest %s configured for platform %s.'):format(contest_id, platform),
+      ("No contest %s configured for platform '%s'."):format(
+        contest_id,
+        constants.PLATFORM_DISPLAY_NAMES[platform]
+      ),
       vim.log.levels.ERROR
     )
     return
@@ -107,7 +111,10 @@ function M.toggle_interactive(interactor_cmd)
       interactor = './' .. interactor
     end
     if vim.fn.executable(interactor) ~= 1 then
-      logger.log(('Interactor not executable: %s'):format(interactor_cmd), vim.log.levels.ERROR)
+      logger.log(
+        ("Interactor '%s' is not executable."):format(interactor_cmd),
+        vim.log.levels.ERROR
+      )
       if state.saved_interactive_session then
         vim.cmd(('source %s'):format(state.saved_interactive_session))
         vim.fn.delete(state.saved_interactive_session)
@@ -231,15 +238,12 @@ function M.toggle_run_panel(run_opts)
 
   if not contest_id then
     logger.log(
-      ('No contest %s configured for platform %s.'):format(contest_id, platform),
+      ("No contest '%s' configured for platform '%s'."):format(
+        contest_id,
+        constants.PLATFORM_DISPLAY_NAMES[platform]
+      ),
       vim.log.levels.ERROR
     )
-    return
-  end
-
-  local problem_id = state.get_problem_id()
-  if not problem_id then
-    logger.log(('No problem found for the current problem id %s'):format(problem_id))
     return
   end
 

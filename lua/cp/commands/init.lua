@@ -136,7 +136,11 @@ function M.handle_command(opts)
 
     if not (contest_data and contest_data.index_map and contest_data.index_map[problem_id]) then
       logger.log(
-        ("%s contest '%s' has no problem '%s'."):format(platform, contest_id, problem_id),
+        ("%s contest '%s' has no problem '%s'."):format(
+          constants.PLATFORM_DISPLAY_NAMES[platform],
+          contest_id,
+          problem_id
+        ),
         vim.log.levels.ERROR
       )
       return
