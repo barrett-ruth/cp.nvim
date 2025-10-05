@@ -28,7 +28,8 @@ function M.disable()
   end
 end
 
-function M.toggle_interactive()
+---@param interactor_cmd? string
+function M.toggle_interactive(interactor_cmd)
   if state.get_active_panel() == 'interactive' then
     if state.interactive_buf and vim.api.nvim_buf_is_valid(state.interactive_buf) then
       local job = vim.b[state.interactive_buf].terminal_job_id
@@ -42,7 +43,6 @@ function M.toggle_interactive()
       state.saved_interactive_session = nil
     end
     state.set_active_panel(nil)
-    logger.log('Interactive panel closed.')
     return
   end
 
@@ -52,12 +52,10 @@ function M.toggle_interactive()
   end
 
   local platform, contest_id = state.get_platform(), state.get_contest_id()
-
   if not platform then
     logger.log('No platform configured.', vim.log.levels.ERROR)
     return
   end
-
   if not contest_id then
     logger.log(
       ('No contest %s configured for platform %s.'):format(contest_id, platform),
@@ -68,7 +66,7 @@ function M.toggle_interactive()
 
   local problem_id = state.get_problem_id()
   if not problem_id then
-    logger.log(('No problem found for the current problem id %s'):format(problem_id))
+    logger.log('No problem is active.', vim.log.levels.ERROR)
     return
   end
 
@@ -76,10 +74,12 @@ function M.toggle_interactive()
   cache.load()
   local contest_data = cache.get_contest_data(platform, contest_id)
   if
-    contest_data
-    and not contest_data.problems[contest_data.index_map[state.get_problem_id()]].interactive
+    not contest_data
+    or not contest_data.index_map
+    or not contest_data.problems[contest_data.index_map[problem_id]]
+    or not contest_data.problems[contest_data.index_map[problem_id]].interactive
   then
-    logger.log('This is NOT an interactive problem. Use :CP run instead.', vim.log.levels.WARN)
+    logger.log('This problem is not interactive. Use :CP run.', vim.log.levels.ERROR)
     return
   end
 
@@ -95,18 +95,46 @@ function M.toggle_interactive()
   end
 
   local binary = state.get_binary_file()
-  if not binary then
-    logger.log('no binary path found', vim.log.levels.ERROR)
+  if not binary or binary == '' then
+    logger.log('No binary produced.', vim.log.levels.ERROR)
     return
   end
 
-  vim.cmd('terminal')
+  local cmdline
+  if interactor_cmd and interactor_cmd ~= '' then
+    local interactor = interactor_cmd
+    if not interactor:find('/') then
+      interactor = './' .. interactor
+    end
+    if vim.fn.executable(interactor) ~= 1 then
+      logger.log(('Interactor not executable: %s'):format(interactor_cmd), vim.log.levels.ERROR)
+      if state.saved_interactive_session then
+        vim.cmd(('source %s'):format(state.saved_interactive_session))
+        vim.fn.delete(state.saved_interactive_session)
+        state.saved_interactive_session = nil
+      end
+      return
+    end
+    local orchestrator = vim.fn.fnamemodify(utils.get_plugin_path() .. '/scripts/interact.py', ':p')
+    cmdline = table.concat({
+      'uv',
+      'run',
+      vim.fn.shellescape(orchestrator),
+      vim.fn.shellescape(interactor),
+      vim.fn.shellescape(binary),
+    }, ' ')
+  else
+    cmdline = vim.fn.shellescape(binary)
+  end
+
+  vim.cmd('terminal ' .. cmdline)
   local term_buf = vim.api.nvim_get_current_buf()
   local term_win = vim.api.nvim_get_current_win()
 
-  vim.fn.chansend(vim.b.terminal_job_id, binary .. '\n')
-
   vim.keymap.set('t', '<c-q>', function()
+    M.toggle_interactive()
+  end, { buffer = term_buf, silent = true })
+  vim.keymap.set('n', '<c-q>', function()
     M.toggle_interactive()
   end, { buffer = term_buf, silent = true })
 

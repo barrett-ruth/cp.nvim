@@ -228,4 +228,27 @@ function M.timeout_capability()
   return { ok = path ~= nil, path = path, reason = reason }
 end
 
+function M.cwd_executables()
+  local uv = vim.uv or vim.loop
+  local req = uv.fs_scandir('.')
+  if not req then
+    return {}
+  end
+  local out = {}
+  while true do
+    local name, t = uv.fs_scandir_next(req)
+    if not name then
+      break
+    end
+    if t == 'file' or t == 'link' then
+      local path = './' .. name
+      if vim.fn.executable(path) == 1 then
+        out[#out + 1] = name
+      end
+    end
+  end
+  table.sort(out)
+  return out
+end
+
 return M
