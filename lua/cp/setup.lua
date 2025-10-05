@@ -57,6 +57,12 @@ function M.setup_contest(platform, contest_id, problem_id, language)
       logger.log(('Fetching test cases...'):format(cached_len, #problems))
       scraper.scrape_all_tests(platform, contest_id, function(ev)
         local cached_tests = {}
+        if vim.tbl_isempty(ev.tests) then
+          logger.log(
+            ("No tests found for problem '%s'."):format(ev.problem_id),
+            vim.log.levels.WARN
+          )
+        end
         for i, t in ipairs(ev.tests) do
           cached_tests[i] = { index = i, input = t.input, expected = t.expected }
         end
@@ -66,7 +72,8 @@ function M.setup_contest(platform, contest_id, problem_id, language)
           ev.problem_id,
           cached_tests,
           ev.timeout_ms or 0,
-          ev.memory_mb or 0
+          ev.memory_mb or 0,
+          ev.interactive
         )
         logger.log('Test cases loaded.')
       end)

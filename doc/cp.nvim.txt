@@ -24,12 +24,6 @@ COMMANDS                                                        *cp-commands*
 :CP                                                                     *:CP*
         cp.nvim uses a single :CP command with intelligent argument parsing:
 
-        State Restoration ~
-            :CP                 Restore state from current file.
-                                Automatically detects platform, contest, problem,
-                                and language from cached state. Use this after
-                                switching files to restore your CP environment.
-
         Setup Commands ~
             :CP {platform} {contest_id}
                                 Full setup: set platform and load contest metadata.
@@ -39,13 +33,10 @@ COMMANDS                                                        *cp-commands*
 <
             :CP {platform} {contest_id}
                                 Contest setup: set platform, load contest metadata,
-                                and scrape ALL problems in the contest. This creates
-                                source files for every problem and caches all test
-                                cases for efficient bulk setup. Opens the first
-                                problem after completion.
+                                and scrape all test cases in the contest. 
+                                Opens the first problem after completion.
                                 Example: >
                                     :CP atcoder abc324
-                                    :CP codeforces 1951
 <
         Action Commands ~
             :CP run             Toggle run panel for individual test cases.
@@ -70,10 +61,15 @@ COMMANDS                                                        *cp-commands*
             :CP {problem_id}    Jump to problem {problem_id} in a contest.
                                 Requires that a contest has already been set up.
 
+        State Restoration ~
+            :CP                 Restore state from current file.
+                                Automatically detects platform, contest, problem,
+                                and language from cached state. Use this after
+                                switching files to restore your CP environment.
+
         Cache Commands ~
             :CP cache clear [contest]
-                                Clear the cache data (contest list, problem
-                                data, file states) for the specified contest,
+                                Clear the cache data for the specified contest,
                                 or all contests if none specified.
 
             :CP cache read
@@ -86,8 +82,6 @@ Template Variables ~
 
     • {source}      Source file path (e.g. "abc324a.cpp")
     • {binary}      Output binary path (e.g. "build/abc324a.run")
-    • {contest}     Contest identifier (e.g. "abc324", "1933")
-    • {problem}     Problem identifier (e.g. "a", "b")
 
     Example template: >
         build = { 'g++', '{source}', '-o', '{binary}', '-std=c++17' }
@@ -98,8 +92,8 @@ Template Variables ~
 ==============================================================================
 CONFIGURATION                                                   *cp-config*
 
-Here's an example configuration with lazy.nvim: >lua
-
+Here's an example configuration with lazy.nvim:
+>lua
     {
       'barrett-ruth/cp.nvim',
       cmd = 'CP',
@@ -109,7 +103,8 @@ Here's an example configuration with lazy.nvim: >lua
           cpp = {
             extension = 'cc',
             commands = {
-              build = { 'g++', '-std=c++17', '{source}', '-o', '{binary}' },
+              build = { 'g++', '-std=c++17', '{source}', '-o', '{binary}',
+              '-fdiagnostics-color=always' },
               run   = { '{binary}' },
               debug = { 'g++', '-std=c++17', '-fsanitize=address,undefined',
                         '{source}', '-o', '{binary}' },
@@ -164,21 +159,17 @@ By default, C++ (g++ with ISO C++17) and Python are preconfigured under
 the default; per-platform overrides can tweak `extension` or `commands`.
 
 For example, to run CodeForces contests with Python by default:
-
 >lua
     {
       platforms = {
         codeforces = {
-          enabled_languages = { 'cpp', 'python' },
           default_language  = 'python',
         },
       },
     }
 <
-
 Any language is supported provided the proper configuration. For example, to
 run CSES problems with Rust using the single schema:
-
 >lua
     {
       languages = {
@@ -198,7 +189,6 @@ run CSES problems with Rust using the single schema:
       },
     }
 <
-
                                                                *cp.Config*
     Fields: ~
         {languages}     (table<string,|CpLanguage|>) Global language registry.
@@ -213,9 +203,6 @@ run CSES problems with Rust using the single schema:
                         Should return full filename with extension.
                         (default: concatenates contest_id and problem_id, lowercased)
         {ui}            (|CpUI|) UI settings: run panel, diff backend, picker.
-
-                                                         *cp.PlatformConfig*
-    Replaced by |CpPlatform|. Platforms no longer inline language tables.
 
                                                              *CpPlatform*
     Fields: ~
@@ -279,7 +266,8 @@ run CSES problems with Rust using the single schema:
     Hook functions receive the cp.nvim state object (cp.State). See the state
     module documentation (lua/cp/state.lua) for available methods and fields.
 
-    Example usage in hook: >lua
+    Example usage in hook:
+>lua
         hooks = {
           setup_code = function(state)
             print("Setting up " .. state.get_base_name())
@@ -300,24 +288,25 @@ PLATFORM-SPECIFIC USAGE                                        *cp-platforms*
 
 AtCoder ~
                                                              *cp-atcoder*
-URL format: https://atcoder.jp/contests/abc123/tasks/abc123_a
+URL format:
+https://atcoder.jp/contests/{contest_id}/tasks/{contest_id}_{problem_id}
 
 Usage examples: >
-    :CP atcoder abc324          " Contest setup: load contest metadata only
+    :CP atcoder abc324            " Set up atcoder.jp/contests/abc324
 
 Codeforces ~
                                                           *cp-codeforces*
-URL format: https://codeforces.com/contest/1234/problem/A
+URL format: https://codeforces.com/contest/{contest_id}/problem/{problem_id}
 
 Usage examples: >
-    :CP codeforces 1934         " Contest setup: load contest metadata only
+    :CP codeforces 1934           " Set up codeforces.com/contest/1934
 
 CSES ~
                                                                 *cp-cses*
-URL format: https://cses.fi/problemset/task/1068
+URL format: https://cses.fi/problemset/task/{problem_id}
 
 Usage examples: >
-    :CP cses dynamic_programming           " Set up ALL problems from DP category
+    :CP cses dynamic_programming  " Set up all problems in dp category
 
 ==============================================================================
 
@@ -329,30 +318,26 @@ Example: Setting up and solving AtCoder contest ABC324
 
 2. Set up entire contest (bulk setup): >
     :CP atcoder abc324
-<   This scrapes ALL problems (A, B, C, D, ...), creates source files
-   for each, downloads all test cases, and opens problem A.
+<   This scrapes all test case data, downloads all test cases,
+    and opens the first problem.
 
-3. Alternative: Set up single problem: >
-    :CP atcoder abc324 a
-<   This creates only a.cc and scrapes its test cases
-
-4. Code your solution, then test: >
+3. Code your solution, then test: >
     :CP run
 <   Navigate with j/k, run specific tests with <enter>
     Exit test panel with q or :CP run when done
 
-5. Move to next problem: >
+4. Move to next problem: >
     :CP next
-<   This automatically sets up problem B
+<   This automatically sets up the next problem (likely problem B)
 
-6. Continue solving problems with :CP next/:CP prev navigation
+5. Continue solving problems with :CP next/:CP prev navigation
 
-7. Switch to another file (e.g. previous contest): >
+6. Switch to another file (e.g. previous contest): >
     :e ~/contests/abc323/a.cpp
     :CP
 <   Automatically restores abc323 contest context
 
-8. Submit solutions on AtCoder website
+7. Submit solutions on AtCoder website
 
 ==============================================================================
 PICKER INTEGRATION                                              *cp-picker*
@@ -368,7 +353,7 @@ platform and contest selection using telescope.nvim or fzf-lua.
         Requires corresponding plugin (telescope.nvim or fzf-lua) to be installed.
 
 PICKER KEYMAPS                                                  *cp-picker-keys*
-<c-r>   Force refresh contest list, bypassing cache.
+<c-r>   Force refresh/update contest list.
         Useful when contest lists are outdated or incomplete
 
 ==============================================================================
@@ -424,7 +409,7 @@ erroneous config. Most tools (GCC, Python, Clang, Rustc) color stdout based on
 whether stdout is connected to a terminal. One can usually get aorund this by
 leveraging flags to force colored output. For example, to force colors with GCC,
 alter your config as follows:
-
+>lua
     {
         commands = {
             build = {
@@ -434,7 +419,7 @@ alter your config as follows:
             }
        }
     }
-
+<
 
 ==============================================================================
 HIGHLIGHT GROUPS                                            *cp-highlights*
@@ -468,34 +453,16 @@ TERMINAL COLOR INTEGRATION                          *cp-terminal-colors*
 ANSI colors automatically use the terminal's color palette through Neovim's
 vim.g.terminal_color_* variables.
 
-If your colorscheme doesn't set terminal colors, set them like so: >vim
-    let g:terminal_color_1 = '#ff6b6b'
-    ...
-
 ==============================================================================
 HIGHLIGHT CUSTOMIZATION                             *cp-highlight-custom*
 
-You can customize any highlight group by linking to existing groups or
-defining custom colors: >lua
-
-    -- Customize the color of "TLE" text in run panel:
-    vim.api.nvim_set_hl(0, 'CpTestTLE', { fg = '#ffa500', bold = true })
-
-    -- ... or the ANSI colors used to display stderr
-    vim.api.nvim_set_hl(0, 'CpAnsiRed', {
-        fg = vim.g.terminal_color_1 or '#ef4444'
-    })
-<
-
-Place customizations in your init.lua or after the colorscheme loads to
-prevent them from being overridden: >lua
+Customize highlight groups after your colorscheme loads:
+>lua
     vim.api.nvim_create_autocmd('ColorScheme', {
         callback = function()
-            -- Your cp.nvim highlight customizations here
             vim.api.nvim_set_hl(0, 'CpTestAC', { link = 'String' })
         end
     })
-<
 
 ==============================================================================
 RUN PANEL KEYMAPS                                           *cp-test-keys*

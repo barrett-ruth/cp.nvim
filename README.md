@@ -43,6 +43,7 @@ cp.nvim follows a simple principle: **solve locally, submit remotely**.
    ```
    :CP next
    :CP prev
+   :CP e1
    ```
 
 5. **Submit** on the original website

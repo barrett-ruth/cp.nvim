@@ -169,7 +169,7 @@ def _parse_tasks_list(html: str) -> list[dict[str, str]]:
     return rows
 
 
-def _extract_limits(html: str) -> tuple[int, float]:
+def _extract_problem_info(html: str) -> tuple[int, float, bool]:
     soup = BeautifulSoup(html, "html.parser")
     txt = soup.get_text(" ", strip=True)
     timeout_ms = 0
@@ -180,7 +180,10 @@ def _extract_limits(html: str) -> tuple[int, float]:
     ms = re.search(r"Memory\s*Limit:\s*(\d+)\s*MiB", txt, flags=re.I)
     if ms:
         memory_mb = float(ms.group(1)) * MIB_TO_MB
-    return timeout_ms, memory_mb
+    div = soup.select_one("#problem-statement")
+    txt = div.get_text(" ", strip=True) if div else soup.get_text(" ", strip=True)
+    interactive = "This is an interactive" in txt
+    return timeout_ms, memory_mb, interactive
 
 
 def _extract_samples(html: str) -> list[TestCase]:
@@ -213,13 +216,16 @@ def _scrape_tasks_sync(contest_id: str) -> list[dict[str, str]]:
 
 def _scrape_problem_page_sync(contest_id: str, slug: str) -> dict[str, Any]:
     html = _fetch(f"{BASE_URL}/contests/{contest_id}/tasks/{slug}")
-    tests = _extract_samples(html)
-    timeout_ms, memory_mb = _extract_limits(html)
+    try:
+        tests = _extract_samples(html)
+    except Exception:
+        tests = []
+    timeout_ms, memory_mb, interactive = _extract_problem_info(html)
     return {
         "tests": tests,
         "timeout_ms": timeout_ms,
         "memory_mb": memory_mb,
-        "interactive": False,
+        "interactive": interactive,
     }
 
 
@@ -309,47 +315,22 @@ class AtcoderScraper(BaseScraper):
             slug = row.get("slug") or ""
             if not letter or not slug:
                 return
-            try:
-                data = await asyncio.to_thread(
-                    _scrape_problem_page_sync, category_id, slug
-                )
-                tests: list[TestCase] = data["tests"]
-                if not tests:
-                    print(
-                        json.dumps(
-                            {
-                                "problem_id": letter,
-                                "error": f"{self.platform_name}: no tests found",
-                            }
-                        ),
-                        flush=True,
-                    )
-                    return
-                print(
-                    json.dumps(
-                        {
-                            "problem_id": letter,
-                            "tests": [
-                                {"input": t.input, "expected": t.expected}
-                                for t in tests
-                            ],
-                            "timeout_ms": data["timeout_ms"],
-                            "memory_mb": data["memory_mb"],
-                            "interactive": bool(data["interactive"]),
-                        }
-                    ),
-                    flush=True,
-                )
-            except Exception as e:
-                print(
-                    json.dumps(
-                        {
-                            "problem_id": letter,
-                            "error": f"{self.platform_name}: {str(e)}",
-                        }
-                    ),
-                    flush=True,
-                )
+            data = await asyncio.to_thread(_scrape_problem_page_sync, category_id, slug)
+            tests: list[TestCase] = data.get("tests", [])
+            print(
+                json.dumps(
+                    {
+                        "problem_id": letter,
+                        "tests": [
+                            {"input": t.input, "expected": t.expected} for t in tests
+                        ],
+                        "timeout_ms": data.get("timeout_ms", 0),
+                        "memory_mb": data.get("memory_mb", 0),
+                        "interactive": bool(data.get("interactive")),
+                    }
+                ),
+                flush=True,
+            )
 
         await asyncio.gather(*(emit(r) for r in rows))
 

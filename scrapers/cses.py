@@ -221,23 +221,18 @@ class CSESScraper(BaseScraper):
                         html = await fetch_text(client, task_path(pid))
                         tests = parse_tests(html)
                         timeout_ms, memory_mb = parse_limits(html)
-                        if not tests:
-                            return {
-                                "problem_id": pid,
-                                "error": f"{self.platform_name}: no tests found",
-                            }
-                        return {
-                            "problem_id": pid,
-                            "tests": [
-                                {"input": t.input, "expected": t.expected}
-                                for t in tests
-                            ],
-                            "timeout_ms": timeout_ms,
-                            "memory_mb": memory_mb,
-                            "interactive": False,
-                        }
-                    except Exception as e:
-                        return {"problem_id": pid, "error": str(e)}
+                    except Exception:
+                        tests = []
+                        timeout_ms, memory_mb = 0, 0
+                    return {
+                        "problem_id": pid,
+                        "tests": [
+                            {"input": t.input, "expected": t.expected} for t in tests
+                        ],
+                        "timeout_ms": timeout_ms,
+                        "memory_mb": memory_mb,
+                        "interactive": False,
+                    }
 
             tasks = [run_one(p.id) for p in problems]
             for coro in asyncio.as_completed(tasks):
