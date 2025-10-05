@@ -131,11 +131,65 @@ function M.toggle_interactive(interactor_cmd)
   local term_buf = vim.api.nvim_get_current_buf()
   local term_win = vim.api.nvim_get_current_win()
 
+  local cleaned = false
+  local function cleanup()
+    if cleaned then
+      return
+    end
+    cleaned = true
+    if term_buf and vim.api.nvim_buf_is_valid(term_buf) then
+      local job = vim.b[term_buf] and vim.b[term_buf].terminal_job_id or nil
+      if job then
+        pcall(vim.fn.jobstop, job)
+      end
+    end
+    if state.saved_interactive_session then
+      vim.cmd(('source %s'):format(state.saved_interactive_session))
+      vim.fn.delete(state.saved_interactive_session)
+      state.saved_interactive_session = nil
+    end
+    state.interactive_buf = nil
+    state.interactive_win = nil
+    state.set_active_panel(nil)
+  end
+
+  vim.api.nvim_create_autocmd({ 'BufWipeout', 'BufUnload' }, {
+    buffer = term_buf,
+    callback = function()
+      cleanup()
+    end,
+  })
+
+  vim.api.nvim_create_autocmd('WinClosed', {
+    callback = function()
+      if cleaned then
+        return
+      end
+      local any = false
+      for _, win in ipairs(vim.api.nvim_list_wins()) do
+        if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == term_buf then
+          any = true
+          break
+        end
+      end
+      if not any then
+        cleanup()
+      end
+    end,
+  })
+
+  vim.api.nvim_create_autocmd('TermClose', {
+    buffer = term_buf,
+    callback = function()
+      vim.b[term_buf].cp_interactive_exited = true
+    end,
+  })
+
   vim.keymap.set('t', '<c-q>', function()
-    M.toggle_interactive()
+    cleanup()
   end, { buffer = term_buf, silent = true })
   vim.keymap.set('n', '<c-q>', function()
-    M.toggle_interactive()
+    cleanup()
   end, { buffer = term_buf, silent = true })
 
   state.interactive_buf = term_buf
