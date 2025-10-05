@@ -433,10 +433,6 @@ Keymaps ~
     <c-q>   Close the terminal and restore the previous layout.
 
 ==============================================================================
-COMMANDS (update)                                             *cp-commands*
-
-
-==============================================================================
 ANSI COLORS AND HIGHLIGHTING                                    *cp-ansi*
 
 cp.nvim provides comprehensive ANSI color support and highlighting for
