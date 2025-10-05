@@ -258,14 +258,6 @@ function M.toggle_run_panel(run_opts)
     return
   end
 
-  logger.log(
-    ('Run panel: platform=%s, contest=%s, problem=%s'):format(
-      tostring(platform),
-      tostring(contest_id),
-      tostring(problem_id)
-    )
-  )
-
   local config = config_module.get_config()
   local run = require('cp.runner.run')
   local input_file = state.get_input_file()
