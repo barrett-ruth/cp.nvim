@@ -1,6 +1,6 @@
 local M = {}
 
-local constants = require('cp.log')
+local constants = require('cp.constants')
 local logger = require('cp.log')
 local utils = require('cp.utils')
 
@@ -168,7 +168,11 @@ function M.scrape_all_tests(platform, contest_id, callback)
       end
       if ev.error and ev.problem_id then
         logger.log(
-          ("Failed to load tests for problem '%s': %s"):format(contest_id, ev.problem_id, ev.error),
+          ("Failed to load tests for problem '%s' in contest '%s': %s"):format(
+            ev.problem_id,
+            contest_id,
+            ev.error
+          ),
           vim.log.levels.WARN
         )
         return
