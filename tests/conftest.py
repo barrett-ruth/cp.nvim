@@ -132,7 +132,7 @@ def run_scraper_offline(fixture_text):
     def _run(scraper_name: str, mode: str, *args: str):
         mod_path = ROOT / "scrapers" / f"{scraper_name}.py"
         ns = _load_scraper_module(mod_path, scraper_name)
-        main_async = ns.get("main_async")
+        main_async = getattr(ns, "main_async", None)
         assert callable(main_async), f"main_async not found in {scraper_name}"
 
         argv = [str(mod_path), mode, *args]
