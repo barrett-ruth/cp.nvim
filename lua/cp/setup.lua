@@ -26,10 +26,11 @@ local state = require('cp.state')
 ---@return boolean
 local function is_metadata_ready(cd)
   return cd
-    and type(cd.problems) == 'table'
-    and #cd.problems > 0
-    and type(cd.index_map) == 'table'
-    and next(cd.index_map) ~= nil
+      and type(cd.problems) == 'table'
+      and #cd.problems > 0
+      and type(cd.index_map) == 'table'
+      and next(cd.index_map) ~= nil
+    or false
 end
 
 ---@param platform string
