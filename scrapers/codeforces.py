@@ -5,7 +5,6 @@ import json
 import logging
 import re
 import sys
-from dataclasses import asdict
 from typing import Any
 
 import requests
@@ -63,8 +62,6 @@ def _extract_limits(block: Tag) -> tuple[int, float]:
 
 def _group_lines_by_id(pre: Tag) -> dict[int, list[str]]:
     groups: dict[int, list[str]] = {}
-    if not isinstance(pre, Tag):
-        return groups
     for div in pre.find_all("div", class_="test-example-line"):
         cls = " ".join(div.get("class", []))
         m = re.search(r"\btest-example-line-(\d+)\b", cls)
@@ -182,12 +179,8 @@ def _scrape_contest_problems_sync(contest_id: str) -> list[ProblemSummary]:
     html = _fetch_problems_html(contest_id)
     blocks = _parse_all_blocks(html)
     problems: list[ProblemSummary] = []
-    seen: set[str] = set()
     for b in blocks:
         pid = b["letter"].upper()
-        if pid in seen:
-            continue
-        seen.add(pid)
         problems.append(ProblemSummary(id=pid.lower(), name=b["name"]))
     return problems
 
@@ -267,7 +260,7 @@ async def main_async() -> int:
             success=False,
             error="Usage: codeforces.py metadata <contest_id> OR codeforces.py tests <contest_id> OR codeforces.py contests",
         )
-        print(json.dumps(asdict(result)))
+        print(result.model_dump_json())
         return 1
 
     mode: str = sys.argv[1]
@@ -278,11 +271,11 @@ async def main_async() -> int:
             result = MetadataResult(
                 success=False, error="Usage: codeforces.py metadata <contest_id>"
             )
-            print(json.dumps(asdict(result)))
+            print(result.model_dump_json())
             return 1
         contest_id = sys.argv[2]
         result = await scraper.scrape_contest_metadata(contest_id)
-        print(json.dumps(asdict(result)))
+        print(result.model_dump_json())
         return 0 if result.success else 1
 
     if mode == "tests":
@@ -296,7 +289,7 @@ async def main_async() -> int:
                 timeout_ms=0,
                 memory_mb=0,
             )
-            print(json.dumps(asdict(tests_result)))
+            print(tests_result.model_dump_json())
             return 1
         contest_id = sys.argv[2]
         await scraper.stream_tests_for_category_async(contest_id)
@@ -307,17 +300,17 @@ async def main_async() -> int:
             contest_result = ContestListResult(
                 success=False, error="Usage: codeforces.py contests"
             )
-            print(json.dumps(asdict(contest_result)))
+            print(contest_result.model_dump_json())
             return 1
         contest_result = await scraper.scrape_contest_list()
-        print(json.dumps(asdict(contest_result)))
+        print(contest_result.model_dump_json())
         return 0 if contest_result.success else 1
 
     result = MetadataResult(
         success=False,
         error="Unknown mode. Use 'metadata <contest_id>', 'tests <contest_id>', or 'contests'",
     )
-    print(json.dumps(asdict(result)))
+    print(result.model_dump_json())
     return 1
 
 

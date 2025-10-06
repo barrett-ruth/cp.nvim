@@ -5,7 +5,6 @@ import json
 import re
 import sys
 import time
-from dataclasses import asdict
 from typing import Any
 
 import backoff
@@ -231,16 +230,12 @@ def _scrape_problem_page_sync(contest_id: str, slug: str) -> dict[str, Any]:
 
 def _to_problem_summaries(rows: list[dict[str, str]]) -> list[ProblemSummary]:
     out: list[ProblemSummary] = []
-    seen: set[str] = set()
     for r in rows:
         letter = (r.get("letter") or "").strip().upper()
         title = r.get("title") or ""
         if not letter:
             continue
         pid = letter.lower()
-        if pid in seen:
-            continue
-        seen.add(pid)
         out.append(ProblemSummary(id=pid, name=title))
     return out
 
@@ -341,7 +336,7 @@ async def main_async() -> int:
             success=False,
             error="Usage: atcoder.py metadata <contest_id> OR atcoder.py tests <contest_id> OR atcoder.py contests",
         )
-        print(json.dumps(asdict(result)))
+        print(result.model_dump_json())
         return 1
 
     mode: str = sys.argv[1]
@@ -352,11 +347,11 @@ async def main_async() -> int:
             result = MetadataResult(
                 success=False, error="Usage: atcoder.py metadata <contest_id>"
             )
-            print(json.dumps(asdict(result)))
+            print(result.model_dump_json())
             return 1
         contest_id = sys.argv[2]
         result = await scraper.scrape_contest_metadata(contest_id)
-        print(json.dumps(asdict(result)))
+        print(result.model_dump_json())
         return 0 if result.success else 1
 
     if mode == "tests":
@@ -370,7 +365,7 @@ async def main_async() -> int:
                 timeout_ms=0,
                 memory_mb=0,
             )
-            print(json.dumps(asdict(tests_result)))
+            print(tests_result.model_dump_json())
             return 1
         contest_id = sys.argv[2]
         await scraper.stream_tests_for_category_async(contest_id)
@@ -381,17 +376,17 @@ async def main_async() -> int:
             contest_result = ContestListResult(
                 success=False, error="Usage: atcoder.py contests"
             )
-            print(json.dumps(asdict(contest_result)))
+            print(contest_result.model_dump_json())
             return 1
         contest_result = await scraper.scrape_contest_list()
-        print(json.dumps(asdict(contest_result)))
+        print(contest_result.model_dump_json())
         return 0 if contest_result.success else 1
 
     result = MetadataResult(
         success=False,
         error="Unknown mode. Use 'metadata <contest_id>', 'tests <contest_id>', or 'contests'",
     )
-    print(json.dumps(asdict(result)))
+    print(result.model_dump_json())
     return 1
 
 

@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet " type="text/css" href="/cses.css?0" id="styles" />
+    <link
+      rel="stylesheet alternate"
+      type="text/css"
+      href="/cses-dark.css?0"
+      id="styles-dark"
+    />
+    <meta name="theme-color" content="white" id="theme-color" />
+    <script type="application/json" id="darkmode-enabled">
+      false
+    </script>
+    <script src="/ui.js"></script>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="/lib/fontawesome/css/all.min.css"
+    />
+  </head>
+  <body class="with-sidebar">
+    <div class="header">
+      <div>
+        <a href="/" class="logo"><img src="/logo.png?1" alt="CSES" /></a>
+        <a
+          class="menu-toggle"
+          onclick="document.body.classList.toggle('menu-open');"
+        >
+          <i class="fas fa-bars"></i>
+        </a>
+        <div class="controls">
+          <a class="account" href="/login">Login</a>
+          <span>&mdash;</span>
+          <a
+            href="/darkmode"
+            title="Toggle dark mode"
+            onclick="return toggle_theme()"
+            ><i aria-label="Dark mode" class="fas fa-adjust"></i
+            ><span>Dark mode</span></a
+          >
+        </div>
+      </div>
+    </div>
+    <div class="skeleton">
+      <div class="navigation">
+        <div class="title-block">
+          <h3><a href="/problemset/list/">CSES Problem Set</a></h3>
+          <h1>Distinct Numbers</h1>
+          <ul class="nav">
+            <li><a href="/problemset/task/1621/" class="current">Task</a></li>
+            <li><a href="/problemset/stats/1621/">Statistics</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="content-wrapper">
+        <div class="content">
+          <title>CSES - Distinct Numbers</title
+          ><link rel="stylesheet" href="/lib/katex/katex.min.css" />
+          <script defer src="/lib/katex/katex.min.js"></script>
+          <script defer src="/lib/katex/contrib/copy-tex.min.js"></script>
+          <script
+            defer
+            src="/lib/google-code-prettify/run_prettify.js"
+          ></script>
+          <script>
+            addEventListener('DOMContentLoaded', function (e) {
+              const mathElements = document.getElementsByClassName('math')
+              const macros = {}
+              for (let element of mathElements) {
+                katex.render(element.textContent, element, {
+                  displayMode: element.classList.contains('math-display'),
+                  throwOnError: false,
+                  globalGroup: true,
+                  macros
+                })
+              }
+            })
+          </script>
+          <ul class="task-constraints">
+            <li><b>Time limit:</b> 1.00 s</li>
+            <li><b>Memory limit:</b> 512 MB</li>
+          </ul>
+          <div class="md">
+            <p>
+              You are given a list of
+              <span class="math math-inline">n</span> integers, and your task is
+              to calculate the number of <em>distinct</em> values in the list.
+            </p>
+            <h1 id="input">Input</h1>
+            <p>
+              The first input line has an integer
+              <span class="math math-inline">n</span>: the number of values.
+            </p>
+            <p>
+              The second line has
+              <span class="math math-inline">n</span> integers
+              <span class="math math-inline">x_1,x_2,\dots,x_n</span>.
+            </p>
+            <h1 id="output">Output</h1>
+            <p>Print one integers: the number of distinct values.</p>
+            <h1 id="constraints">Constraints</h1>
+            <ul>
+              <li>
+                <span class="math math-inline">1 \le n \le 2 \cdot 10^5</span>
+              </li>
+              <li><span class="math math-inline">1 \le x_i \le 10^9</span></li>
+            </ul>
+            <h1 id="example">Example</h1>
+            <p>Input:</p>
+            <pre>
+5
+2 3 2 2 3
+</pre
+            >
+            <p>Output:</p>
+            <pre>
+2
+</pre
+            >
+          </div>
+        </div>
+        <div class="nav sidebar">
+          <h4>Sorting and Searching</h4>
+          <a class="current" href="/problemset/task/1621"
+            >Distinct Numbers<span class="task-score icon"></span></a
+          ><a href="/problemset/task/1084"
+            >Apartments<span class="task-score icon"></span></a
+          ><a href="/problemset/task/1090"
+            >Ferris Wheel<span class="task-score icon"></span></a
+          ><a href="/problemset/task/1091"
+            >Concert Tickets<span class="task-score icon"></span></a
+          ><a href="/problemset/task/1619"
+            >Restaurant Customers<span class="task-score icon"></span></a
+          ><a href="/problemset/task/1629"
+            >Movie Festival<span class="task-score icon"></span></a
+          ><a href="/problemset/task/1640"
+            >Sum of Two Values<span class="task-score icon"></span></a
+          ><a href="/problemset/task/1643"
+            >Maximum Subarray Sum<span class="task-score icon"></span></a
+          >...
+          <hr />
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

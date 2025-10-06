@@ -90,7 +90,7 @@ jobs:
       - name: Install ruff
         run: uv tool install ruff
       - name: Check Python formatting with ruff
-        run: ruff format --check scrapers/ tests/scrapers/
+        run: ruff format --check .
 
   python-lint:
     name: Python Lint Check
@@ -104,7 +104,7 @@ jobs:
       - name: Install ruff
         run: uv tool install ruff
       - name: Lint Python files with ruff
-        run: ruff check scripts/ scrapers/ tests/scrapers/
+        run: ruff check .
 
   python-typecheck:
     name: Python Type Check
@@ -118,7 +118,7 @@ jobs:
       - name: Install dependencies with mypy
         run: uv sync --dev
       - name: Type check Python files with mypy
-        run: uv run mypy scripts/ scrapers/ tests/scrapers/
+        run: uv run mypy .
 
   markdown-format:
     name: Markdown Format Check
@@ -138,4 +138,4 @@ jobs:
       - name: Install prettier
         run: pnpm add -g prettier@3.1.0
       - name: Check markdown formatting with prettier
-        run: prettier --check "*.md" "docs/**/*.md" || true
+        run: prettier --check .

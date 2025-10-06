@@ -1,20 +1,9 @@
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, ParamSpec, cast
 
 from .models import ContestListResult, MetadataResult, TestsResult
 
 P = ParamSpec("P")
-
-
-@dataclass
-class ScraperConfig:
-    timeout_seconds: int = 30
-    max_retries: int = 3
-    backoff_base: float = 2.0
-    rate_limit_delay: float = 1.0
 
 
 class BaseScraper(ABC):
@@ -38,6 +27,7 @@ class BaseScraper(ABC):
             success=False,
             error=f"{self.platform_name}: {error_msg}",
             contest_id=contest_id,
+            problems=[],
         )
 
     def _create_tests_error(
@@ -51,11 +41,14 @@ class BaseScraper(ABC):
             tests=[],
             timeout_ms=0,
             memory_mb=0,
+            interactive=False,
         )
 
     def _create_contests_error(self, error_msg: str) -> ContestListResult:
         return ContestListResult(
-            success=False, error=f"{self.platform_name}: {error_msg}"
+            success=False,
+            error=f"{self.platform_name}: {error_msg}",
+            contests=[],
         )
 
     async def _safe_execute(

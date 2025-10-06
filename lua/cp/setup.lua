@@ -7,16 +7,6 @@ local scraper = require('cp.scraper')
 local state = require('cp.state')
 
 local constants = require('cp.constants')
-local platforms = constants.PLATFORMS
-
-function M.set_platform(platform)
-  if not vim.tbl_contains(platforms, platform) then
-    logger.log(("Unknown platform '%s'"):format(platform), vim.log.levels.ERROR)
-    return false
-  end
-  state.set_platform(platform)
-  return true
-end
 
 ---@class TestCaseLite
 ---@field input string
@@ -35,9 +25,10 @@ end
 
 ---@param platform string
 ---@param contest_id string
----@param problem_id string|nil
----@param language? string|nil
+---@param problem_id? string
+---@param language? string
 function M.setup_contest(platform, contest_id, problem_id, language)
+  state.set_platform(platform)
   state.set_contest_id(contest_id)
   cache.load()
 
