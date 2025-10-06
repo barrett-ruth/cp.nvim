@@ -6,7 +6,6 @@ repos:
       - id: stylua-github
         name: stylua (Lua formatter)
         args: ["."]
-        files: ^(lua/|spec/|plugin/|after/|ftdetect/|.*\.lua$)
         additional_dependencies: []
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.9
@@ -16,16 +15,14 @@ repos:
         files: ^(scrapers/|tests/scrapers/|.*\.py$)
       - id: ruff
         name: ruff (lint)
-        args: ["--fix", "--select=I"]
-        files: ^(scrapers/|tests/scrapers/|.*\.py$)
+        args: ["--fix", "--select=I", "."]
   - repo: local
     hooks:
       - id: mypy
         name: mypy (type check)
         entry: uv run mypy
         language: system
-        args: ["scrapers/", "tests/scrapers/"]
-        files: ^(scrapers/|tests/scrapers/|.*\.py$)
+        args: ["."]
         pass_filenames: false
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0

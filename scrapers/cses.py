@@ -4,7 +4,6 @@ import asyncio
 import json
 import re
 import sys
-from dataclasses import asdict
 from typing import Any
 
 import httpx
@@ -251,7 +250,7 @@ async def main_async() -> int:
             success=False,
             error="Usage: cses.py metadata <category_id> OR cses.py tests <category> OR cses.py contests",
         )
-        print(json.dumps(asdict(result)))
+        print(result.model_dump_json())
         return 1
 
     mode: str = sys.argv[1]
@@ -262,11 +261,11 @@ async def main_async() -> int:
             result = MetadataResult(
                 success=False, error="Usage: cses.py metadata <category_id>"
             )
-            print(json.dumps(asdict(result)))
+            print(result.model_dump_json())
             return 1
         category_id = sys.argv[2]
         result = await scraper.scrape_contest_metadata(category_id)
-        print(json.dumps(asdict(result)))
+        print(result.model_dump_json())
         return 0 if result.success else 1
 
     if mode == "tests":
@@ -280,7 +279,7 @@ async def main_async() -> int:
                 timeout_ms=0,
                 memory_mb=0,
             )
-            print(json.dumps(asdict(tests_result)))
+            print(tests_result.model_dump_json())
             return 1
         category = sys.argv[2]
         await scraper.stream_tests_for_category_async(category)
@@ -291,17 +290,17 @@ async def main_async() -> int:
             contest_result = ContestListResult(
                 success=False, error="Usage: cses.py contests"
             )
-            print(json.dumps(asdict(contest_result)))
+            print(contest_result.model_dump_json())
             return 1
         contest_result = await scraper.scrape_contest_list()
-        print(json.dumps(asdict(contest_result)))
+        print(contest_result.model_dump_json())
         return 0 if contest_result.success else 1
 
     result = MetadataResult(
         success=False,
         error=f"Unknown mode: {mode}. Use 'metadata <category>', 'tests <category>', or 'contests'",
     )
-    print(json.dumps(asdict(result)))
+    print(result.model_dump_json())
     return 1
 
 

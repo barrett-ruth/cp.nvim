@@ -31,7 +31,7 @@ jobs:
             python:
               - 'scripts/**'
               - 'scrapers/**'
-              - 'tests/scrapers/**'
+              - 'tests/**'
               - 'pyproject.toml'
               - 'uv.lock'
 
@@ -64,4 +64,4 @@ jobs:
       - name: Fetch camoufox data
         run: uv run camoufox fetch
       - name: Run Python tests
-        run: uv run pytest tests/scrapers/ -v
+        run: uv run pytest tests/ -v
