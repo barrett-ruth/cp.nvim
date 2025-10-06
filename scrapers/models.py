@@ -1,20 +1,18 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TestCase(BaseModel):
     input: str
     expected: str
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class ProblemSummary(BaseModel):
     id: str
     name: str
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class ContestSummary(BaseModel):
@@ -22,31 +20,27 @@ class ContestSummary(BaseModel):
     name: str
     display_name: str | None = None
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class ScrapingResult(BaseModel):
     success: bool
     error: str
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class MetadataResult(ScrapingResult):
     contest_id: str = ""
     problems: list[ProblemSummary] = Field(default_factory=list)
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class ContestListResult(ScrapingResult):
     contests: list[ContestSummary] = Field(default_factory=list)
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class TestsResult(ScrapingResult):
@@ -57,8 +51,7 @@ class TestsResult(ScrapingResult):
     memory_mb: float
     interactive: bool = False
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class ScraperConfig(BaseModel):
@@ -67,5 +60,4 @@ class ScraperConfig(BaseModel):
     backoff_base: float = 2.0
     rate_limit_delay: float = 1.0
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")

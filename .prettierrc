@@ -8,7 +8,7 @@
   "singleQuote": true,
   "overrides": [
     {
-      "files": ["*.md", "docs/**/*.md"],
+      "files": ["**/*.md"],
       "options": {
         "parser": "markdown"
       }

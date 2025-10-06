@@ -1,8 +1,9 @@
+import importlib.util
 import io
 import json
 import sys
 from pathlib import Path
-from typing import Callable
+from types import ModuleType
 
 import pytest
 
@@ -19,32 +20,16 @@ def fixture_text():
     return _load
 
 
-def _compile_and_exec_module(
-    module_path: Path, offline_fetch_impls: dict[str, Callable]
-):
-    src = module_path.read_text(encoding="utf-8")
-
-    replacements: list[tuple[str, str]] = [
-        ("def _fetch(", "def _orig_fetch("),
-        ("def fetch_text(", "def _orig_fetch_text("),
-        ("async def _get_async(", "async def _orig_get_async("),
-    ]
-    for old, new in replacements:
-        src = src.replace(old, new)
-
-    stub_lines = []
-    if " _orig_fetch(" in src or "def _orig_fetch(" in src:
-        stub_lines.append("_fetch = __offline_fetch_sync")
-    if " _orig_fetch_text(" in src or "def _orig_fetch_text(" in src:
-        stub_lines.append("fetch_text = __offline_fetch_text")
-    if " _orig_get_async(" in src or "async def _orig_get_async(" in src:
-        stub_lines.append("_get_async = __offline_fetch_async")
-    src += "\n" + "\n".join(stub_lines) + "\n"
-
-    ns = {}
-    ns.update(offline_fetch_impls)
-    exec(compile(src, str(module_path), "exec"), ns)
-    return ns
+def _load_scraper_module(module_path: Path, module_name: str) -> ModuleType:
+    spec = importlib.util.spec_from_file_location(
+        f"scrapers.{module_name}", module_path
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load spec for {module_name} from {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[f"scrapers.{module_name}"] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def _capture_stdout(coro):
@@ -146,7 +131,7 @@ def run_scraper_offline(fixture_text):
 
     def _run(scraper_name: str, mode: str, *args: str):
         mod_path = ROOT / "scrapers" / f"{scraper_name}.py"
-        ns = _compile_and_exec_module(mod_path, _make_offline_fetches(scraper_name))
+        ns = _load_scraper_module(mod_path, scraper_name)
         main_async = ns.get("main_async")
         assert callable(main_async), f"main_async not found in {scraper_name}"
 
