@@ -1,21 +1,25 @@
 minimum_pre_commit_version: "3.5.0"
+
 repos:
   - repo: https://github.com/JohnnyMorganz/StyLua
     rev: v2.1.0
     hooks:
       - id: stylua-github
         name: stylua (Lua formatter)
-        args: ["."]
-        additional_dependencies: []
+        files: \.lua$
+        pass_filenames: true
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.9
     hooks:
       - id: ruff-format
         name: ruff (format)
-        files: ^(scrapers/|tests/scrapers/|.*\.py$)
+        files: \.py$
       - id: ruff
-        name: ruff (lint)
-        args: ["--fix", "--select=I", "."]
+        name: ruff (lint imports)
+        args: ["--fix", "--select=I"]
+        files: \.py$
+
   - repo: local
     hooks:
       - id: mypy
@@ -24,9 +28,11 @@ repos:
         language: system
         args: ["."]
         pass_filenames: false
+
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
     hooks:
       - id: prettier
         name: prettier (format markdown)
-        files: \.(md)$
+        files: \.md$
+
