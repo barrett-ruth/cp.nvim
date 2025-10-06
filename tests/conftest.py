@@ -185,13 +185,13 @@ def run_scraper_offline(fixture_text):
         offline_fetches = _make_offline_fetches(scraper_name)
 
         if scraper_name == "codeforces":
-            fetchers.stealthyfetcher.fetch = offline_fetches["stealthyfetcher.fetch"]  # type: ignore
+            fetchers.StealthyFetcher.fetch = offline_fetches["StealthyFetcher.fetch"]  # type: ignore[assignment]
             requests.get = offline_fetches["requests.get"]
         elif scraper_name == "atcoder":
             ns._fetch = offline_fetches["_fetch"]
             ns._get_async = offline_fetches["_get_async"]
         elif scraper_name == "cses":
-            httpx.asyncclient.get = offline_fetches["__offline_fetch_text"]  # type: ignore
+            httpx.AsyncClient.get = offline_fetches["__offline_fetch_text"]  # type: ignore[assignment]
 
         main_async = getattr(ns, "main_async")
         assert callable(main_async), f"main_async not found in {scraper_name}"
