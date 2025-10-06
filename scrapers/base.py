@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Any, Awaitable, Callable, ParamSpec, cast
 
-P = ParamSpec("P")
-
 from .models import ContestListResult, MetadataResult, TestsResult
+
+P = ParamSpec("P")
 
 
 class BaseScraper(ABC):

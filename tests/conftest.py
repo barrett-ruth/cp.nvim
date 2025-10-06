@@ -205,7 +205,7 @@ def run_scraper_offline(fixture_text):
             sys.argv = old_argv
 
         json_lines: list[Any] = []
-        for line in (l for l in out.splitlines() if l.strip()):
+        for line in (_line for _line in out.splitlines() if _line.strip()):
             json_lines.append(json.loads(line))
         return rc, json_lines
 
