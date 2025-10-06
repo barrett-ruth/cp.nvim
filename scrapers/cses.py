@@ -132,12 +132,17 @@ def parse_category_problems(category_id: str, html: str) -> list[ProblemSummary]
     return []
 
 
-def parse_limits(html: str) -> tuple[int, int]:
+def _extract_problem_info(html: str) -> tuple[int, int, bool]:
     tm = TIME_RE.search(html)
     mm = MEM_RE.search(html)
     t = int(round(float(tm.group(1)) * 1000)) if tm else 0
     m = int(mm.group(1)) if mm else 0
-    return t, m
+    md = MD_BLOCK_RE.search(html)
+    interactive = False
+    if md:
+        body = md.group(1)
+        interactive = "This is an interactive problem." in body
+    return t, m, interactive
 
 
 def parse_title(html: str) -> str:
@@ -220,10 +225,10 @@ class CSESScraper(BaseScraper):
                     try:
                         html = await fetch_text(client, task_path(pid))
                         tests = parse_tests(html)
-                        timeout_ms, memory_mb = parse_limits(html)
+                        timeout_ms, memory_mb, interactive = _extract_problem_info(html)
                     except Exception:
                         tests = []
-                        timeout_ms, memory_mb = 0, 0
+                        timeout_ms, memory_mb, interactive = 0, 0, False
                     return {
                         "problem_id": pid,
                         "tests": [
@@ -231,7 +236,7 @@ class CSESScraper(BaseScraper):
                         ],
                         "timeout_ms": timeout_ms,
                         "memory_mb": memory_mb,
-                        "interactive": False,
+                        "interactive": interactive,
                     }
 
             tasks = [run_one(p.id) for p in problems]

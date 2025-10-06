@@ -153,9 +153,7 @@ function M.handle_command(opts)
     cache_commands.handle_cache_command(cmd)
   elseif cmd.type == 'contest_setup' then
     local setup = require('cp.setup')
-    if setup.set_platform(cmd.platform) then
-      setup.setup_contest(cmd.platform, cmd.contest, nil)
-    end
+    setup.setup_contest(cmd.platform, cmd.contest, nil)
     return
   end
 end
