@@ -193,9 +193,14 @@ class CSESScraper(BaseScraper):
             return MetadataResult(
                 success=False,
                 error=f"{self.platform_name}: No problems found for category: {contest_id}",
+                url="",
             )
         return MetadataResult(
-            success=True, error="", contest_id=contest_id, problems=problems
+            success=True,
+            error="",
+            contest_id=contest_id,
+            problems=problems,
+            url="https://cses.fi/problemset",
         )
 
     async def scrape_contest_list(self) -> ContestListResult:
@@ -249,6 +254,7 @@ async def main_async() -> int:
         result = MetadataResult(
             success=False,
             error="Usage: cses.py metadata <category_id> OR cses.py tests <category> OR cses.py contests",
+            url="",
         )
         print(result.model_dump_json())
         return 1
@@ -259,7 +265,9 @@ async def main_async() -> int:
     if mode == "metadata":
         if len(sys.argv) != 3:
             result = MetadataResult(
-                success=False, error="Usage: cses.py metadata <category_id>"
+                success=False,
+                error="Usage: cses.py metadata <category_id>",
+                url="",
             )
             print(result.model_dump_json())
             return 1
@@ -274,7 +282,6 @@ async def main_async() -> int:
                 success=False,
                 error="Usage: cses.py tests <category>",
                 problem_id="",
-                url="",
                 tests=[],
                 timeout_ms=0,
                 memory_mb=0,
@@ -299,6 +306,7 @@ async def main_async() -> int:
     result = MetadataResult(
         success=False,
         error=f"Unknown mode: {mode}. Use 'metadata <category>', 'tests <category>', or 'contests'",
+        url="",
     )
     print(result.model_dump_json())
     return 1

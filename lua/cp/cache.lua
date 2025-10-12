@@ -9,6 +9,7 @@
 ---@field index_map table<string, number>
 ---@field name string
 ---@field display_name string
+---@field url string
 
 ---@class ContestSummary
 ---@field display_name string
@@ -94,11 +95,13 @@ end
 ---@param platform string
 ---@param contest_id string
 ---@param problems Problem[]
-function M.set_contest_data(platform, contest_id, problems)
+---@param url string
+function M.set_contest_data(platform, contest_id, problems, url)
   vim.validate({
     platform = { platform, 'string' },
     contest_id = { contest_id, 'string' },
     problems = { problems, 'table' },
+    url = { url, 'string' },
   })
 
   cache_data[platform] = cache_data[platform] or {}
@@ -109,6 +112,7 @@ function M.set_contest_data(platform, contest_id, problems)
     display_name = prev.display_name,
     problems = problems,
     index_map = {},
+    url = url,
   }
   for i, p in ipairs(out.problems) do
     out.index_map[p.id] = i

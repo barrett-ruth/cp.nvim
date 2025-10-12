@@ -28,6 +28,7 @@ class BaseScraper(ABC):
             error=f"{self.platform_name}: {error_msg}",
             contest_id=contest_id,
             problems=[],
+            url="",
         )
 
     def _create_tests_error(
@@ -37,7 +38,6 @@ class BaseScraper(ABC):
             success=False,
             error=f"{self.platform_name}: {error_msg}",
             problem_id=problem_id,
-            url=url,
             tests=[],
             timeout_ms=0,
             memory_mb=0,

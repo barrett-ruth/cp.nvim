@@ -77,6 +77,11 @@ function M.setup_contest(platform, contest_id, problem_id, language)
     local pid = problem_id and problem_id or problems[1].id
     M.setup_problem(pid, language)
     start_tests(platform, contest_id, problems)
+
+    if contest_data.url and config_module.get_config().open_url then
+      vim.print('opening')
+      vim.ui.open(contest_data.url)
+    end
   end
 
   local contest_data = cache.get_contest_data(platform, contest_id)
@@ -134,7 +139,7 @@ function M.setup_contest(platform, contest_id, problem_id, language)
       contest_id,
       vim.schedule_wrap(function(result)
         local problems = result.problems or {}
-        cache.set_contest_data(platform, contest_id, problems)
+        cache.set_contest_data(platform, contest_id, problems, result.url)
         local prov = state.get_provisional()
         if not prov or prov.platform ~= platform or prov.contest_id ~= contest_id then
           return
@@ -150,8 +155,7 @@ function M.setup_contest(platform, contest_id, problem_id, language)
         if not pid then
           return
         end
-        M.setup_problem(pid, prov.language)
-        start_tests(platform, contest_id, cd.problems)
+        proceed(cd)
       end)
     )
     return

@@ -43,6 +43,7 @@
 ---@field platforms table<string, CpPlatform>
 ---@field hooks Hooks
 ---@field debug boolean
+---@field open_url boolean
 ---@field scrapers string[]
 ---@field filename? fun(contest: string, contest_id: string, problem_id?: string, config: cp.Config, language?: string): string
 ---@field ui CpUI
@@ -58,6 +59,7 @@ local utils = require('cp.utils')
 -- defaults per the new single schema
 ---@type cp.Config
 M.defaults = {
+  open_url = false,
   languages = {
     cpp = {
       extension = 'cc',
@@ -223,9 +225,7 @@ function M.setup(user_config)
   vim.validate({
     hooks = { cfg.hooks, { 'table' } },
     ui = { cfg.ui, { 'table' } },
-  })
-
-  vim.validate({
+    open_url = { cfg.open_url, { 'boolean', 'nil' }, true },
     before_run = { cfg.hooks.before_run, { 'function', 'nil' }, true },
     before_debug = { cfg.hooks.before_debug, { 'function', 'nil' }, true },
     setup_code = { cfg.hooks.setup_code, { 'function', 'nil' }, true },

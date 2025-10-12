@@ -12,7 +12,7 @@ local _timeout_path = nil
 local _timeout_reason = nil
 
 local function is_windows()
-  return uname and uname.sysname == 'Windows_NT'
+  return uname.sysname == 'Windows_NT'
 end
 
 local function check_time_is_gnu_time(bin)

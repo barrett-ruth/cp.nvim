@@ -198,7 +198,11 @@ class CodeforcesScraper(BaseScraper):
                     f"No problems found for contest {cid}", cid
                 )
             return MetadataResult(
-                success=True, error="", contest_id=cid, problems=problems
+                success=True,
+                error="",
+                contest_id=cid,
+                problems=problems,
+                url=f"https://codeforces.com/contest/{contest_id}",
             )
 
         return await self._safe_execute("metadata", impl, contest_id)
@@ -259,6 +263,7 @@ async def main_async() -> int:
         result = MetadataResult(
             success=False,
             error="Usage: codeforces.py metadata <contest_id> OR codeforces.py tests <contest_id> OR codeforces.py contests",
+            url="",
         )
         print(result.model_dump_json())
         return 1
@@ -269,7 +274,9 @@ async def main_async() -> int:
     if mode == "metadata":
         if len(sys.argv) != 3:
             result = MetadataResult(
-                success=False, error="Usage: codeforces.py metadata <contest_id>"
+                success=False,
+                error="Usage: codeforces.py metadata <contest_id>",
+                url="",
             )
             print(result.model_dump_json())
             return 1
@@ -284,7 +291,6 @@ async def main_async() -> int:
                 success=False,
                 error="Usage: codeforces.py tests <contest_id>",
                 problem_id="",
-                url="",
                 tests=[],
                 timeout_ms=0,
                 memory_mb=0,
@@ -309,6 +315,7 @@ async def main_async() -> int:
     result = MetadataResult(
         success=False,
         error="Unknown mode. Use 'metadata <contest_id>', 'tests <contest_id>', or 'contests'",
+        url="",
     )
     print(result.model_dump_json())
     return 1
