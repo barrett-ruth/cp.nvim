@@ -16,7 +16,7 @@ function M.restore_from_current_file()
   end
 
   local setup = require('cp.setup')
-  setup.set_platform(file_state.platform)
+  state.set_platform(file_state.platform)
   state.set_contest_id(file_state.contest_id)
   state.set_problem_id(file_state.problem_id)
   setup.setup_contest(
