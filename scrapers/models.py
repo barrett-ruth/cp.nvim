@@ -33,6 +33,7 @@ class ScrapingResult(BaseModel):
 class MetadataResult(ScrapingResult):
     contest_id: str = ""
     problems: list[ProblemSummary] = Field(default_factory=list)
+    url: str
 
     model_config = ConfigDict(extra="forbid")
 
@@ -45,7 +46,6 @@ class ContestListResult(ScrapingResult):
 
 class TestsResult(ScrapingResult):
     problem_id: str
-    url: str
     tests: list[TestCase] = Field(default_factory=list)
     timeout_ms: int
     memory_mb: float

@@ -286,6 +286,7 @@ class AtcoderScraper(BaseScraper):
                 error="",
                 contest_id=cid,
                 problems=problems,
+                url=f"https://atcoder.jp/contests/{contest_id}/tasks",
             )
 
         return await self._safe_execute("metadata", impl, contest_id)
@@ -335,6 +336,7 @@ async def main_async() -> int:
         result = MetadataResult(
             success=False,
             error="Usage: atcoder.py metadata <contest_id> OR atcoder.py tests <contest_id> OR atcoder.py contests",
+            url="",
         )
         print(result.model_dump_json())
         return 1
@@ -345,7 +347,9 @@ async def main_async() -> int:
     if mode == "metadata":
         if len(sys.argv) != 3:
             result = MetadataResult(
-                success=False, error="Usage: atcoder.py metadata <contest_id>"
+                success=False,
+                error="Usage: atcoder.py metadata <contest_id>",
+                url="",
             )
             print(result.model_dump_json())
             return 1
@@ -360,7 +364,6 @@ async def main_async() -> int:
                 success=False,
                 error="Usage: atcoder.py tests <contest_id>",
                 problem_id="",
-                url="",
                 tests=[],
                 timeout_ms=0,
                 memory_mb=0,
@@ -385,6 +388,7 @@ async def main_async() -> int:
     result = MetadataResult(
         success=False,
         error="Unknown mode. Use 'metadata <contest_id>', 'tests <contest_id>', or 'contests'",
+        url="",
     )
     print(result.model_dump_json())
     return 1
