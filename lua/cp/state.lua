@@ -84,11 +84,6 @@ function M.get_base_name()
   end
 end
 
----@return string|nil
-function M.get_language()
-  return
-end
-
 ---@param language? string
 ---@return string|nil
 function M.get_source_file(language)
@@ -103,12 +98,14 @@ function M.get_source_file(language)
   if not platform_cfg then
     return nil
   end
+
   local target_language = language or platform_cfg.default_language
   local eff = config.runtime.effective[plat] and config.runtime.effective[plat][target_language]
     or nil
   if not eff or not eff.extension then
     return nil
   end
+
   return base_name .. '.' .. eff.extension
 end
 

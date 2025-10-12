@@ -79,7 +79,6 @@ function M.setup_contest(platform, contest_id, problem_id, language)
     start_tests(platform, contest_id, problems)
 
     if contest_data.url and config_module.get_config().open_url then
-      vim.print('opening')
       vim.ui.open(contest_data.url)
     end
   end
@@ -92,36 +91,15 @@ function M.setup_contest(platform, contest_id, problem_id, language)
     vim.cmd.only({ mods = { silent = true } })
     local bufnr = vim.api.nvim_create_buf(true, false)
     vim.api.nvim_win_set_buf(0, bufnr)
-    if lang then
-      vim.bo[bufnr].filetype = lang
-    end
+    vim.bo[bufnr].filetype = lang or ''
     vim.bo[bufnr].buftype = ''
-
-    local ext = cfg.runtime
-      and cfg.runtime.effective[platform]
-      and cfg.runtime.effective[platform][lang]
-      and cfg.runtime.effective[platform][lang].extension
-    local provisional_name = nil
-    if ext then
-      provisional_name = (config_module.default_filename(contest_id) .. '.' .. ext)
-      vim.api.nvim_buf_set_name(bufnr, provisional_name)
-    end
+    vim.bo[bufnr].swapfile = false
 
     if cfg.hooks and cfg.hooks.setup_code and not vim.b[bufnr].cp_setup_done then
       local ok = pcall(cfg.hooks.setup_code, state)
       if ok then
         vim.b[bufnr].cp_setup_done = true
       end
-    end
-
-    if provisional_name then
-      cache.set_file_state(
-        vim.fn.fnamemodify(provisional_name, ':p'),
-        platform,
-        contest_id,
-        '',
-        lang
-      )
     end
 
     state.set_provisional({
@@ -181,18 +159,14 @@ function M.setup_problem(problem_id, language)
     return
   end
 
+  vim.fn.mkdir(vim.fn.fnamemodify(source_file, ':h'), 'p')
+
   local prov = state.get_provisional()
   if prov and prov.platform == platform and prov.contest_id == (state.get_contest_id() or '') then
     if vim.api.nvim_buf_is_valid(prov.bufnr) then
-      local old = vim.api.nvim_buf_get_name(prov.bufnr)
-      local new = source_file
-      if old ~= '' and old ~= new then
-        local st = vim.loop.fs_stat(old)
-        if st and st.type == 'file' then
-          pcall(vim.loop.fs_rename, old, new)
-        end
-      end
-      vim.api.nvim_buf_set_name(prov.bufnr, new)
+      vim.api.nvim_buf_set_name(prov.bufnr, source_file)
+      vim.bo[prov.bufnr].swapfile = true
+      vim.cmd(string.format('silent keepalt noautocmd write! %s', vim.fn.fnameescape(source_file)))
       if config.hooks and config.hooks.setup_code and not vim.b[prov.bufnr].cp_setup_done then
         local ok = pcall(config.hooks.setup_code, state)
         if ok then
@@ -200,7 +174,7 @@ function M.setup_problem(problem_id, language)
         end
       end
       cache.set_file_state(
-        vim.fn.fnamemodify(new, ':p'),
+        vim.fn.fnamemodify(source_file, ':p'),
         platform,
         state.get_contest_id() or '',
         state.get_problem_id() or '',
