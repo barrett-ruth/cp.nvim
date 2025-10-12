@@ -42,15 +42,13 @@ def test_scraper_offline_fixture_matrix(run_scraper_offline, scraper, mode):
         Model = MODEL_FOR_MODE[mode]
         model = Model.model_validate(objs[-1])
         assert model is not None
+        assert model.success is True
         if mode == "metadata":
-            assert model.success in (True, False)
-            if model.success:
-                assert len(model.problems) >= 1
-                assert all(isinstance(p.id, str) and p.id for p in model.problems)
+            assert model.url
+            assert len(model.problems) >= 1
+            assert all(isinstance(p.id, str) and p.id for p in model.problems)
         else:
-            assert model.success in (True, False)
-            if model.success:
-                assert len(model.contests) >= 1
+            assert len(model.contests) >= 1
     else:
         validated_any = False
         for obj in objs:
