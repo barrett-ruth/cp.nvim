@@ -6,3 +6,4 @@ io
 debug
 venv/
 CLAUDE.md
+__pycache__

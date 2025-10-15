@@ -200,7 +200,7 @@ class CSESScraper(BaseScraper):
             error="",
             contest_id=contest_id,
             problems=problems,
-            url="https://cses.fi/problemset",
+            url="https://cses.fi/problemset/task/%s",
         )
 
     async def scrape_contest_list(self) -> ContestListResult:
