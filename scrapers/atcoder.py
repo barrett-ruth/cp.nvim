@@ -286,7 +286,7 @@ class AtcoderScraper(BaseScraper):
                 error="",
                 contest_id=cid,
                 problems=problems,
-                url=f"https://atcoder.jp/contests/{contest_id}/tasks",
+                url=f"https://atcoder.jp/contests/{contest_id}/tasks/{contest_id}_%s",
             )
 
         return await self._safe_execute("metadata", impl, contest_id)

@@ -84,7 +84,7 @@ function M.setup_contest(platform, contest_id, problem_id, language)
     start_tests(platform, contest_id, problems)
 
     if config_module.get_config().open_url and is_new_contest and contest_data.url then
-      vim.ui.open(contest_data.url)
+      vim.ui.open(contest_data.url:format(pid))
     end
   end
 

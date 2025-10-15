@@ -211,7 +211,8 @@ run CSES problems with Rust using the single schema:
                         Should return full filename with extension.
                         (default: concatenates contest_id and problem_id, lowercased)
         {ui}            (|CpUI|) UI settings: run panel, diff backend, picker.
-        {open_url}      (boolean) Open the contest url in the browser.
+        {open_url}      (boolean) Open the contest & problem url in the browser
+                        when the contest is first opened.
 
                                                              *CpPlatform*
     Fields: ~
