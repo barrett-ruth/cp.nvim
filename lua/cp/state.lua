@@ -35,6 +35,7 @@ local state = {
   saved_session = nil,
   active_panel = nil,
   provisional = nil,
+  solution_win = nil,
 }
 
 ---@return string|nil
@@ -151,6 +152,19 @@ end
 ---@param p cp.ProvisionalState|nil
 function M.set_provisional(p)
   state.provisional = p
+end
+
+---@return integer?
+function M.get_solution_win()
+  if state.solution_win and vim.api.nvim_win_is_valid(state.solution_win) then
+    return state.solution_win
+  end
+  return vim.api.nvim_get_current_win()
+end
+
+---@param win integer?
+function M.set_solution_win(win)
+  state.solution_win = win
 end
 
 M._state = state
