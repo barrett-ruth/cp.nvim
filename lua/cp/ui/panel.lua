@@ -1,6 +1,6 @@
 local M = {}
 
----@class RunOpts
+---@class PanelOpts
 ---@field debug? boolean
 
 local config_module = require('cp.config')
@@ -21,7 +21,7 @@ function M.disable()
   end
 
   if active_panel == 'run' then
-    M.toggle_run_panel()
+    M.toggle_panel()
   elseif active_panel == 'interactive' then
     M.toggle_interactive()
   else
@@ -204,8 +204,8 @@ function M.toggle_interactive(interactor_cmd)
   state.set_active_panel('interactive')
 end
 
----@param run_opts? RunOpts
-function M.toggle_run_panel(run_opts)
+---@param panel_opts? PanelOpts
+function M.toggle_panel(panel_opts)
   if state.get_active_panel() == 'run' then
     if current_diff_layout then
       current_diff_layout.cleanup()
@@ -294,13 +294,13 @@ function M.toggle_run_panel(run_opts)
     )
   end
 
-  local function refresh_run_panel()
+  local function refresh_panel()
     if not test_buffers.tab_buf or not vim.api.nvim_buf_is_valid(test_buffers.tab_buf) then
       return
     end
     local run_render = require('cp.runner.run_render')
     run_render.setup_highlights()
-    local test_state = run.get_run_panel_state()
+    local test_state = run.get_panel_state()
     local tab_lines, tab_highlights = run_render.render_test_list(test_state)
     utils.update_buffer_content(
       test_buffers.tab_buf,
@@ -312,29 +312,29 @@ function M.toggle_run_panel(run_opts)
   end
 
   local function navigate_test_case(delta)
-    local test_state = run.get_run_panel_state()
+    local test_state = run.get_panel_state()
     if vim.tbl_isempty(test_state.test_cases) then
       return
     end
     test_state.current_index = (test_state.current_index + delta - 1) % #test_state.test_cases + 1
-    refresh_run_panel()
+    refresh_panel()
   end
 
   setup_keybindings_for_buffer = function(buf)
     vim.keymap.set('n', 'q', function()
-      M.toggle_run_panel()
+      M.toggle_panel()
     end, { buffer = buf, silent = true })
     vim.keymap.set('n', 't', function()
       local modes = { 'none', 'git', 'vim' }
       local current_idx = 1
       for i, mode in ipairs(modes) do
-        if config.ui.run_panel.diff_mode == mode then
+        if config.ui.panel.diff_mode == mode then
           current_idx = i
           break
         end
       end
-      config.ui.run_panel.diff_mode = modes[(current_idx % #modes) + 1]
-      refresh_run_panel()
+      config.ui.panel.diff_mode = modes[(current_idx % #modes) + 1]
+      refresh_panel()
     end, { buffer = buf, silent = true })
     vim.keymap.set('n', '<c-n>', function()
       navigate_test_case(1)
@@ -351,7 +351,7 @@ function M.toggle_run_panel(run_opts)
       config.hooks.before_run(state)
     end)
   end
-  if run_opts and run_opts.debug and config.hooks and config.hooks.before_debug then
+  if panel_opts and panel_opts.debug and config.hooks and config.hooks.before_debug then
     vim.schedule_wrap(function()
       config.hooks.before_debug(state)
     end)
@@ -365,10 +365,10 @@ function M.toggle_run_panel(run_opts)
     run.handle_compilation_failure(compile_result.output)
   end
 
-  refresh_run_panel()
+  refresh_panel()
 
   vim.schedule(function()
-    if config.ui.run_panel.ansi then
+    if config.ui.panel.ansi then
       local ansi = require('cp.ui.ansi')
       ansi.setup_highlight_groups()
     end

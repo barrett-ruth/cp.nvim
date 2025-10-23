@@ -17,7 +17,7 @@
 ---@field default_language string
 ---@field overrides? table<string, CpPlatformOverrides>
 
----@class RunPanelConfig
+---@class PanelConfig
 ---@field ansi boolean
 ---@field diff_mode "none"|"vim"|"git"
 ---@field max_output_lines integer
@@ -34,7 +34,7 @@
 ---@field setup_code? fun(state: cp.State)
 
 ---@class CpUI
----@field run_panel RunPanelConfig
+---@field panel PanelConfig
 ---@field diff DiffConfig
 ---@field picker string|nil
 
@@ -106,7 +106,7 @@ M.defaults = {
   scrapers = constants.PLATFORMS,
   filename = nil,
   ui = {
-    run_panel = { ansi = true, diff_mode = 'none', max_output_lines = 50 },
+    panel = { ansi = true, diff_mode = 'none', max_output_lines = 50 },
     diff = {
       git = {
         args = { 'diff', '--no-index', '--word-diff=plain', '--word-diff-regex=.', '--no-prefix' },
@@ -232,16 +232,16 @@ function M.setup(user_config)
   })
 
   vim.validate({
-    ansi = { cfg.ui.run_panel.ansi, 'boolean' },
+    ansi = { cfg.ui.panel.ansi, 'boolean' },
     diff_mode = {
-      cfg.ui.run_panel.diff_mode,
+      cfg.ui.panel.diff_mode,
       function(v)
         return vim.tbl_contains({ 'none', 'vim', 'git' }, v)
       end,
       "diff_mode must be 'none', 'vim', or 'git'",
     },
     max_output_lines = {
-      cfg.ui.run_panel.max_output_lines,
+      cfg.ui.panel.max_output_lines,
       function(v)
         return type(v) == 'number' and v > 0 and v == math.floor(v)
       end,

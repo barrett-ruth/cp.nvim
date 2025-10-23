@@ -3,7 +3,7 @@ describe('run module', function()
 
   describe('basic functionality', function()
     it('can get panel state', function()
-      local state = run.get_run_panel_state()
+      local state = run.get_panel_state()
       assert.is_table(state)
       assert.is_table(state.test_cases)
     end)

@@ -145,7 +145,7 @@ Here's an example configuration with lazy.nvim:
         open_url = true,
         debug = false,
         ui = {
-          run_panel = {
+          panel = {
             ansi = true,
             diff_mode = 'vim',
             max_output_lines = 50,
@@ -210,7 +210,7 @@ run CSES problems with Rust using the single schema:
                         function(contest, contest_id, problem_id, config, language): string
                         Should return full filename with extension.
                         (default: concatenates contest_id and problem_id, lowercased)
-        {ui}            (|CpUI|) UI settings: run panel, diff backend, picker.
+        {ui}            (|CpUI|) UI settings: panel, diff backend, picker.
         {open_url}      (boolean) Open the contest & problem url in the browser
                         when the contest is first opened.
 
@@ -238,11 +238,11 @@ run CSES problems with Rust using the single schema:
 
                                                               *CpUI*
     Fields: ~
-        {run_panel}     (|RunPanelConfig|) Test panel behavior configuration.
+        {panel}         (|PanelConfig|) Test panel behavior configuration.
         {diff}          (|DiffConfig|) Diff backend configuration.
         {picker}        (string|nil) 'telescope', 'fzf-lua', or nil.
 
-                                                        *cp.RunPanelConfig*
+                                                        *cp.PanelConfig*
     Fields: ~
         {ansi}             (boolean, default: true) Enable ANSI color parsing
                            and highlighting.
@@ -367,15 +367,15 @@ PICKER KEYMAPS                                                  *cp-picker-keys*
         Useful when contest lists are outdated or incomplete
 
 ==============================================================================
-RUN PANEL                                                           *cp-run*
+PANEL                                                           *cp-run*
 
-The run panel provides individual test case debugging. Problem time/memory
+The panel provides individual test case debugging. Problem time/memory
 limit constraints are in columns Time/Mem respectively. Used time/memory are
 in columns Runtime/RSS respectively.
 
 Interface ~
 
-The run panel uses the following table layout: >
+The panel uses the following table layout: >
 
     ┌─────┬────────┬──────────────┬───────────┬──────────┬──────────┬─────────────┐
     │  #  │ Status │ Runtime (ms) │ Time (ms) │ RSS (MB) │ Mem (MB) │  Exit Code  │
@@ -502,7 +502,7 @@ Customize highlight groups after your colorscheme loads:
     })
 
 ==============================================================================
-RUN PANEL KEYMAPS                                           *cp-test-keys*
+PANEL KEYMAPS                                           *cp-test-keys*
 
 <c-n>   Navigate to next test case
 <c-p>   Navigate to previous test case

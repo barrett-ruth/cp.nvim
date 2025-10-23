@@ -20,7 +20,7 @@
 ---@field timeout_ms number
 ---@field memory_mb number
 
----@class RunPanelState
+---@class PanelState
 ---@field test_cases RanTestCase[]
 ---@field current_index number
 ---@field buffer number?
@@ -37,8 +37,8 @@ local execute = require('cp.runner.execute')
 local logger = require('cp.log')
 local state = require('cp.state')
 
----@type RunPanelState
-local run_panel_state = {
+---@type PanelState
+local panel_state = {
   test_cases = {},
   current_index = 1,
   buffer = nil,
@@ -113,8 +113,8 @@ local function run_single_test_case(test_case)
   local run_template = eff and eff.commands and eff.commands.run or {}
   local cmd = build_command(run_template, substitutions)
   local stdin_content = (test_case.input or '') .. '\n'
-  local timeout_ms = (run_panel_state.constraints and run_panel_state.constraints.timeout_ms) or 0
-  local memory_mb = run_panel_state.constraints and run_panel_state.constraints.memory_mb or 0
+  local timeout_ms = (panel_state.constraints and panel_state.constraints.timeout_ms) or 0
+  local memory_mb = panel_state.constraints and panel_state.constraints.memory_mb or 0
 
   local r = execute.run(cmd, stdin_content, timeout_ms, memory_mb)
 
@@ -122,7 +122,7 @@ local function run_single_test_case(test_case)
   local out = r.stdout or ''
   local highlights = {}
   if out ~= '' then
-    if config.ui.run_panel.ansi then
+    if config.ui.panel.ansi then
       local parsed = ansi.parse_ansi_text(out)
       out = table.concat(parsed.lines, '\n')
       highlights = parsed.highlights
@@ -131,7 +131,7 @@ local function run_single_test_case(test_case)
     end
   end
 
-  local max_lines = config.ui.run_panel.max_output_lines
+  local max_lines = config.ui.panel.max_output_lines
   local lines = vim.split(out, '\n')
   if #lines > max_lines then
     local trimmed = {}
@@ -185,9 +185,9 @@ function M.load_test_cases()
     state.get_problem_id()
   )
 
-  run_panel_state.test_cases = create_sentinal_panel_data(tcs)
-  run_panel_state.current_index = 1
-  run_panel_state.constraints = load_constraints_from_cache(
+  panel_state.test_cases = create_sentinal_panel_data(tcs)
+  panel_state.current_index = 1
+  panel_state.constraints = load_constraints_from_cache(
     state.get_platform() or '',
     state.get_contest_id() or '',
     state.get_problem_id()
@@ -200,7 +200,7 @@ end
 ---@param index number
 ---@return boolean
 function M.run_test_case(index)
-  local tc = run_panel_state.test_cases[index]
+  local tc = panel_state.test_cases[index]
   if not tc then
     return false
   end
@@ -227,16 +227,16 @@ end
 ---@return RanTestCase[]
 function M.run_all_test_cases()
   local results = {}
-  for i = 1, #run_panel_state.test_cases do
+  for i = 1, #panel_state.test_cases do
     M.run_test_case(i)
-    results[i] = run_panel_state.test_cases[i]
+    results[i] = panel_state.test_cases[i]
   end
   return results
 end
 
----@return RunPanelState
-function M.get_run_panel_state()
-  return run_panel_state
+---@return PanelState
+function M.get_panel_state()
+  return panel_state
 end
 
 ---@param output string|nil
@@ -247,7 +247,7 @@ function M.handle_compilation_failure(output)
   local txt
   local hl = {}
 
-  if config.ui.run_panel.ansi then
+  if config.ui.panel.ansi then
     local p = ansi.parse_ansi_text(output or '')
     txt = table.concat(p.lines, '\n')
     hl = p.highlights
@@ -255,7 +255,7 @@ function M.handle_compilation_failure(output)
     txt = (output or ''):gsub('\027%[[%d;]*[a-zA-Z]', '')
   end
 
-  for _, tc in ipairs(run_panel_state.test_cases) do
+  for _, tc in ipairs(panel_state.test_cases) do
     tc.status = 'fail'
     tc.actual = txt
     tc.actual_highlights = hl
