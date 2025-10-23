@@ -12,7 +12,6 @@ local user_config = {}
 local config = nil
 local initialized = false
 
---- Root handler for all `:CP ...` commands
 ---@return nil
 function M.handle_command(opts)
   local commands = require('cp.commands')

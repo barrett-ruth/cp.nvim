@@ -109,9 +109,9 @@ function M.handle_command(opts)
     if cmd.action == 'interact' then
       ui.toggle_interactive(cmd.interactor_cmd)
     elseif cmd.action == 'run' then
-      ui.toggle_run_panel()
+      ui.toggle_panel()
     elseif cmd.action == 'debug' then
-      ui.toggle_run_panel({ debug = true })
+      ui.toggle_panel({ debug = true })
     elseif cmd.action == 'next' then
       setup.navigate_problem(1)
     elseif cmd.action == 'prev' then

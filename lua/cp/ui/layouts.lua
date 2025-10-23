@@ -164,7 +164,7 @@ function M.update_diff_panes(
   config,
   setup_keybindings_for_buffer
 )
-  local test_state = run.get_run_panel_state()
+  local test_state = run.get_panel_state()
   local current_test = test_state.test_cases[test_state.current_index]
 
   if not current_test then
@@ -185,7 +185,7 @@ function M.update_diff_panes(
     actual_content = actual_content
   end
 
-  local desired_mode = is_compilation_failure and 'single' or config.ui.run_panel.diff_mode
+  local desired_mode = is_compilation_failure and 'single' or config.ui.panel.diff_mode
   local highlight = require('cp.ui.highlight')
   local diff_namespace = highlight.create_namespace()
   local ansi_namespace = vim.api.nvim_create_namespace('cp_ansi_highlights')
