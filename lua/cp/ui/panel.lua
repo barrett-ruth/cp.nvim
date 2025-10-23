@@ -6,6 +6,7 @@ local M = {}
 local cache = require('cp.cache')
 local config_module = require('cp.config')
 local constants = require('cp.constants')
+local helpers = require('cp.helpers')
 local layouts = require('cp.ui.layouts')
 local logger = require('cp.log')
 local state = require('cp.state')
@@ -262,6 +263,7 @@ function M.ensure_io_view()
     if config.hooks and config.hooks.setup_io_output then
       pcall(config.hooks.setup_io_output, output_buf, state)
     end
+
     if config.hooks and config.hooks.setup_io_input then
       pcall(config.hooks.setup_io_input, input_buf, state)
     end
@@ -440,6 +442,7 @@ function M.toggle_panel(panel_opts)
   vim.cmd('silent only')
 
   local tab_buf = utils.create_buffer_with_options()
+  helpers.clearcol(tab_buf)
   local main_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(main_win, tab_buf)
   vim.api.nvim_set_option_value('filetype', 'cp', { buf = tab_buf })

@@ -3,6 +3,7 @@ local M = {}
 local cache = require('cp.cache')
 local config_module = require('cp.config')
 local constants = require('cp.constants')
+local helpers = require('cp.helpers')
 local logger = require('cp.log')
 local scraper = require('cp.scraper')
 local state = require('cp.state')
@@ -178,6 +179,9 @@ function M.setup_problem(problem_id, language)
         if ok then
           vim.b[prov.bufnr].cp_setup_done = true
         end
+      elseif not vim.b[prov.bufnr].cp_setup_done then
+        helpers.clearcol(prov.bufnr)
+        vim.b[prov.bufnr].cp_setup_done = true
       end
       cache.set_file_state(
         vim.fn.fnamemodify(source_file, ':p'),
@@ -202,6 +206,9 @@ function M.setup_problem(problem_id, language)
       if ok then
         vim.b[bufnr].cp_setup_done = true
       end
+    elseif not vim.b[bufnr].cp_setup_done then
+      helpers.clearcol(bufnr)
+      vim.b[bufnr].cp_setup_done = true
     end
     cache.set_file_state(
       vim.fn.expand('%:p'),
