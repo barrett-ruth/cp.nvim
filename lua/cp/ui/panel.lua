@@ -3,6 +3,7 @@ local M = {}
 ---@class PanelOpts
 ---@field debug? boolean
 
+local cache = require('cp.cache')
 local config_module = require('cp.config')
 local constants = require('cp.constants')
 local layouts = require('cp.ui.layouts')
@@ -74,7 +75,6 @@ function M.toggle_interactive(interactor_cmd)
     return
   end
 
-  local cache = require('cp.cache')
   cache.load()
   local contest_data = cache.get_contest_data(platform, contest_id)
   if
@@ -92,9 +92,10 @@ function M.toggle_interactive(interactor_cmd)
   vim.cmd('silent only')
 
   local execute = require('cp.runner.execute')
+  local run = require('cp.runner.run')
   local compile_result = execute.compile_problem()
   if not compile_result.success then
-    require('cp.runner.run').handle_compilation_failure(compile_result.output)
+    run.handle_compilation_failure(compile_result.output)
     return
   end
 
@@ -215,7 +216,6 @@ function M.ensure_io_view()
     return
   end
 
-  local cache = require('cp.cache')
   cache.load()
   local contest_data = cache.get_contest_data(platform, contest_id)
   if
@@ -299,7 +299,6 @@ function M.run_io_view()
     return
   end
 
-  local cache = require('cp.cache')
   cache.load()
   local contest_data = cache.get_contest_data(platform, contest_id)
   if
@@ -315,6 +314,7 @@ function M.run_io_view()
   M.ensure_io_view()
 
   local run = require('cp.runner.run')
+  local run_render = require('cp.runner.run_render')
   if not run.load_test_cases() then
     logger.log('no test cases found', vim.log.levels.WARN)
     return
@@ -334,7 +334,6 @@ function M.run_io_view()
   end
 
   local test_state = run.get_panel_state()
-  local run_render = require('cp.runner.run_render')
   run_render.setup_highlights()
 
   local verdict_lines = {}
@@ -404,7 +403,6 @@ function M.toggle_panel(panel_opts)
     return
   end
 
-  local cache = require('cp.cache')
   cache.load()
   local contest_data = cache.get_contest_data(platform, contest_id)
   if
@@ -417,6 +415,7 @@ function M.toggle_panel(panel_opts)
 
   local config = config_module.get_config()
   local run = require('cp.runner.run')
+  local run_render = require('cp.runner.run_render')
   local input_file = state.get_input_file()
   logger.log(('run panel: checking test cases for %s'):format(input_file or 'none'))
 
@@ -456,7 +455,6 @@ function M.toggle_panel(panel_opts)
     if not test_buffers.tab_buf or not vim.api.nvim_buf_is_valid(test_buffers.tab_buf) then
       return
     end
-    local run_render = require('cp.runner.run_render')
     run_render.setup_highlights()
     local test_state = run.get_panel_state()
     local tab_lines, tab_highlights = run_render.render_test_list(test_state)
@@ -527,8 +525,7 @@ function M.toggle_panel(panel_opts)
 
   vim.schedule(function()
     if config.ui.panel.ansi then
-      local ansi = require('cp.ui.ansi')
-      ansi.setup_highlight_groups()
+      require('cp.ui.ansi').setup_highlight_groups()
     end
     if current_diff_layout then
       update_diff_panes()
