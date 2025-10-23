@@ -109,6 +109,8 @@ function M.handle_command(opts)
     if cmd.action == 'interact' then
       ui.toggle_interactive(cmd.interactor_cmd)
     elseif cmd.action == 'run' then
+      ui.run_io_view()
+    elseif cmd.action == 'panel' then
       ui.toggle_panel()
     elseif cmd.action == 'debug' then
       ui.toggle_panel({ debug = true })

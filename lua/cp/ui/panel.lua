@@ -227,6 +227,7 @@ function M.ensure_io_view()
     return
   end
 
+  local solution_win = state.get_solution_win()
   local io_state = state.get_io_view_state()
   local output_buf, input_buf, output_win, input_win
 
@@ -236,11 +237,12 @@ function M.ensure_io_view()
     output_win = io_state.output_win
     input_win = io_state.input_win
   else
-    local solution_win = state.get_solution_win()
     vim.api.nvim_set_current_win(solution_win)
 
     vim.cmd.vsplit()
     output_win = vim.api.nvim_get_current_win()
+    local width = math.floor(vim.o.columns * 0.3)
+    vim.api.nvim_win_set_width(output_win, width)
     output_buf = utils.create_buffer_with_options()
     vim.api.nvim_win_set_buf(output_win, output_buf)
 
@@ -255,6 +257,14 @@ function M.ensure_io_view()
       output_win = output_win,
       input_win = input_win,
     })
+
+    local config = config_module.get_config()
+    if config.hooks and config.hooks.setup_io_output then
+      pcall(config.hooks.setup_io_output, output_buf, state)
+    end
+    if config.hooks and config.hooks.setup_io_input then
+      pcall(config.hooks.setup_io_input, input_buf, state)
+    end
   end
 
   local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
@@ -269,7 +279,7 @@ function M.ensure_io_view()
   utils.update_buffer_content(input_buf, input_lines, nil, nil)
   utils.update_buffer_content(output_buf, {}, nil, nil)
 
-  vim.api.nvim_set_current_win(output_win)
+  vim.api.nvim_set_current_win(solution_win)
 end
 
 function M.run_io_view()

@@ -32,6 +32,8 @@
 ---@field before_run? fun(state: cp.State)
 ---@field before_debug? fun(state: cp.State)
 ---@field setup_code? fun(state: cp.State)
+---@field setup_io_input? fun(bufnr: integer, state: cp.State)
+---@field setup_io_output? fun(bufnr: integer, state: cp.State)
 
 ---@class CpUI
 ---@field panel PanelConfig
