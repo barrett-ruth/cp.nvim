@@ -2,10 +2,12 @@ local M = {}
 
 ---@param bufnr integer
 function M.clearcol(bufnr)
-  vim.bo[bufnr].signcolumn = 'no'
-  vim.bo[bufnr].statuscolumn = ''
-  vim.bo[bufnr].number = false
-  vim.bo[bufnr].relativenumber = false
+  for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+    vim.wo[win].signcolumn = 'no'
+    vim.wo[win].statuscolumn = ''
+    vim.wo[win].number = false
+    vim.wo[win].relativenumber = false
+  end
 end
 
 return M
