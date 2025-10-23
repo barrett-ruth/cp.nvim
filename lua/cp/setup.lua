@@ -186,6 +186,7 @@ function M.setup_problem(problem_id, language)
         state.get_problem_id() or '',
         lang
       )
+      require('cp.ui.panel').ensure_io_view()
     end
     state.set_provisional(nil)
     return
@@ -209,6 +210,7 @@ function M.setup_problem(problem_id, language)
       state.get_problem_id() or '',
       lang
     )
+    require('cp.ui.panel').ensure_io_view()
   end)
 end
 
@@ -247,7 +249,11 @@ function M.navigate_problem(direction)
     return
   end
 
-  require('cp.ui.panel').disable()
+  local active_panel = state.get_active_panel()
+  if active_panel == 'run' then
+    require('cp.ui.panel').disable()
+  end
+
   M.setup_contest(platform, contest_id, problems[new_index].id)
 end
 
