@@ -165,6 +165,7 @@ end
 function M.setup_problem(problem_id, language)
   local platform = state.get_platform()
   if not platform then
+    logger.log('No platform/contest/problem configured.', vim.log.levels.ERROR)
     return
   end
 

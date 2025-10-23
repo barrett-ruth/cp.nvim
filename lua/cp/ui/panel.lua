@@ -70,25 +70,13 @@ function M.toggle_interactive(interactor_cmd)
     return
   end
 
-  local platform, contest_id = state.get_platform(), state.get_contest_id()
-  if not platform then
-    logger.log('No platform configured.', vim.log.levels.ERROR)
-    return
-  end
-  if not contest_id then
+  local platform, contest_id, problem_id =
+    state.get_platform(), state.get_contest_id(), state.get_problem_id()
+  if not platform or not contest_id or not problem_id then
     logger.log(
-      ("No contest %s configured for platform '%s'."):format(
-        contest_id,
-        constants.PLATFORM_DISPLAY_NAMES[platform]
-      ),
+      'No platform/contest/problem configured. Use :CP <platform> <contest> [...] first.',
       vim.log.levels.ERROR
     )
-    return
-  end
-
-  local problem_id = state.get_problem_id()
-  if not problem_id then
-    logger.log('No problem is active.', vim.log.levels.ERROR)
     return
   end
 
@@ -97,10 +85,9 @@ function M.toggle_interactive(interactor_cmd)
   if
     not contest_data
     or not contest_data.index_map
-    or not contest_data.problems[contest_data.index_map[problem_id]]
     or not contest_data.problems[contest_data.index_map[problem_id]].interactive
   then
-    logger.log('This problem is not interactive. Use :CP run.', vim.log.levels.ERROR)
+    logger.log('This problem is not interactive. Use :CP {run,panel}.', vim.log.levels.ERROR)
     return
   end
 
@@ -223,13 +210,13 @@ function M.toggle_interactive(interactor_cmd)
 end
 
 function M.ensure_io_view()
-  local platform, contest_id = state.get_platform(), state.get_contest_id()
-  if not platform or not contest_id then
-    return
-  end
-
-  local problem_id = state.get_problem_id()
-  if not problem_id then
+  local platform, contest_id, problem_id =
+    state.get_platform(), state.get_contest_id(), state.get_problem_id()
+  if not platform or not contest_id or not problem_id then
+    logger.log(
+      'No platform/contest/problem configured. Use :CP <platform> <contest> [...] first.',
+      vim.log.levels.ERROR
+    )
     return
   end
 
@@ -238,9 +225,9 @@ function M.ensure_io_view()
   if
     contest_data
     and contest_data.index_map
-    and contest_data.problems[contest_data.index_map[problem_id]]
     and contest_data.problems[contest_data.index_map[problem_id]].interactive
   then
+    logger.log('No platform configured.', vim.log.levels.ERROR)
     return
   end
 
@@ -285,8 +272,8 @@ function M.ensure_io_view()
     end
   end
 
-  utils.update_buffer_content(input_buf, {}, nil, nil)
-  utils.update_buffer_content(output_buf, {}, nil, nil)
+  utils.update_buffer_content(input_buf, {})
+  utils.update_buffer_content(output_buf, {})
 
   vim.api.nvim_set_current_win(solution_win)
 
@@ -294,40 +281,23 @@ function M.ensure_io_view()
 end
 
 function M.run_io_view(test_index)
-  local platform, contest_id = state.get_platform(), state.get_contest_id()
-  if not platform then
+  local platform, contest_id, problem_id =
+    state.get_platform(), state.get_contest_id(), state.get_problem_id()
+  if not platform or not contest_id or not problem_id then
     logger.log(
-      'No platform configured. Use :CP <platform> <contest> [...] first.',
+      'No platform/contest/problem configured. Use :CP <platform> <contest> [...] first.',
       vim.log.levels.ERROR
     )
-    return
-  end
-
-  if not contest_id then
-    logger.log(
-      ("No contest configured for platform '%s'."):format(
-        constants.PLATFORM_DISPLAY_NAMES[platform]
-      ),
-      vim.log.levels.ERROR
-    )
-    return
-  end
-
-  local problem_id = state.get_problem_id()
-  if not problem_id then
-    logger.log('No problem is active.', vim.log.levels.ERROR)
-    return
   end
 
   cache.load()
   local contest_data = cache.get_contest_data(platform, contest_id)
   if
-    contest_data
-    and contest_data.index_map
-    and contest_data.problems[contest_data.index_map[problem_id]]
-    and contest_data.problems[contest_data.index_map[problem_id]].interactive
+    not contest_data
+    or not contest_data.index_map
+    or not contest_data.problems[contest_data.index_map[problem_id]].interactive
   then
-    logger.log('This is an interactive problem. Use :CP interact instead.', vim.log.levels.WARN)
+    logger.log('This problem is not interactive. Use :CP {run,panel}.', vim.log.levels.ERROR)
     return
   end
 
@@ -480,20 +450,9 @@ function M.toggle_panel(panel_opts)
 
   local platform, contest_id = state.get_platform(), state.get_contest_id()
 
-  if not platform then
+  if not platform or not contest_id then
     logger.log(
-      'No platform configured. Use :CP <platform> <contest> [...] first.',
-      vim.log.levels.ERROR
-    )
-    return
-  end
-
-  if not contest_id then
-    logger.log(
-      ("No contest '%s' configured for platform '%s'."):format(
-        contest_id,
-        constants.PLATFORM_DISPLAY_NAMES[platform]
-      ),
+      'No platform/contest/problem configured. Use :CP <platform> <contest> [...] first.',
       vim.log.levels.ERROR
     )
     return
