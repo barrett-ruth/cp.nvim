@@ -204,6 +204,131 @@ function M.toggle_interactive(interactor_cmd)
   state.set_active_panel('interactive')
 end
 
+function M.toggle_io_view()
+  local io_state = state.get_io_view_state()
+  if io_state then
+    if vim.api.nvim_buf_is_valid(io_state.output_buf) then
+      vim.api.nvim_buf_delete(io_state.output_buf, { force = true })
+    end
+    if vim.api.nvim_buf_is_valid(io_state.input_buf) then
+      vim.api.nvim_buf_delete(io_state.input_buf, { force = true })
+    end
+    state.set_io_view_state(nil)
+    return
+  end
+
+  local platform, contest_id = state.get_platform(), state.get_contest_id()
+  if not platform then
+    logger.log(
+      'No platform configured. Use :CP <platform> <contest> [...] first.',
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
+  if not contest_id then
+    logger.log(
+      ("No contest '%s' configured for platform '%s'."):format(
+        contest_id,
+        constants.PLATFORM_DISPLAY_NAMES[platform]
+      ),
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
+  local problem_id = state.get_problem_id()
+  if not problem_id then
+    logger.log('No problem is active.', vim.log.levels.ERROR)
+    return
+  end
+
+  local cache = require('cp.cache')
+  cache.load()
+  local contest_data = cache.get_contest_data(platform, contest_id)
+  if
+    contest_data
+    and contest_data.index_map
+    and contest_data.problems[contest_data.index_map[problem_id]]
+    and contest_data.problems[contest_data.index_map[problem_id]].interactive
+  then
+    logger.log('This is an interactive problem. Use :CP interact instead.', vim.log.levels.WARN)
+    return
+  end
+
+  local run = require('cp.runner.run')
+  if not run.load_test_cases() then
+    logger.log('no test cases found', vim.log.levels.WARN)
+    return
+  end
+
+  local execute = require('cp.runner.execute')
+  local compile_result = execute.compile_problem()
+  if compile_result.success then
+    run.run_all_test_cases()
+  else
+    run.handle_compilation_failure(compile_result.output)
+  end
+
+  local solution_win = state.get_solution_win()
+  vim.api.nvim_set_current_win(solution_win)
+
+  vim.cmd.vsplit()
+  local output_win = vim.api.nvim_get_current_win()
+  local output_buf = utils.create_buffer_with_options()
+  vim.api.nvim_win_set_buf(output_win, output_buf)
+
+  vim.cmd.split()
+  local input_win = vim.api.nvim_get_current_win()
+  local input_buf = utils.create_buffer_with_options()
+  vim.api.nvim_win_set_buf(input_win, input_buf)
+
+  local test_state = run.get_panel_state()
+  local run_render = require('cp.runner.run_render')
+  run_render.setup_highlights()
+
+  local verdict_lines = {}
+  local verdict_highlights = {}
+  for i, tc in ipairs(test_state.test_cases) do
+    local status = run_render.get_status_info(tc)
+    local time = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
+    local mem = tc.rss_mb and string.format('%.0f', tc.rss_mb) or '—'
+    local line = string.format('Test %d: %s (%sms, %sMB)', i, status.text, time, mem)
+    table.insert(verdict_lines, line)
+    local status_pos = line:find(status.text, 1, true)
+    if status_pos then
+      table.insert(verdict_highlights, {
+        line = i - 1,
+        col_start = status_pos - 1,
+        col_end = status_pos - 1 + #status.text,
+        highlight_group = status.highlight_group,
+      })
+    end
+  end
+
+  local verdict_ns = vim.api.nvim_create_namespace('cp_io_view_verdict')
+  utils.update_buffer_content(output_buf, verdict_lines, verdict_highlights, verdict_ns)
+
+  local hint_lines = { 'Multiple tests running...', 'Use :CP run <n> to view specific test' }
+  utils.update_buffer_content(input_buf, hint_lines, nil, nil)
+
+  vim.keymap.set('n', 'q', function()
+    M.toggle_io_view()
+  end, { buffer = output_buf, silent = true })
+  vim.keymap.set('n', 'q', function()
+    M.toggle_io_view()
+  end, { buffer = input_buf, silent = true })
+
+  state.set_io_view_state({
+    output_buf = output_buf,
+    input_buf = input_buf,
+    output_win = output_win,
+    input_win = input_win,
+  })
+
+  vim.api.nvim_set_current_win(output_win)
+end
+
 ---@param panel_opts? PanelOpts
 function M.toggle_panel(panel_opts)
   if state.get_active_panel() == 'run' then
@@ -212,10 +337,11 @@ function M.toggle_panel(panel_opts)
       current_diff_layout = nil
       current_mode = nil
     end
-    if state.saved_session then
-      vim.cmd(('source %s'):format(state.saved_session))
-      vim.fn.delete(state.saved_session)
-      state.saved_session = nil
+    local saved = state.get_saved_session()
+    if saved then
+      vim.cmd(('source %s'):format(saved))
+      vim.fn.delete(saved)
+      state.set_saved_session(nil)
     end
     state.set_active_panel(nil)
     return
@@ -268,8 +394,9 @@ function M.toggle_panel(panel_opts)
     return
   end
 
-  state.saved_session = vim.fn.tempname()
-  vim.cmd(('mksession! %s'):format(state.saved_session))
+  local session_file = vim.fn.tempname()
+  state.set_saved_session(session_file)
+  vim.cmd(('mksession! %s'):format(session_file))
   vim.cmd('silent only')
 
   local tab_buf = utils.create_buffer_with_options()
