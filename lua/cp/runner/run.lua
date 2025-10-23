@@ -122,7 +122,7 @@ local function run_single_test_case(test_case)
   local out = r.stdout or ''
   local highlights = {}
   if out ~= '' then
-    if config.ui.panel.ansi then
+    if config.ui.ansi then
       local parsed = ansi.parse_ansi_text(out)
       out = table.concat(parsed.lines, '\n')
       highlights = parsed.highlights
@@ -224,14 +224,22 @@ function M.run_test_case(index)
   return true
 end
 
+---@param indices? integer[]
 ---@return RanTestCase[]
-function M.run_all_test_cases()
-  local results = {}
-  for i = 1, #panel_state.test_cases do
-    M.run_test_case(i)
-    results[i] = panel_state.test_cases[i]
+function M.run_all_test_cases(indices)
+  local to_run = indices
+  if not to_run then
+    to_run = {}
+    for i = 1, #panel_state.test_cases do
+      to_run[i] = i
+    end
   end
-  return results
+
+  for _, i in ipairs(to_run) do
+    M.run_test_case(i)
+  end
+
+  return panel_state.test_cases
 end
 
 ---@return PanelState
@@ -247,7 +255,7 @@ function M.handle_compilation_failure(output)
   local txt
   local hl = {}
 
-  if config.ui.panel.ansi then
+  if config.ui.ansi then
     local p = ansi.parse_ansi_text(output or '')
     txt = table.concat(p.lines, '\n')
     hl = p.highlights

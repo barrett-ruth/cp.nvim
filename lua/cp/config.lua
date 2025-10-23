@@ -18,7 +18,6 @@
 ---@field overrides? table<string, CpPlatformOverrides>
 
 ---@class PanelConfig
----@field ansi boolean
 ---@field diff_mode "none"|"vim"|"git"
 ---@field max_output_lines integer
 
@@ -36,6 +35,7 @@
 ---@field setup_io_output? fun(bufnr: integer, state: cp.State)
 
 ---@class CpUI
+---@field ansi boolean
 ---@field panel PanelConfig
 ---@field diff DiffConfig
 ---@field picker string|nil
@@ -115,7 +115,8 @@ M.defaults = {
   scrapers = constants.PLATFORMS,
   filename = nil,
   ui = {
-    panel = { ansi = true, diff_mode = 'none', max_output_lines = 50 },
+    ansi = true,
+    panel = { diff_mode = 'none', max_output_lines = 50 },
     diff = {
       git = {
         args = { 'diff', '--no-index', '--word-diff=plain', '--word-diff-regex=.', '--no-prefix' },
@@ -243,7 +244,7 @@ function M.setup(user_config)
   })
 
   vim.validate({
-    ansi = { cfg.ui.panel.ansi, 'boolean' },
+    ansi = { cfg.ui.ansi, 'boolean' },
     diff_mode = {
       cfg.ui.panel.diff_mode,
       function(v)

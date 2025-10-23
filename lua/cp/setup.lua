@@ -60,6 +60,18 @@ local function start_tests(platform, contest_id, problems)
         ev.memory_mb or 0,
         ev.interactive
       )
+
+      local io_state = state.get_io_view_state()
+      if io_state then
+        local test_cases = cache.get_test_cases(platform, contest_id, state.get_problem_id())
+        local input_lines = {}
+        for _, tc in ipairs(test_cases) do
+          for _, line in ipairs(vim.split(tc.input, '\n', { plain = true, trimempty = false })) do
+            table.insert(input_lines, line)
+          end
+        end
+        require('cp.utils').update_buffer_content(io_state.input_buf, input_lines, nil, nil)
+      end
     end)
   end
 end

@@ -15,6 +15,22 @@ local utils = require('cp.utils')
 local current_diff_layout = nil
 local current_mode = nil
 
+local function populate_input()
+  local io_state = state.get_io_view_state()
+
+  local test_cases =
+    cache.get_test_cases(state.get_platform(), state.get_contest_id(), state.get_problem_id())
+
+  local input_lines = {}
+  for _, tc in ipairs(test_cases) do
+    for _, line in ipairs(vim.split(tc.input, '\n', { plain = true, trimempty = false })) do
+      table.insert(input_lines, line)
+    end
+  end
+
+  utils.update_buffer_content(io_state.input_buf, input_lines)
+end
+
 function M.disable()
   local active_panel = state.get_active_panel()
   if not active_panel then
@@ -269,22 +285,15 @@ function M.ensure_io_view()
     end
   end
 
-  local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
-  local input_lines = {}
-  for i, tc in ipairs(test_cases) do
-    table.insert(input_lines, string.format('--- Test %d ---', i))
-    for _, line in ipairs(vim.split(tc.input, '\n', { plain = true, trimempty = false })) do
-      table.insert(input_lines, line)
-    end
-  end
-
-  utils.update_buffer_content(input_buf, input_lines, nil, nil)
+  utils.update_buffer_content(input_buf, {}, nil, nil)
   utils.update_buffer_content(output_buf, {}, nil, nil)
 
   vim.api.nvim_set_current_win(solution_win)
+
+  populate_input()
 end
 
-function M.run_io_view()
+function M.run_io_view(test_index)
   local platform, contest_id = state.get_platform(), state.get_contest_id()
   if not platform then
     logger.log(
@@ -296,8 +305,7 @@ function M.run_io_view()
 
   if not contest_id then
     logger.log(
-      ("No contest '%s' configured for platform '%s'."):format(
-        contest_id,
+      ("No contest configured for platform '%s'."):format(
         constants.PLATFORM_DISPLAY_NAMES[platform]
       ),
       vim.log.levels.ERROR
@@ -326,18 +334,31 @@ function M.run_io_view()
   M.ensure_io_view()
 
   local run = require('cp.runner.run')
-  local run_render = require('cp.runner.run_render')
   if not run.load_test_cases() then
-    logger.log('no test cases found', vim.log.levels.WARN)
+    logger.log('No test cases available', vim.log.levels.ERROR)
     return
   end
 
-  local execute = require('cp.runner.execute')
-  local compile_result = execute.compile_problem()
-  if compile_result.success then
-    run.run_all_test_cases()
+  local test_state = run.get_panel_state()
+  local test_indices = {}
+
+  if test_index then
+    if test_index < 1 or test_index > #test_state.test_cases then
+      logger.log(
+        string.format(
+          'Test %d does not exist (only %d tests available)',
+          test_index,
+          #test_state.test_cases
+        ),
+        vim.log.levels.ERROR
+      )
+      return
+    end
+    test_indices = { test_index }
   else
-    run.handle_compilation_failure(compile_result.output)
+    for i = 1, #test_state.test_cases do
+      test_indices[i] = i
+    end
   end
 
   local io_state = state.get_io_view_state()
@@ -345,30 +366,91 @@ function M.run_io_view()
     return
   end
 
-  local test_state = run.get_panel_state()
-  run_render.setup_highlights()
+  local config = config_module.get_config()
 
-  local verdict_lines = {}
-  local verdict_highlights = {}
-  for i, tc in ipairs(test_state.test_cases) do
-    local status = run_render.get_status_info(tc)
-    local time = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
-    local mem = tc.rss_mb and string.format('%.0f', tc.rss_mb) or '—'
-    local line = string.format('Test %d: %s (%sms, %sMB)', i, status.text, time, mem)
-    table.insert(verdict_lines, line)
-    local status_pos = line:find(status.text, 1, true)
-    if status_pos then
-      table.insert(verdict_highlights, {
-        line = i - 1,
-        col_start = status_pos - 1,
-        col_end = status_pos - 1 + #status.text,
-        highlight_group = status.highlight_group,
-      })
-    end
+  if config.ui.ansi then
+    require('cp.ui.ansi').setup_highlight_groups()
   end
 
-  local verdict_ns = vim.api.nvim_create_namespace('cp_io_view_verdict')
-  utils.update_buffer_content(io_state.output_buf, verdict_lines, verdict_highlights, verdict_ns)
+  local execute = require('cp.runner.execute')
+  local compile_result = execute.compile_problem()
+  if not compile_result.success then
+    local ansi = require('cp.ui.ansi')
+    local output = compile_result.output or ''
+    local lines, highlights
+
+    if config.ui.ansi then
+      local parsed = ansi.parse_ansi_text(output)
+      lines = parsed.lines
+      highlights = parsed.highlights
+    else
+      lines = vim.split(output:gsub('\027%[[%d;]*[a-zA-Z]', ''), '\n')
+      highlights = {}
+    end
+
+    local ns = vim.api.nvim_create_namespace('cp_io_view_compile_error')
+    utils.update_buffer_content(io_state.output_buf, lines, highlights, ns)
+    return
+  end
+
+  run.run_all_test_cases(test_indices)
+
+  local input_lines = {}
+  for _, idx in ipairs(test_indices) do
+    local tc = test_state.test_cases[idx]
+    for _, line in ipairs(vim.split(tc.input, '\n', { plain = true, trimempty = false })) do
+      table.insert(input_lines, line)
+    end
+  end
+  utils.update_buffer_content(io_state.input_buf, input_lines, nil, nil)
+
+  local run_render = require('cp.runner.run_render')
+  run_render.setup_highlights()
+
+  if #test_indices == 1 then
+    local idx = test_indices[1]
+    local tc = test_state.test_cases[idx]
+    local status = run_render.get_status_info(tc)
+
+    local output_lines = {}
+    if tc.actual then
+      for _, line in ipairs(vim.split(tc.actual, '\n', { plain = true, trimempty = false })) do
+        table.insert(output_lines, line)
+      end
+    end
+
+    table.insert(output_lines, '')
+    local time = tc.time_ms and string.format('%.2fms', tc.time_ms) or '—'
+    local code = tc.code and tostring(tc.code) or '—'
+    table.insert(output_lines, string.format('--- %s: %s | Exit: %s ---', status.text, time, code))
+
+    local highlights = tc.actual_highlights or {}
+    local ns = vim.api.nvim_create_namespace('cp_io_view_output')
+    utils.update_buffer_content(io_state.output_buf, output_lines, highlights, ns)
+  else
+    local verdict_lines = {}
+    local verdict_highlights = {}
+    for _, idx in ipairs(test_indices) do
+      local tc = test_state.test_cases[idx]
+      local status = run_render.get_status_info(tc)
+      local time = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
+      local mem = tc.rss_mb and string.format('%.0f', tc.rss_mb) or '—'
+      local line = string.format('Test %d: %s (%sms, %sMB)', idx, status.text, time, mem)
+      table.insert(verdict_lines, line)
+      local status_pos = line:find(status.text, 1, true)
+      if status_pos then
+        table.insert(verdict_highlights, {
+          line = #verdict_lines - 1,
+          col_start = status_pos - 1,
+          col_end = status_pos - 1 + #status.text,
+          highlight_group = status.highlight_group,
+        })
+      end
+    end
+
+    local verdict_ns = vim.api.nvim_create_namespace('cp_io_view_verdict')
+    utils.update_buffer_content(io_state.output_buf, verdict_lines, verdict_highlights, verdict_ns)
+  end
 end
 
 ---@param panel_opts? PanelOpts
@@ -386,6 +468,8 @@ function M.toggle_panel(panel_opts)
       state.set_saved_session(nil)
     end
     state.set_active_panel(nil)
+    M.ensure_io_view()
+    populate_input()
     return
   end
 
@@ -434,6 +518,17 @@ function M.toggle_panel(panel_opts)
   if not run.load_test_cases() then
     logger.log('no test cases found', vim.log.levels.WARN)
     return
+  end
+
+  local io_state = state.get_io_view_state()
+  if io_state then
+    if vim.api.nvim_win_is_valid(io_state.output_win) then
+      vim.api.nvim_win_close(io_state.output_win, true)
+    end
+    if vim.api.nvim_win_is_valid(io_state.input_win) then
+      vim.api.nvim_win_close(io_state.input_win, true)
+    end
+    state.set_io_view_state(nil)
   end
 
   local session_file = vim.fn.tempname()
@@ -537,7 +632,7 @@ function M.toggle_panel(panel_opts)
   refresh_panel()
 
   vim.schedule(function()
-    if config.ui.panel.ansi then
+    if config.ui.ansi then
       require('cp.ui.ansi').setup_highlight_groups()
     end
     if current_diff_layout then

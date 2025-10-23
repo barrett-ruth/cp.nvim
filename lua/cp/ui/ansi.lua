@@ -321,6 +321,25 @@ function M.setup_highlight_groups()
   vim.api.nvim_set_hl(0, 'CpAnsiBold', { bold = true })
   vim.api.nvim_set_hl(0, 'CpAnsiItalic', { italic = true })
   vim.api.nvim_set_hl(0, 'CpAnsiBoldItalic', { bold = true, italic = true })
+
+  for _, combo in ipairs(combinations) do
+    for color_name, _ in pairs(color_map) do
+      local parts = { 'CpAnsi' }
+      if combo.bold then
+        table.insert(parts, 'Bold')
+      end
+      if combo.italic then
+        table.insert(parts, 'Italic')
+      end
+      table.insert(parts, color_name)
+      local hl_name = table.concat(parts)
+      dyn_hl_cache[hl_name] = true
+    end
+  end
+
+  dyn_hl_cache['CpAnsiBold'] = true
+  dyn_hl_cache['CpAnsiItalic'] = true
+  dyn_hl_cache['CpAnsiBoldItalic'] = true
 end
 
 ---@param text string

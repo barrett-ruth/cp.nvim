@@ -52,6 +52,20 @@ local function parse_command(args)
       else
         return { type = 'action', action = 'interact' }
       end
+    elseif first == 'run' then
+      local test_arg = args[2]
+      if test_arg then
+        local test_index = tonumber(test_arg)
+        if not test_index then
+          return { type = 'error', message = 'Test index must be a number' }
+        end
+        if test_index < 1 or test_index ~= math.floor(test_index) then
+          return { type = 'error', message = 'Test index must be >= 1' }
+        end
+        return { type = 'action', action = 'run', test_index = test_index }
+      else
+        return { type = 'action', action = 'run' }
+      end
     else
       return { type = 'action', action = first }
     end
@@ -109,7 +123,7 @@ function M.handle_command(opts)
     if cmd.action == 'interact' then
       ui.toggle_interactive(cmd.interactor_cmd)
     elseif cmd.action == 'run' then
-      ui.run_io_view()
+      ui.run_io_view(cmd.test_index)
     elseif cmd.action == 'panel' then
       ui.toggle_panel()
     elseif cmd.action == 'debug' then
