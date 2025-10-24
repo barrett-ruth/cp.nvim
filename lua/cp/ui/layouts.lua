@@ -11,7 +11,7 @@ local function create_none_diff_layout(parent_win, expected_content, actual_cont
 
   vim.api.nvim_set_current_win(parent_win)
   vim.cmd.split()
-  vim.cmd('resize ' .. math.floor(vim.o.lines * 0.35))
+  vim.cmd.resize(math.floor(vim.o.lines * 0.35))
   local actual_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(actual_win, actual_buf)
 
@@ -50,7 +50,7 @@ local function create_vim_diff_layout(parent_win, expected_content, actual_conte
 
   vim.api.nvim_set_current_win(parent_win)
   vim.cmd.split()
-  vim.cmd('resize ' .. math.floor(vim.o.lines * 0.35))
+  vim.cmd.resize(math.floor(vim.o.lines * 0.35))
   local actual_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(actual_win, actual_buf)
 
@@ -98,7 +98,7 @@ local function create_git_diff_layout(parent_win, expected_content, actual_conte
 
   vim.api.nvim_set_current_win(parent_win)
   vim.cmd.split()
-  vim.cmd('resize ' .. math.floor(vim.o.lines * 0.35))
+  vim.cmd.resize(math.floor(vim.o.lines * 0.35))
   local diff_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(diff_win, diff_buf)
 
@@ -135,7 +135,7 @@ local function create_single_layout(parent_win, content)
 
   vim.api.nvim_set_current_win(parent_win)
   vim.cmd.split()
-  vim.cmd('resize ' .. math.floor(vim.o.lines * 0.35))
+  vim.cmd.resize(math.floor(vim.o.lines * 0.35))
   local win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(win, buf)
   vim.api.nvim_set_option_value('filetype', 'cp', { buf = buf })

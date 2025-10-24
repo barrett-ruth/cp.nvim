@@ -244,7 +244,11 @@ function M.setup_problem(problem_id, language)
     if vim.api.nvim_buf_is_valid(prov.bufnr) then
       vim.api.nvim_buf_set_name(prov.bufnr, source_file)
       vim.bo[prov.bufnr].swapfile = true
-      vim.cmd(string.format('silent keepalt noautocmd write! %s', vim.fn.fnameescape(source_file)))
+      vim.cmd.write({
+        vim.fn.fnameescape(source_file),
+        bang = true,
+        mods = { silent = true, noautocmd = true, keepalt = true },
+      })
       state.set_solution_win(vim.api.nvim_get_current_win())
       if config.hooks and config.hooks.setup_code and not vim.b[prov.bufnr].cp_setup_done then
         local ok = pcall(config.hooks.setup_code, state)

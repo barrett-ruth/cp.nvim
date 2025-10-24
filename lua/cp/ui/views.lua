@@ -40,7 +40,7 @@ function M.toggle_interactive(interactor_cmd)
       end
     end
     if state.saved_interactive_session then
-      vim.cmd(('source %s'):format(state.saved_interactive_session))
+      vim.cmd.source(state.saved_interactive_session)
       vim.fn.delete(state.saved_interactive_session)
       state.saved_interactive_session = nil
     end
@@ -75,8 +75,8 @@ function M.toggle_interactive(interactor_cmd)
   end
 
   state.saved_interactive_session = vim.fn.tempname()
-  vim.cmd(('mksession! %s'):format(state.saved_interactive_session))
-  vim.cmd('silent only')
+  vim.cmd.mksession({ state.saved_interactive_session, bang = true })
+  vim.cmd.only({ mods = { silent = true } })
 
   local execute = require('cp.runner.execute')
   local run = require('cp.runner.run')
@@ -104,7 +104,7 @@ function M.toggle_interactive(interactor_cmd)
         vim.log.levels.ERROR
       )
       if state.saved_interactive_session then
-        vim.cmd(('source %s'):format(state.saved_interactive_session))
+        vim.cmd.source(state.saved_interactive_session)
         vim.fn.delete(state.saved_interactive_session)
         state.saved_interactive_session = nil
       end
@@ -122,7 +122,7 @@ function M.toggle_interactive(interactor_cmd)
     cmdline = vim.fn.shellescape(binary)
   end
 
-  vim.cmd('terminal ' .. cmdline)
+  vim.cmd.terminal(cmdline)
   local term_buf = vim.api.nvim_get_current_buf()
   local term_win = vim.api.nvim_get_current_win()
 
@@ -139,7 +139,7 @@ function M.toggle_interactive(interactor_cmd)
       end
     end
     if state.saved_interactive_session then
-      vim.cmd(('source %s'):format(state.saved_interactive_session))
+      vim.cmd.source(state.saved_interactive_session)
       vim.fn.delete(state.saved_interactive_session)
       state.saved_interactive_session = nil
     end
@@ -524,7 +524,7 @@ function M.toggle_panel(panel_opts)
     end
     local saved = state.get_saved_session()
     if saved then
-      vim.cmd(('source %s'):format(saved))
+      vim.cmd.source(saved)
       vim.fn.delete(saved)
       state.set_saved_session(nil)
     end
@@ -582,8 +582,8 @@ function M.toggle_panel(panel_opts)
 
   local session_file = vim.fn.tempname()
   state.set_saved_session(session_file)
-  vim.cmd(('mksession! %s'):format(session_file))
-  vim.cmd('silent only')
+  vim.cmd.mksession({ session_file, bang = true })
+  vim.cmd.only({ mods = { silent = true } })
 
   local tab_buf = utils.create_buffer_with_options()
   helpers.clearcol(tab_buf)
@@ -630,7 +630,7 @@ function M.toggle_panel(panel_opts)
     then
       vim.api.nvim_win_set_cursor(test_windows.tab_win, { current_line, 0 })
       vim.api.nvim_win_call(test_windows.tab_win, function()
-        vim.cmd('normal! zz')
+        vim.cmd.normal({ 'zz', bang = true })
       end)
     end
   end
