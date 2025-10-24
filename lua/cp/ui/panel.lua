@@ -228,8 +228,8 @@ function M.ensure_io_view()
 
     vim.cmd.vsplit()
     output_win = vim.api.nvim_get_current_win()
-    local config = config_module.get_config()
-    local width = math.floor(vim.o.columns * (config.ui.run.width or 0.3))
+    local cfg = config_module.get_config()
+    local width = math.floor(vim.o.columns * (cfg.ui.run.width or 0.3))
     vim.api.nvim_win_set_width(output_win, width)
     output_buf = utils.create_buffer_with_options()
     vim.api.nvim_win_set_buf(output_win, output_buf)
@@ -247,7 +247,6 @@ function M.ensure_io_view()
       current_test_index = 1,
     })
 
-    local cfg = config_module.get_config()
     if cfg.hooks and cfg.hooks.setup_io_output then
       pcall(cfg.hooks.setup_io_output, output_buf, state)
     end
