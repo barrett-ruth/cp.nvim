@@ -75,6 +75,7 @@ function M.toggle_interactive(interactor_cmd)
   end
 
   state.saved_interactive_session = vim.fn.tempname()
+  -- selene: allow(mixed_table)
   vim.cmd.mksession({ state.saved_interactive_session, bang = true })
   vim.cmd.only({ mods = { silent = true } })
 
@@ -582,6 +583,7 @@ function M.toggle_panel(panel_opts)
 
   local session_file = vim.fn.tempname()
   state.set_saved_session(session_file)
+  -- selene: allow(mixed_table)
   vim.cmd.mksession({ session_file, bang = true })
   vim.cmd.only({ mods = { silent = true } })
 
@@ -629,6 +631,7 @@ function M.toggle_panel(panel_opts)
       and vim.api.nvim_win_is_valid(test_windows.tab_win)
     then
       vim.api.nvim_win_set_cursor(test_windows.tab_win, { current_line, 0 })
+      -- selene: allow(mixed_table)
       vim.api.nvim_win_call(test_windows.tab_win, function()
         vim.cmd.normal({ 'zz', bang = true })
       end)

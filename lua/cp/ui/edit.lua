@@ -122,7 +122,7 @@ function M.toggle_edit(test_index)
     end
 
     local views = require('cp.ui.views')
-    views.run_io_view()
+    views.ensure_io_view()
 
     logger.log('Closed test editor')
     return
@@ -171,17 +171,18 @@ function M.toggle_edit(test_index)
 
   local session_file = vim.fn.tempname()
   state.set_saved_session(session_file)
+  -- selene: allow(mixed_table)
   vim.cmd.mksession({ session_file, bang = true })
   vim.cmd.only({ mods = { silent = true } })
 
   local test_buffers = {}
   local num_tests = #test_cases
 
-  for i = 1, num_tests - 1 do
+  for _ = 1, num_tests - 1 do
     vim.cmd.vsplit()
   end
 
-  vim.cmd.wincmd('w', { count = 1 })
+  vim.cmd('1 wincmd w')
 
   for col = 1, num_tests do
     vim.cmd.split()

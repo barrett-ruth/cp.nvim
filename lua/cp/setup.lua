@@ -244,6 +244,7 @@ function M.setup_problem(problem_id, language)
     if vim.api.nvim_buf_is_valid(prov.bufnr) then
       vim.api.nvim_buf_set_name(prov.bufnr, source_file)
       vim.bo[prov.bufnr].swapfile = true
+      -- selene: allow(mixed_table)
       vim.cmd.write({
         vim.fn.fnameescape(source_file),
         bang = true,
