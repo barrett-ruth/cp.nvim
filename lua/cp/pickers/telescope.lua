@@ -8,7 +8,7 @@ local picker_utils = require('cp.pickers')
 
 local M = {}
 
-local function contest_picker(opts, platform, refresh)
+local function contest_picker(opts, platform, refresh, language)
   local constants = require('cp.constants')
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform]
   local contests = picker_utils.get_platform_contests(platform, refresh)
@@ -43,13 +43,18 @@ local function contest_picker(opts, platform, refresh)
 
           if selection then
             local cp = require('cp')
-            cp.handle_command({ fargs = { platform, selection.value.id } })
+            local fargs = { platform, selection.value.id }
+            if language then
+              table.insert(fargs, '--lang')
+              table.insert(fargs, language)
+            end
+            cp.handle_command({ fargs = fargs })
           end
         end)
 
         map('i', '<c-r>', function()
           actions.close(prompt_bufnr)
-          contest_picker(opts, platform, true)
+          contest_picker(opts, platform, true, language)
         end)
 
         return true
@@ -58,9 +63,8 @@ local function contest_picker(opts, platform, refresh)
     :find()
 end
 
-function M.pick(opts)
-  opts = opts or {}
-
+function M.pick(language)
+  local opts = {}
   local platforms = picker_utils.get_platforms()
 
   pickers
@@ -83,7 +87,7 @@ function M.pick(opts)
           actions.close(prompt_bufnr)
 
           if selection then
-            contest_picker(opts, selection.value.id)
+            contest_picker(opts, selection.value.id, false, language)
           end
         end)
         return true

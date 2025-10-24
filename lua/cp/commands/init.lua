@@ -18,6 +18,7 @@ local actions = constants.ACTIONS
 ---@field interactor_cmd? string
 ---@field test_index? integer
 ---@field debug? boolean
+---@field language? string
 
 --- Turn raw args into normalized structure to later dispatch
 ---@param args string[] The raw command-line mode args
@@ -79,7 +80,16 @@ local function parse_command(args)
 
       return { type = 'action', action = first, test_index = test_index, debug = debug }
     else
-      return { type = 'action', action = first }
+      local language = nil
+      if #args >= 3 and args[2] == '--lang' then
+        language = args[3]
+      elseif #args >= 2 and args[2] ~= nil and args[2]:sub(1, 2) ~= '--' then
+        return {
+          type = 'error',
+          message = ("Unknown argument '%s' for action '%s'"):format(args[2], first),
+        }
+      end
+      return { type = 'action', action = first, language = language }
     end
   end
 
@@ -95,13 +105,18 @@ local function parse_command(args)
         platform = first,
         contest = args[2],
       }
-    elseif #args == 3 then
+    elseif #args == 4 and args[3] == '--lang' then
       return {
-        type = 'error',
-        message = 'Setup contests with :CP <platform> <contest_id>.',
+        type = 'contest_setup',
+        platform = first,
+        contest = args[2],
+        language = args[4],
       }
     else
-      return { type = 'error', message = 'Too many arguments' }
+      return {
+        type = 'error',
+        message = 'Invalid arguments. Usage: :CP <platform> <contest> [--lang <language>]',
+      }
     end
   end
 
@@ -109,6 +124,12 @@ local function parse_command(args)
     return {
       type = 'problem_jump',
       problem_id = first,
+    }
+  elseif #args == 3 and args[2] == '--lang' then
+    return {
+      type = 'problem_jump',
+      problem_id = first,
+      language = args[3],
     }
   end
 
@@ -139,12 +160,12 @@ function M.handle_command(opts)
     elseif cmd.action == 'panel' then
       ui.toggle_panel({ debug = cmd.debug, test_index = cmd.test_index })
     elseif cmd.action == 'next' then
-      setup.navigate_problem(1)
+      setup.navigate_problem(1, cmd.language)
     elseif cmd.action == 'prev' then
-      setup.navigate_problem(-1)
+      setup.navigate_problem(-1, cmd.language)
     elseif cmd.action == 'pick' then
       local picker = require('cp.commands.picker')
-      picker.handle_pick_action()
+      picker.handle_pick_action(cmd.language)
     end
   elseif cmd.type == 'problem_jump' then
     local platform = state.get_platform()
@@ -173,13 +194,13 @@ function M.handle_command(opts)
     end
 
     local setup = require('cp.setup')
-    setup.setup_contest(platform, contest_id, problem_id)
+    setup.setup_contest(platform, contest_id, problem_id, cmd.language)
   elseif cmd.type == 'cache' then
     local cache_commands = require('cp.commands.cache')
     cache_commands.handle_cache_command(cmd)
   elseif cmd.type == 'contest_setup' then
     local setup = require('cp.setup')
-    setup.setup_contest(cmd.platform, cmd.contest, nil)
+    setup.setup_contest(cmd.platform, cmd.contest, nil, cmd.language)
     return
   end
 end
