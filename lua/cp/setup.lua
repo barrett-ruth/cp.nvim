@@ -66,7 +66,7 @@ local function start_tests(platform, contest_id, problems)
         local test_cases = cache.get_test_cases(platform, contest_id, state.get_problem_id())
         local input_lines = {}
         for _, tc in ipairs(test_cases) do
-          for _, line in ipairs(vim.split(tc.input, '\n', { plain = true, trimempty = false })) do
+          for _, line in ipairs(vim.split(tc.input, '\n')) do
             table.insert(input_lines, line)
           end
         end

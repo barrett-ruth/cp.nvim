@@ -57,10 +57,13 @@ local function parse_command(args)
       if test_arg then
         local test_index = tonumber(test_arg)
         if not test_index then
-          return { type = 'error', message = 'Test index must be a number' }
+          return {
+            type = 'error',
+            message = ("Test index '%s' is not a number"):format(test_index),
+          }
         end
         if test_index < 1 or test_index ~= math.floor(test_index) then
-          return { type = 'error', message = 'Test index must be >= 1' }
+          return { type = 'error', message = ("'%s' is not a valid test index"):format(test_index) }
         end
         return { type = 'action', action = 'run', test_index = test_index }
       else

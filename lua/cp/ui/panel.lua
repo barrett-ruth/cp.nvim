@@ -85,9 +85,9 @@ function M.toggle_interactive(interactor_cmd)
   if
     not contest_data
     or not contest_data.index_map
-    or not contest_data.problems[contest_data.index_map[problem_id]].interactive
+    or contest_data.problems[contest_data.index_map[problem_id]].interactive
   then
-    logger.log('This problem is not interactive. Use :CP {run,panel}.', vim.log.levels.ERROR)
+    logger.log('This problem is interactive. Use :CP {run,panel}.', vim.log.levels.ERROR)
     return
   end
 
@@ -275,9 +275,18 @@ function M.ensure_io_view()
   utils.update_buffer_content(input_buf, {})
   utils.update_buffer_content(output_buf, {})
 
-  vim.api.nvim_set_current_win(solution_win)
+  local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
+  if test_cases and #test_cases > 0 then
+    local input_lines = {}
+    for _, tc in ipairs(test_cases) do
+      for _, line in ipairs(vim.split(tc.input, '\n')) do
+        table.insert(input_lines, line)
+      end
+    end
+    utils.update_buffer_content(input_buf, input_lines, nil, nil)
+  end
 
-  populate_input()
+  vim.api.nvim_set_current_win(solution_win)
 end
 
 function M.run_io_view(test_index)
@@ -295,9 +304,9 @@ function M.run_io_view(test_index)
   if
     not contest_data
     or not contest_data.index_map
-    or not contest_data.problems[contest_data.index_map[problem_id]].interactive
+    or contest_data.problems[contest_data.index_map[problem_id]].interactive
   then
-    logger.log('This problem is not interactive. Use :CP {run,panel}.', vim.log.levels.ERROR)
+    logger.log('This problem is interactive. Use :CP {run,panel}.', vim.log.levels.ERROR)
     return
   end
 
@@ -320,7 +329,7 @@ function M.run_io_view(test_index)
           test_index,
           #test_state.test_cases
         ),
-        vim.log.levels.ERROR
+        vim.log.levels.WARN
       )
       return
     end
@@ -368,7 +377,7 @@ function M.run_io_view(test_index)
   local input_lines = {}
   for _, idx in ipairs(test_indices) do
     local tc = test_state.test_cases[idx]
-    for _, line in ipairs(vim.split(tc.input, '\n', { plain = true, trimempty = false })) do
+    for _, line in ipairs(vim.split(tc.input, '\n')) do
       table.insert(input_lines, line)
     end
   end
@@ -439,7 +448,6 @@ function M.toggle_panel(panel_opts)
     end
     state.set_active_panel(nil)
     M.ensure_io_view()
-    populate_input()
     return
   end
 
@@ -452,7 +460,7 @@ function M.toggle_panel(panel_opts)
 
   if not platform or not contest_id then
     logger.log(
-      'No platform/contest/problem configured. Use :CP <platform> <contest> [...] first.',
+      'No platform/contest configured. Use :CP <platform> <contest> [...] first.',
       vim.log.levels.ERROR
     )
     return
