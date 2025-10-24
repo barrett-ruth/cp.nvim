@@ -247,29 +247,29 @@ function M.ensure_io_view()
       current_test_index = 1,
     })
 
-    local config = config_module.get_config()
-    if config.hooks and config.hooks.setup_io_output then
-      pcall(config.hooks.setup_io_output, output_buf, state)
+    local cfg = config_module.get_config()
+    if cfg.hooks and cfg.hooks.setup_io_output then
+      pcall(cfg.hooks.setup_io_output, output_buf, state)
     end
 
-    if config.hooks and config.hooks.setup_io_input then
-      pcall(config.hooks.setup_io_input, input_buf, state)
+    if cfg.hooks and cfg.hooks.setup_io_input then
+      pcall(cfg.hooks.setup_io_input, input_buf, state)
     end
 
     local function navigate_test(delta)
-      local io_state = state.get_io_view_state()
-      if not io_state then
+      local io_view_state = state.get_io_view_state()
+      if not io_view_state then
         return
       end
       local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
       if not test_cases or #test_cases == 0 then
         return
       end
-      local new_index = (io_state.current_test_index or 1) + delta
+      local new_index = (io_view_state.current_test_index or 1) + delta
       if new_index < 1 or new_index > #test_cases then
         return
       end
-      io_state.current_test_index = new_index
+      io_view_state.current_test_index = new_index
       M.run_io_view(new_index)
     end
 

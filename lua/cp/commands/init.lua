@@ -17,6 +17,7 @@ local actions = constants.ACTIONS
 ---@field problem_id? string
 ---@field interactor_cmd? string
 ---@field test_index? integer
+---@field debug? boolean
 
 --- Turn raw args into normalized structure to later dispatch
 ---@param args string[] The raw command-line mode args
