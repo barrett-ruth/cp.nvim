@@ -3,8 +3,6 @@ if vim.g.loaded_cp then
 end
 vim.g.loaded_cp = 1
 
-local utils = require('cp.utils')
-
 vim.api.nvim_create_user_command('CP', function(opts)
   local cp = require('cp')
   cp.handle_command(opts)
@@ -69,6 +67,7 @@ end, {
       elseif args[2] == 'cache' then
         return filter_candidates({ 'clear', 'read' })
       elseif args[2] == 'interact' then
+        local utils = require('cp.utils')
         return filter_candidates(utils.cwd_executables())
       elseif args[2] == 'run' or args[2] == 'panel' then
         local state = require('cp.state')
