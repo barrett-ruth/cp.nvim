@@ -12,8 +12,8 @@ async def pump(
         data = await reader.readline()
         if not data:
             break
-        sys.stdout.buffer.write(data)
-        sys.stdout.flush()
+        _ = sys.stdout.buffer.write(data)
+        _ = sys.stdout.flush()
         if writer:
             writer.write(data)
             await writer.drain()
@@ -42,9 +42,9 @@ async def main(interactor_cmd: Sequence[str], interactee_cmd: Sequence[str]) -> 
         asyncio.create_task(pump(interactor.stdout, interactee.stdin)),
         asyncio.create_task(pump(interactee.stdout, interactor.stdin)),
     ]
-    await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
-    await interactor.wait()
-    await interactee.wait()
+    _ = await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
+    _ = await interactor.wait()
+    _ = await interactee.wait()
 
 
 if __name__ == "__main__":
@@ -55,4 +55,4 @@ if __name__ == "__main__":
     interactor_cmd = shlex.split(sys.argv[1])
     interactee_cmd = shlex.split(sys.argv[2])
 
-    asyncio.run(main(interactor_cmd, interactee_cmd))
+    _ = asyncio.run(main(interactor_cmd, interactee_cmd))
