@@ -76,7 +76,7 @@ CATEGORY_BLOCK_RE = re.compile(
     re.DOTALL,
 )
 TASK_LINK_RE = re.compile(
-    r'<li class="task"><a href="/problemset/task/(?P<id>\d+)/?">(?P<title>[^<]+)</a>',
+    r'<li\s+class="task">\s*<a\s+href="/problemset/task/(?P<id>\d+)/?">(?P<title>[^<]+)</a\s*>',
     re.DOTALL,
 )
 
