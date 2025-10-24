@@ -276,10 +276,13 @@ local function data_row(c, idx, tc, is_current, test_state)
 end
 
 ---@param test_state PanelState
----@return string[], Highlight[] lines and highlight positions
+---@return string[] lines
+---@return Highlight[] highlights
+---@return integer current_test_line
 function M.render_test_list(test_state)
   local lines, highlights = {}, {}
   local c = compute_cols(test_state)
+  local current_test_line = nil
 
   table.insert(lines, top_border(c))
   table.insert(lines, header_line(c))
@@ -289,6 +292,11 @@ function M.render_test_list(test_state)
     local is_current = (i == test_state.current_index)
     local row, hi = data_row(c, i, tc, is_current, test_state)
     table.insert(lines, row)
+
+    if is_current then
+      current_test_line = #lines
+    end
+
     if hi then
       hi.line = #lines - 1
       table.insert(highlights, hi)
@@ -327,7 +335,7 @@ function M.render_test_list(test_state)
     end
   end
 
-  return lines, highlights
+  return lines, highlights, current_test_line or 1
 end
 
 ---@param ran_test_case RanTestCase?
