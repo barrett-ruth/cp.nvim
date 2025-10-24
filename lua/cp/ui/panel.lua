@@ -68,9 +68,9 @@ function M.toggle_interactive(interactor_cmd)
   if
     not contest_data
     or not contest_data.index_map
-    or contest_data.problems[contest_data.index_map[problem_id]].interactive
+    or not contest_data.problems[contest_data.index_map[problem_id]].interactive
   then
-    logger.log('This problem is interactive. Use :CP {run,panel}.', vim.log.levels.ERROR)
+    logger.log('This problem is interactive. Use :CP interact.', vim.log.levels.ERROR)
     return
   end
 
@@ -210,7 +210,7 @@ function M.ensure_io_view()
     and contest_data.index_map
     and contest_data.problems[contest_data.index_map[problem_id]].interactive
   then
-    logger.log('No platform configured.', vim.log.levels.ERROR)
+    logger.log('This problem is not interactive. Use :CP {run,panel}.', vim.log.levels.ERROR)
     return
   end
 
@@ -285,12 +285,8 @@ function M.run_io_view(test_index)
 
   cache.load()
   local contest_data = cache.get_contest_data(platform, contest_id)
-  if
-    not contest_data
-    or not contest_data.index_map
-    or contest_data.problems[contest_data.index_map[problem_id]].interactive
-  then
-    logger.log('This problem is interactive. Use :CP {run,panel}.', vim.log.levels.ERROR)
+  if not contest_data or not contest_data.index_map then
+    logger.log('No test cases available.', vim.log.levels.ERROR)
     return
   end
 
@@ -358,62 +354,122 @@ function M.run_io_view(test_index)
 
   run.run_all_test_cases(test_indices)
 
-  local input_lines = {}
-  for _, idx in ipairs(test_indices) do
-    local tc = test_state.test_cases[idx]
-    for _, line in ipairs(vim.split(tc.input, '\n')) do
-      table.insert(input_lines, line)
-    end
-  end
-  utils.update_buffer_content(io_state.input_buf, input_lines, nil, nil)
-
   local run_render = require('cp.runner.run_render')
   run_render.setup_highlights()
 
-  if #test_indices == 1 then
-    local idx = test_indices[1]
-    local tc = test_state.test_cases[idx]
-    local status = run_render.get_status_info(tc)
+  local input_lines = {}
+  local output_lines = {}
+  local verdict_data = {}
 
-    local output_lines = {}
+  local widths = { test_num = 0, status = 0, time = 0, memory = 0, exit = 0 }
+
+  for _, idx in ipairs(test_indices) do
+    local tc = test_state.test_cases[idx]
+
     if tc.actual then
       for _, line in ipairs(vim.split(tc.actual, '\n', { plain = true, trimempty = false })) do
         table.insert(output_lines, line)
       end
     end
-
-    table.insert(output_lines, '')
-    local time = tc.time_ms and string.format('%.2fms', tc.time_ms) or '—'
-    local code = tc.code and tostring(tc.code) or '—'
-    table.insert(output_lines, string.format('--- %s: %s | Exit: %s ---', status.text, time, code))
-
-    local highlights = tc.actual_highlights or {}
-    local ns = vim.api.nvim_create_namespace('cp_io_view_output')
-    utils.update_buffer_content(io_state.output_buf, output_lines, highlights, ns)
-  else
-    local verdict_lines = {}
-    local verdict_highlights = {}
-    for _, idx in ipairs(test_indices) do
-      local tc = test_state.test_cases[idx]
-      local status = run_render.get_status_info(tc)
-      local time = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
-      local mem = tc.rss_mb and string.format('%.0f', tc.rss_mb) or '—'
-      local line = string.format('Test %d: %s (%sms, %sMB)', idx, status.text, time, mem)
-      table.insert(verdict_lines, line)
-      local status_pos = line:find(status.text, 1, true)
-      if status_pos then
-        table.insert(verdict_highlights, {
-          line = #verdict_lines - 1,
-          col_start = status_pos - 1,
-          col_end = status_pos - 1 + #status.text,
-          highlight_group = status.highlight_group,
-        })
-      end
+    if idx < #test_indices then
+      table.insert(output_lines, '')
     end
 
-    local verdict_ns = vim.api.nvim_create_namespace('cp_io_view_verdict')
-    utils.update_buffer_content(io_state.output_buf, verdict_lines, verdict_highlights, verdict_ns)
+    local status = run_render.get_status_info(tc)
+
+    local time_actual = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
+    local time_limit = test_state.constraints and tostring(test_state.constraints.timeout_ms)
+      or '—'
+    local time_str = time_actual .. '/' .. time_limit .. ' ms'
+
+    local mem_actual = tc.rss_mb and string.format('%.0f', tc.rss_mb) or '—'
+    local mem_limit = test_state.constraints
+        and string.format('%.0f', test_state.constraints.memory_mb)
+      or '—'
+    local mem_str = mem_actual .. '/' .. mem_limit .. ' MB'
+
+    local exit_code = tc.code or 0
+    local signal_name = exit_code >= 128 and require('cp.constants').signal_codes[exit_code] or nil
+    local exit_str = signal_name and string.format('%d (%s)', exit_code, signal_name)
+      or tostring(exit_code)
+
+    widths.test_num = math.max(widths.test_num, #('Test ' .. idx .. ':'))
+    widths.status = math.max(widths.status, #status.text)
+    widths.time = math.max(widths.time, #time_str)
+    widths.memory = math.max(widths.memory, #mem_str)
+    widths.exit = math.max(widths.exit, #('exit: ' .. exit_str))
+
+    table.insert(verdict_data, {
+      idx = idx,
+      status = status,
+      time_str = time_str,
+      mem_str = mem_str,
+      exit_str = exit_str,
+    })
+
+    for _, line in ipairs(vim.split(tc.input, '\n')) do
+      table.insert(input_lines, line)
+    end
+    if idx < #test_indices then
+      table.insert(input_lines, '')
+    end
   end
+
+  local verdict_lines = {}
+  local verdict_highlights = {}
+  for _, vd in ipairs(verdict_data) do
+    local test_num_part = helpers.pad_right('Test ' .. vd.idx .. ':', widths.test_num)
+    local status_part = helpers.pad_right(vd.status.text, widths.status)
+    local time_part = helpers.pad_right(vd.time_str, widths.time)
+    local mem_part = helpers.pad_right(vd.mem_str, widths.memory)
+    local exit_part = helpers.pad_right('exit: ' .. vd.exit_str, widths.exit)
+
+    local verdict_line = test_num_part
+      .. ' '
+      .. status_part
+      .. ' | '
+      .. time_part
+      .. ' | '
+      .. mem_part
+      .. ' | '
+      .. exit_part
+    table.insert(verdict_lines, verdict_line)
+
+    local status_pos = verdict_line:find(vd.status.text, 1, true)
+    if status_pos then
+      table.insert(verdict_highlights, {
+        status = vd.status,
+        verdict_line = verdict_line,
+      })
+    end
+  end
+
+  if #output_lines > 0 and #verdict_lines > 0 then
+    table.insert(output_lines, '')
+  end
+
+  local verdict_start = #output_lines
+  for _, line in ipairs(verdict_lines) do
+    table.insert(output_lines, line)
+  end
+
+  local final_highlights = {}
+  for i, vh in ipairs(verdict_highlights) do
+    local status_pos = vh.verdict_line:find(vh.status.text, 1, true)
+    if status_pos then
+      table.insert(final_highlights, {
+        line = verdict_start + i - 1,
+        col_start = status_pos - 1,
+        col_end = status_pos - 1 + #vh.status.text,
+        highlight_group = vh.status.highlight_group,
+      })
+    end
+  end
+
+  utils.update_buffer_content(io_state.input_buf, input_lines, nil, nil)
+
+  local output_ns = vim.api.nvim_create_namespace('cp_io_view_output')
+  utils.update_buffer_content(io_state.output_buf, output_lines, final_highlights, output_ns)
 end
 
 ---@param panel_opts? PanelOpts

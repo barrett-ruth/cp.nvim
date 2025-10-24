@@ -10,4 +10,21 @@ function M.clearcol(bufnr)
   end
 end
 
+function M.pad_right(text, width)
+  local pad = width - #text
+  if pad <= 0 then
+    return text
+  end
+  return text .. string.rep(' ', pad)
+end
+
+function M.center(text, width)
+  local pad = width - #text
+  if pad <= 0 then
+    return text
+  end
+  local left = math.ceil(pad / 2)
+  return string.rep(' ', left) .. text .. string.rep(' ', pad - left)
+end
+
 return M
