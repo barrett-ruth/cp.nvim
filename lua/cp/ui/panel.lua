@@ -5,7 +5,6 @@ local M = {}
 
 local cache = require('cp.cache')
 local config_module = require('cp.config')
-local constants = require('cp.constants')
 local helpers = require('cp.helpers')
 local layouts = require('cp.ui.layouts')
 local logger = require('cp.log')
@@ -14,22 +13,6 @@ local utils = require('cp.utils')
 
 local current_diff_layout = nil
 local current_mode = nil
-
-local function populate_input()
-  local io_state = state.get_io_view_state()
-
-  local test_cases =
-    cache.get_test_cases(state.get_platform(), state.get_contest_id(), state.get_problem_id())
-
-  local input_lines = {}
-  for _, tc in ipairs(test_cases) do
-    for _, line in ipairs(vim.split(tc.input, '\n', { plain = true, trimempty = false })) do
-      table.insert(input_lines, line)
-    end
-  end
-
-  utils.update_buffer_content(io_state.input_buf, input_lines)
-end
 
 function M.disable()
   local active_panel = state.get_active_panel()
