@@ -228,7 +228,8 @@ function M.ensure_io_view()
 
     vim.cmd.vsplit()
     output_win = vim.api.nvim_get_current_win()
-    local width = math.floor(vim.o.columns * 0.3)
+    local config = config_module.get_config()
+    local width = math.floor(vim.o.columns * (config.ui.run.width or 0.3))
     vim.api.nvim_win_set_width(output_win, width)
     output_buf = utils.create_buffer_with_options()
     vim.api.nvim_win_set_buf(output_win, output_buf)
@@ -243,6 +244,7 @@ function M.ensure_io_view()
       input_buf = input_buf,
       output_win = output_win,
       input_win = input_win,
+      current_test_index = 1,
     })
 
     local config = config_module.get_config()
@@ -253,6 +255,36 @@ function M.ensure_io_view()
     if config.hooks and config.hooks.setup_io_input then
       pcall(config.hooks.setup_io_input, input_buf, state)
     end
+
+    local function navigate_test(delta)
+      local io_state = state.get_io_view_state()
+      if not io_state then
+        return
+      end
+      local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
+      if not test_cases or #test_cases == 0 then
+        return
+      end
+      local new_index = (io_state.current_test_index or 1) + delta
+      if new_index < 1 or new_index > #test_cases then
+        return
+      end
+      io_state.current_test_index = new_index
+      M.run_io_view(new_index)
+    end
+
+    vim.keymap.set('n', '<c-n>', function()
+      navigate_test(1)
+    end, { buffer = output_buf, silent = true, desc = 'Next test' })
+    vim.keymap.set('n', '<c-p>', function()
+      navigate_test(-1)
+    end, { buffer = output_buf, silent = true, desc = 'Previous test' })
+    vim.keymap.set('n', '<c-n>', function()
+      navigate_test(1)
+    end, { buffer = input_buf, silent = true, desc = 'Next test' })
+    vim.keymap.set('n', '<c-p>', function()
+      navigate_test(-1)
+    end, { buffer = input_buf, silent = true, desc = 'Previous test' })
   end
 
   utils.update_buffer_content(input_buf, {})
@@ -272,7 +304,7 @@ function M.ensure_io_view()
   vim.api.nvim_set_current_win(solution_win)
 end
 
-function M.run_io_view(test_index)
+function M.run_io_view(test_index, debug)
   local platform, contest_id, problem_id =
     state.get_platform(), state.get_contest_id(), state.get_problem_id()
   if not platform or not contest_id or not problem_id then
@@ -332,7 +364,7 @@ function M.run_io_view(test_index)
   end
 
   local execute = require('cp.runner.execute')
-  local compile_result = execute.compile_problem()
+  local compile_result = execute.compile_problem(debug)
   if not compile_result.success then
     local ansi = require('cp.ui.ansi')
     local output = compile_result.output or ''
@@ -352,7 +384,7 @@ function M.run_io_view(test_index)
     return
   end
 
-  run.run_all_test_cases(test_indices)
+  run.run_all_test_cases(test_indices, debug)
 
   local run_render = require('cp.runner.run_render')
   run_render.setup_highlights()
@@ -629,9 +661,9 @@ function M.toggle_panel(panel_opts)
   end
 
   local execute = require('cp.runner.execute')
-  local compile_result = execute.compile_problem()
+  local compile_result = execute.compile_problem(panel_opts and panel_opts.debug)
   if compile_result.success then
-    run.run_all_test_cases()
+    run.run_all_test_cases(nil, panel_opts and panel_opts.debug)
   else
     run.handle_compilation_failure(compile_result.output)
   end
