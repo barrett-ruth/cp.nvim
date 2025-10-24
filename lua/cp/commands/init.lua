@@ -130,7 +130,7 @@ function M.handle_command(opts)
     restore.restore_from_current_file()
   elseif cmd.type == 'action' then
     local setup = require('cp.setup')
-    local ui = require('cp.ui.panel')
+    local ui = require('cp.ui.views')
 
     if cmd.action == 'interact' then
       ui.toggle_interactive(cmd.interactor_cmd)
