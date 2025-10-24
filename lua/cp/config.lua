@@ -34,10 +34,32 @@
 ---@field setup_io_input? fun(bufnr: integer, state: cp.State)
 ---@field setup_io_output? fun(bufnr: integer, state: cp.State)
 
+---@class VerdictFormatData
+---@field index integer
+---@field status { text: string, highlight_group: string }
+---@field time_ms number
+---@field time_limit_ms number
+---@field memory_mb number
+---@field memory_limit_mb number
+---@field exit_code integer
+---@field signal string|nil
+
+---@class VerdictHighlight
+---@field col_start integer
+---@field col_end integer
+---@field group string
+
+---@class VerdictFormatResult
+---@field line string
+---@field highlights? VerdictHighlight[]
+
+---@alias VerdictFormatter fun(data: VerdictFormatData): VerdictFormatResult
+
 ---@class RunConfig
 ---@field width number
 ---@field next_test_key string|nil
 ---@field prev_test_key string|nil
+---@field format_verdict VerdictFormatter|nil
 
 ---@class CpUI
 ---@field ansi boolean
@@ -122,7 +144,12 @@ M.defaults = {
   filename = nil,
   ui = {
     ansi = true,
-    run = { width = 0.3, next_test_key = '<c-n>', prev_test_key = '<c-p>' },
+    run = {
+      width = 0.3,
+      next_test_key = '<c-n>',
+      prev_test_key = '<c-p>',
+      format_verdict = helpers.default_verdict_formatter,
+    },
     panel = { diff_mode = 'none', max_output_lines = 50 },
     diff = {
       git = {
@@ -293,6 +320,10 @@ function M.setup(user_config)
         return v == nil or (type(v) == 'string' and #v > 0)
       end,
       'nil or non-empty string',
+    },
+    format_verdict = {
+      cfg.ui.run.format_verdict,
+      'function',
     },
   })
 
