@@ -3,6 +3,7 @@ local M = {}
 local cache = require('cp.cache')
 local config_module = require('cp.config')
 local constants = require('cp.constants')
+local helpers = require('cp.helpers')
 local logger = require('cp.log')
 local scraper = require('cp.scraper')
 local state = require('cp.state')
@@ -59,6 +60,18 @@ local function start_tests(platform, contest_id, problems)
         ev.memory_mb or 0,
         ev.interactive
       )
+
+      local io_state = state.get_io_view_state()
+      if io_state then
+        local test_cases = cache.get_test_cases(platform, contest_id, state.get_problem_id())
+        local input_lines = {}
+        for _, tc in ipairs(test_cases) do
+          for _, line in ipairs(vim.split(tc.input, '\n')) do
+            table.insert(input_lines, line)
+          end
+        end
+        require('cp.utils').update_buffer_content(io_state.input_buf, input_lines, nil, nil)
+      end
     end)
   end
 end
@@ -152,6 +165,7 @@ end
 function M.setup_problem(problem_id, language)
   local platform = state.get_platform()
   if not platform then
+    logger.log('No platform/contest/problem configured.', vim.log.levels.ERROR)
     return
   end
 
@@ -178,6 +192,9 @@ function M.setup_problem(problem_id, language)
         if ok then
           vim.b[prov.bufnr].cp_setup_done = true
         end
+      elseif not vim.b[prov.bufnr].cp_setup_done then
+        helpers.clearcol(prov.bufnr)
+        vim.b[prov.bufnr].cp_setup_done = true
       end
       cache.set_file_state(
         vim.fn.fnamemodify(source_file, ':p'),
@@ -186,6 +203,7 @@ function M.setup_problem(problem_id, language)
         state.get_problem_id() or '',
         lang
       )
+      require('cp.ui.panel').ensure_io_view()
     end
     state.set_provisional(nil)
     return
@@ -201,6 +219,9 @@ function M.setup_problem(problem_id, language)
       if ok then
         vim.b[bufnr].cp_setup_done = true
       end
+    elseif not vim.b[bufnr].cp_setup_done then
+      helpers.clearcol(bufnr)
+      vim.b[bufnr].cp_setup_done = true
     end
     cache.set_file_state(
       vim.fn.expand('%:p'),
@@ -209,6 +230,7 @@ function M.setup_problem(problem_id, language)
       state.get_problem_id() or '',
       lang
     )
+    require('cp.ui.panel').ensure_io_view()
   end)
 end
 
@@ -247,7 +269,11 @@ function M.navigate_problem(direction)
     return
   end
 
-  require('cp.ui.panel').disable()
+  local active_panel = state.get_active_panel()
+  if active_panel == 'run' then
+    require('cp.ui.panel').disable()
+  end
+
   M.setup_contest(platform, contest_id, problems[new_index].id)
 end
 

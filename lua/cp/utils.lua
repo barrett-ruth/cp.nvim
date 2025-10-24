@@ -125,6 +125,10 @@ function M.create_buffer_with_options(filetype)
   return buf
 end
 
+---@param bufnr integer
+---@param lines string[]
+---@param highlights? Highlight[]
+---@param namespace? integer
 function M.update_buffer_content(bufnr, lines, highlights, namespace)
   local was_readonly = vim.api.nvim_get_option_value('readonly', { buf = bufnr })
 

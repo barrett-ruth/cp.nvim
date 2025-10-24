@@ -18,7 +18,6 @@
 ---@field overrides? table<string, CpPlatformOverrides>
 
 ---@class PanelConfig
----@field ansi boolean
 ---@field diff_mode "none"|"vim"|"git"
 ---@field max_output_lines integer
 
@@ -32,8 +31,11 @@
 ---@field before_run? fun(state: cp.State)
 ---@field before_debug? fun(state: cp.State)
 ---@field setup_code? fun(state: cp.State)
+---@field setup_io_input? fun(bufnr: integer, state: cp.State)
+---@field setup_io_output? fun(bufnr: integer, state: cp.State)
 
 ---@class CpUI
+---@field ansi boolean
 ---@field panel PanelConfig
 ---@field diff DiffConfig
 ---@field picker string|nil
@@ -54,6 +56,7 @@
 local M = {}
 
 local constants = require('cp.constants')
+local helpers = require('cp.helpers')
 local utils = require('cp.utils')
 
 -- defaults per the new single schema
@@ -101,12 +104,19 @@ M.defaults = {
       default_language = 'cpp',
     },
   },
-  hooks = { before_run = nil, before_debug = nil, setup_code = nil },
+  hooks = {
+    before_run = nil,
+    before_debug = nil,
+    setup_code = nil,
+    setup_io_input = helpers.clearcol,
+    setup_io_output = helpers.clearcol,
+  },
   debug = false,
   scrapers = constants.PLATFORMS,
   filename = nil,
   ui = {
-    panel = { ansi = true, diff_mode = 'none', max_output_lines = 50 },
+    ansi = true,
+    panel = { diff_mode = 'none', max_output_lines = 50 },
     diff = {
       git = {
         args = { 'diff', '--no-index', '--word-diff=plain', '--word-diff-regex=.', '--no-prefix' },
@@ -229,10 +239,12 @@ function M.setup(user_config)
     before_run = { cfg.hooks.before_run, { 'function', 'nil' }, true },
     before_debug = { cfg.hooks.before_debug, { 'function', 'nil' }, true },
     setup_code = { cfg.hooks.setup_code, { 'function', 'nil' }, true },
+    setup_io_input = { cfg.hooks.setup_io_input, { 'function', 'nil' }, true },
+    setup_io_output = { cfg.hooks.setup_io_output, { 'function', 'nil' }, true },
   })
 
   vim.validate({
-    ansi = { cfg.ui.panel.ansi, 'boolean' },
+    ansi = { cfg.ui.ansi, 'boolean' },
     diff_mode = {
       cfg.ui.panel.diff_mode,
       function(v)

@@ -1,7 +1,10 @@
 local M = {}
 
 local config_module = require('cp.config')
+local helpers = require('cp.helpers')
 local logger = require('cp.log')
+
+M.helpers = helpers
 
 if vim.fn.has('nvim-0.10.0') == 0 then
   logger.log('Requires nvim-0.10.0+', vim.log.levels.ERROR)

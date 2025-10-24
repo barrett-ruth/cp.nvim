@@ -1,4 +1,4 @@
-minimum_pre_commit_version: "3.5.0"
+minimum_pre_commit_version: '3.5.0'
 
 repos:
   - repo: https://github.com/JohnnyMorganz/StyLua
@@ -17,7 +17,7 @@ repos:
         files: \.py$
       - id: ruff
         name: ruff (lint imports)
-        args: ["--fix", "--select=I"]
+        args: ['--fix', '--select=I']
         files: \.py$
 
   - repo: local
@@ -26,7 +26,7 @@ repos:
         name: mypy (type check)
         entry: uv run mypy
         language: system
-        args: ["."]
+        args: ['.']
         pass_filenames: false
 
   - repo: https://github.com/pre-commit/mirrors-prettier
@@ -35,4 +35,3 @@ repos:
       - id: prettier
         name: prettier (format markdown)
         files: \.md$
-

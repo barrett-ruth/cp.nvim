@@ -3,8 +3,14 @@
 ---@field platform string
 ---@field contest_id string
 ---@field language string
----@field requested_problem_id string|nil
+---@field requested_problem_id string?
 ---@field token integer
+
+---@class cp.IoViewState
+---@field output_buf integer
+---@field input_buf integer
+---@field output_win integer
+---@field input_win integer
 
 ---@class cp.State
 ---@field get_platform fun(): string?
@@ -21,8 +27,12 @@
 ---@field get_input_file fun(): string?
 ---@field get_output_file fun(): string?
 ---@field get_expected_file fun(): string?
----@field get_provisional fun(): cp.ProvisionalState|nil
----@field set_provisional fun(p: cp.ProvisionalState|nil)
+---@field get_provisional fun(): cp.ProvisionalState?
+---@field set_provisional fun(p: cp.ProvisionalState?)
+---@field get_saved_session fun(): string?
+---@field set_saved_session fun(path: string?)
+---@field get_io_view_state fun(): cp.IoViewState?
+---@field set_io_view_state fun(s: cp.IoViewState?)
 
 local M = {}
 
@@ -36,9 +46,10 @@ local state = {
   active_panel = nil,
   provisional = nil,
   solution_win = nil,
+  io_view_state = nil,
 }
 
----@return string|nil
+---@return string?
 function M.get_platform()
   return state.platform
 end
@@ -48,7 +59,7 @@ function M.set_platform(platform)
   state.platform = platform
 end
 
----@return string|nil
+---@return string?
 function M.get_contest_id()
   return state.contest_id
 end
@@ -58,7 +69,7 @@ function M.set_contest_id(contest_id)
   state.contest_id = contest_id
 end
 
----@return string|nil
+---@return string?
 function M.get_problem_id()
   return state.problem_id
 end
@@ -68,7 +79,7 @@ function M.set_problem_id(problem_id)
   state.problem_id = problem_id
 end
 
----@return string|nil
+---@return string?
 function M.get_base_name()
   local platform, contest_id, problem_id = M.get_platform(), M.get_contest_id(), M.get_problem_id()
   if not platform or not contest_id or not problem_id then
@@ -86,7 +97,7 @@ function M.get_base_name()
 end
 
 ---@param language? string
----@return string|nil
+---@return string?
 function M.get_source_file(language)
   local base_name = M.get_base_name()
   if not base_name or not M.get_platform() then
@@ -110,46 +121,46 @@ function M.get_source_file(language)
   return base_name .. '.' .. eff.extension
 end
 
----@return string|nil
+---@return string?
 function M.get_binary_file()
   local base_name = M.get_base_name()
   return base_name and ('build/%s.run'):format(base_name) or nil
 end
 
----@return string|nil
+---@return string?
 function M.get_input_file()
   local base_name = M.get_base_name()
   return base_name and ('io/%s.cpin'):format(base_name) or nil
 end
 
----@return string|nil
+---@return string?
 function M.get_output_file()
   local base_name = M.get_base_name()
   return base_name and ('io/%s.cpout'):format(base_name) or nil
 end
 
----@return string|nil
+---@return string?
 function M.get_expected_file()
   local base_name = M.get_base_name()
   return base_name and ('io/%s.expected'):format(base_name) or nil
 end
 
----@return string|nil
+---@return string?
 function M.get_active_panel()
   return state.active_panel
 end
 
----@param panel string|nil
+---@param panel string?
 function M.set_active_panel(panel)
   state.active_panel = panel
 end
 
----@return cp.ProvisionalState|nil
+---@return cp.ProvisionalState?
 function M.get_provisional()
   return state.provisional
 end
 
----@param p cp.ProvisionalState|nil
+---@param p cp.ProvisionalState?
 function M.set_provisional(p)
   state.provisional = p
 end
@@ -165,6 +176,38 @@ end
 ---@param win integer?
 function M.set_solution_win(win)
   state.solution_win = win
+end
+
+---@return cp.IoViewState?
+function M.get_io_view_state()
+  if not state.io_view_state then
+    return nil
+  end
+  local s = state.io_view_state
+  if
+    vim.api.nvim_buf_is_valid(s.output_buf)
+    and vim.api.nvim_buf_is_valid(s.input_buf)
+    and vim.api.nvim_win_is_valid(s.output_win)
+    and vim.api.nvim_win_is_valid(s.input_win)
+  then
+    return s
+  end
+  return nil
+end
+
+---@param s cp.IoViewState?
+function M.set_io_view_state(s)
+  state.io_view_state = s
+end
+
+---@return string?
+function M.get_saved_session()
+  return state.saved_session
+end
+
+---@param path string?
+function M.set_saved_session(path)
+  state.saved_session = path
 end
 
 M._state = state

@@ -3,8 +3,9 @@ local M = {}
 ---@class PanelOpts
 ---@field debug? boolean
 
+local cache = require('cp.cache')
 local config_module = require('cp.config')
-local constants = require('cp.constants')
+local helpers = require('cp.helpers')
 local layouts = require('cp.ui.layouts')
 local logger = require('cp.log')
 local state = require('cp.state')
@@ -52,38 +53,24 @@ function M.toggle_interactive(interactor_cmd)
     return
   end
 
-  local platform, contest_id = state.get_platform(), state.get_contest_id()
-  if not platform then
-    logger.log('No platform configured.', vim.log.levels.ERROR)
-    return
-  end
-  if not contest_id then
+  local platform, contest_id, problem_id =
+    state.get_platform(), state.get_contest_id(), state.get_problem_id()
+  if not platform or not contest_id or not problem_id then
     logger.log(
-      ("No contest %s configured for platform '%s'."):format(
-        contest_id,
-        constants.PLATFORM_DISPLAY_NAMES[platform]
-      ),
+      'No platform/contest/problem configured. Use :CP <platform> <contest> [...] first.',
       vim.log.levels.ERROR
     )
     return
   end
 
-  local problem_id = state.get_problem_id()
-  if not problem_id then
-    logger.log('No problem is active.', vim.log.levels.ERROR)
-    return
-  end
-
-  local cache = require('cp.cache')
   cache.load()
   local contest_data = cache.get_contest_data(platform, contest_id)
   if
     not contest_data
     or not contest_data.index_map
-    or not contest_data.problems[contest_data.index_map[problem_id]]
-    or not contest_data.problems[contest_data.index_map[problem_id]].interactive
+    or contest_data.problems[contest_data.index_map[problem_id]].interactive
   then
-    logger.log('This problem is not interactive. Use :CP run.', vim.log.levels.ERROR)
+    logger.log('This problem is interactive. Use :CP {run,panel}.', vim.log.levels.ERROR)
     return
   end
 
@@ -92,9 +79,10 @@ function M.toggle_interactive(interactor_cmd)
   vim.cmd('silent only')
 
   local execute = require('cp.runner.execute')
+  local run = require('cp.runner.run')
   local compile_result = execute.compile_problem()
   if not compile_result.success then
-    require('cp.runner.run').handle_compilation_failure(compile_result.output)
+    run.handle_compilation_failure(compile_result.output)
     return
   end
 
@@ -204,6 +192,230 @@ function M.toggle_interactive(interactor_cmd)
   state.set_active_panel('interactive')
 end
 
+function M.ensure_io_view()
+  local platform, contest_id, problem_id =
+    state.get_platform(), state.get_contest_id(), state.get_problem_id()
+  if not platform or not contest_id or not problem_id then
+    logger.log(
+      'No platform/contest/problem configured. Use :CP <platform> <contest> [...] first.',
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
+  cache.load()
+  local contest_data = cache.get_contest_data(platform, contest_id)
+  if
+    contest_data
+    and contest_data.index_map
+    and contest_data.problems[contest_data.index_map[problem_id]].interactive
+  then
+    logger.log('No platform configured.', vim.log.levels.ERROR)
+    return
+  end
+
+  local solution_win = state.get_solution_win()
+  local io_state = state.get_io_view_state()
+  local output_buf, input_buf, output_win, input_win
+
+  if io_state then
+    output_buf = io_state.output_buf
+    input_buf = io_state.input_buf
+    output_win = io_state.output_win
+    input_win = io_state.input_win
+  else
+    vim.api.nvim_set_current_win(solution_win)
+
+    vim.cmd.vsplit()
+    output_win = vim.api.nvim_get_current_win()
+    local width = math.floor(vim.o.columns * 0.3)
+    vim.api.nvim_win_set_width(output_win, width)
+    output_buf = utils.create_buffer_with_options()
+    vim.api.nvim_win_set_buf(output_win, output_buf)
+
+    vim.cmd.split()
+    input_win = vim.api.nvim_get_current_win()
+    input_buf = utils.create_buffer_with_options()
+    vim.api.nvim_win_set_buf(input_win, input_buf)
+
+    state.set_io_view_state({
+      output_buf = output_buf,
+      input_buf = input_buf,
+      output_win = output_win,
+      input_win = input_win,
+    })
+
+    local config = config_module.get_config()
+    if config.hooks and config.hooks.setup_io_output then
+      pcall(config.hooks.setup_io_output, output_buf, state)
+    end
+
+    if config.hooks and config.hooks.setup_io_input then
+      pcall(config.hooks.setup_io_input, input_buf, state)
+    end
+  end
+
+  utils.update_buffer_content(input_buf, {})
+  utils.update_buffer_content(output_buf, {})
+
+  local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
+  if test_cases and #test_cases > 0 then
+    local input_lines = {}
+    for _, tc in ipairs(test_cases) do
+      for _, line in ipairs(vim.split(tc.input, '\n')) do
+        table.insert(input_lines, line)
+      end
+    end
+    utils.update_buffer_content(input_buf, input_lines, nil, nil)
+  end
+
+  vim.api.nvim_set_current_win(solution_win)
+end
+
+function M.run_io_view(test_index)
+  local platform, contest_id, problem_id =
+    state.get_platform(), state.get_contest_id(), state.get_problem_id()
+  if not platform or not contest_id or not problem_id then
+    logger.log(
+      'No platform/contest/problem configured. Use :CP <platform> <contest> [...] first.',
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
+  cache.load()
+  local contest_data = cache.get_contest_data(platform, contest_id)
+  if
+    not contest_data
+    or not contest_data.index_map
+    or contest_data.problems[contest_data.index_map[problem_id]].interactive
+  then
+    logger.log('This problem is interactive. Use :CP {run,panel}.', vim.log.levels.ERROR)
+    return
+  end
+
+  M.ensure_io_view()
+
+  local run = require('cp.runner.run')
+  if not run.load_test_cases() then
+    logger.log('No test cases available', vim.log.levels.ERROR)
+    return
+  end
+
+  local test_state = run.get_panel_state()
+  local test_indices = {}
+
+  if test_index then
+    if test_index < 1 or test_index > #test_state.test_cases then
+      logger.log(
+        string.format(
+          'Test %d does not exist (only %d tests available)',
+          test_index,
+          #test_state.test_cases
+        ),
+        vim.log.levels.WARN
+      )
+      return
+    end
+    test_indices = { test_index }
+  else
+    for i = 1, #test_state.test_cases do
+      test_indices[i] = i
+    end
+  end
+
+  local io_state = state.get_io_view_state()
+  if not io_state then
+    return
+  end
+
+  local config = config_module.get_config()
+
+  if config.ui.ansi then
+    require('cp.ui.ansi').setup_highlight_groups()
+  end
+
+  local execute = require('cp.runner.execute')
+  local compile_result = execute.compile_problem()
+  if not compile_result.success then
+    local ansi = require('cp.ui.ansi')
+    local output = compile_result.output or ''
+    local lines, highlights
+
+    if config.ui.ansi then
+      local parsed = ansi.parse_ansi_text(output)
+      lines = parsed.lines
+      highlights = parsed.highlights
+    else
+      lines = vim.split(output:gsub('\027%[[%d;]*[a-zA-Z]', ''), '\n')
+      highlights = {}
+    end
+
+    local ns = vim.api.nvim_create_namespace('cp_io_view_compile_error')
+    utils.update_buffer_content(io_state.output_buf, lines, highlights, ns)
+    return
+  end
+
+  run.run_all_test_cases(test_indices)
+
+  local input_lines = {}
+  for _, idx in ipairs(test_indices) do
+    local tc = test_state.test_cases[idx]
+    for _, line in ipairs(vim.split(tc.input, '\n')) do
+      table.insert(input_lines, line)
+    end
+  end
+  utils.update_buffer_content(io_state.input_buf, input_lines, nil, nil)
+
+  local run_render = require('cp.runner.run_render')
+  run_render.setup_highlights()
+
+  if #test_indices == 1 then
+    local idx = test_indices[1]
+    local tc = test_state.test_cases[idx]
+    local status = run_render.get_status_info(tc)
+
+    local output_lines = {}
+    if tc.actual then
+      for _, line in ipairs(vim.split(tc.actual, '\n', { plain = true, trimempty = false })) do
+        table.insert(output_lines, line)
+      end
+    end
+
+    table.insert(output_lines, '')
+    local time = tc.time_ms and string.format('%.2fms', tc.time_ms) or '—'
+    local code = tc.code and tostring(tc.code) or '—'
+    table.insert(output_lines, string.format('--- %s: %s | Exit: %s ---', status.text, time, code))
+
+    local highlights = tc.actual_highlights or {}
+    local ns = vim.api.nvim_create_namespace('cp_io_view_output')
+    utils.update_buffer_content(io_state.output_buf, output_lines, highlights, ns)
+  else
+    local verdict_lines = {}
+    local verdict_highlights = {}
+    for _, idx in ipairs(test_indices) do
+      local tc = test_state.test_cases[idx]
+      local status = run_render.get_status_info(tc)
+      local time = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
+      local mem = tc.rss_mb and string.format('%.0f', tc.rss_mb) or '—'
+      local line = string.format('Test %d: %s (%sms, %sMB)', idx, status.text, time, mem)
+      table.insert(verdict_lines, line)
+      local status_pos = line:find(status.text, 1, true)
+      if status_pos then
+        table.insert(verdict_highlights, {
+          line = #verdict_lines - 1,
+          col_start = status_pos - 1,
+          col_end = status_pos - 1 + #status.text,
+          highlight_group = status.highlight_group,
+        })
+      end
+    end
+
+    local verdict_ns = vim.api.nvim_create_namespace('cp_io_view_verdict')
+    utils.update_buffer_content(io_state.output_buf, verdict_lines, verdict_highlights, verdict_ns)
+  end
+end
+
 ---@param panel_opts? PanelOpts
 function M.toggle_panel(panel_opts)
   if state.get_active_panel() == 'run' then
@@ -212,12 +424,14 @@ function M.toggle_panel(panel_opts)
       current_diff_layout = nil
       current_mode = nil
     end
-    if state.saved_session then
-      vim.cmd(('source %s'):format(state.saved_session))
-      vim.fn.delete(state.saved_session)
-      state.saved_session = nil
+    local saved = state.get_saved_session()
+    if saved then
+      vim.cmd(('source %s'):format(saved))
+      vim.fn.delete(saved)
+      state.set_saved_session(nil)
     end
     state.set_active_panel(nil)
+    M.ensure_io_view()
     return
   end
 
@@ -228,26 +442,14 @@ function M.toggle_panel(panel_opts)
 
   local platform, contest_id = state.get_platform(), state.get_contest_id()
 
-  if not platform then
+  if not platform or not contest_id then
     logger.log(
-      'No platform configured. Use :CP <platform> <contest> [...] first.',
+      'No platform/contest configured. Use :CP <platform> <contest> [...] first.',
       vim.log.levels.ERROR
     )
     return
   end
 
-  if not contest_id then
-    logger.log(
-      ("No contest '%s' configured for platform '%s'."):format(
-        contest_id,
-        constants.PLATFORM_DISPLAY_NAMES[platform]
-      ),
-      vim.log.levels.ERROR
-    )
-    return
-  end
-
-  local cache = require('cp.cache')
   cache.load()
   local contest_data = cache.get_contest_data(platform, contest_id)
   if
@@ -260,6 +462,7 @@ function M.toggle_panel(panel_opts)
 
   local config = config_module.get_config()
   local run = require('cp.runner.run')
+  local run_render = require('cp.runner.run_render')
   local input_file = state.get_input_file()
   logger.log(('run panel: checking test cases for %s'):format(input_file or 'none'))
 
@@ -268,11 +471,24 @@ function M.toggle_panel(panel_opts)
     return
   end
 
-  state.saved_session = vim.fn.tempname()
-  vim.cmd(('mksession! %s'):format(state.saved_session))
+  local io_state = state.get_io_view_state()
+  if io_state then
+    if vim.api.nvim_win_is_valid(io_state.output_win) then
+      vim.api.nvim_win_close(io_state.output_win, true)
+    end
+    if vim.api.nvim_win_is_valid(io_state.input_win) then
+      vim.api.nvim_win_close(io_state.input_win, true)
+    end
+    state.set_io_view_state(nil)
+  end
+
+  local session_file = vim.fn.tempname()
+  state.set_saved_session(session_file)
+  vim.cmd(('mksession! %s'):format(session_file))
   vim.cmd('silent only')
 
   local tab_buf = utils.create_buffer_with_options()
+  helpers.clearcol(tab_buf)
   local main_win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(main_win, tab_buf)
   vim.api.nvim_set_option_value('filetype', 'cp', { buf = tab_buf })
@@ -298,7 +514,6 @@ function M.toggle_panel(panel_opts)
     if not test_buffers.tab_buf or not vim.api.nvim_buf_is_valid(test_buffers.tab_buf) then
       return
     end
-    local run_render = require('cp.runner.run_render')
     run_render.setup_highlights()
     local test_state = run.get_panel_state()
     local tab_lines, tab_highlights = run_render.render_test_list(test_state)
@@ -368,9 +583,8 @@ function M.toggle_panel(panel_opts)
   refresh_panel()
 
   vim.schedule(function()
-    if config.ui.panel.ansi then
-      local ansi = require('cp.ui.ansi')
-      ansi.setup_highlight_groups()
+    if config.ui.ansi then
+      require('cp.ui.ansi').setup_highlight_groups()
     end
     if current_diff_layout then
       update_diff_panes()

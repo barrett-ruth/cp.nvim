@@ -1,10 +1,13 @@
 local M = {}
 
+local helpers = require('cp.helpers')
 local utils = require('cp.utils')
 
 local function create_none_diff_layout(parent_win, expected_content, actual_content)
   local expected_buf = utils.create_buffer_with_options()
   local actual_buf = utils.create_buffer_with_options()
+  helpers.clearcol(expected_buf)
+  helpers.clearcol(actual_buf)
 
   vim.api.nvim_set_current_win(parent_win)
   vim.cmd.split()
@@ -42,6 +45,8 @@ end
 local function create_vim_diff_layout(parent_win, expected_content, actual_content)
   local expected_buf = utils.create_buffer_with_options()
   local actual_buf = utils.create_buffer_with_options()
+  helpers.clearcol(expected_buf)
+  helpers.clearcol(actual_buf)
 
   vim.api.nvim_set_current_win(parent_win)
   vim.cmd.split()
@@ -89,6 +94,7 @@ end
 
 local function create_git_diff_layout(parent_win, expected_content, actual_content)
   local diff_buf = utils.create_buffer_with_options()
+  helpers.clearcol(diff_buf)
 
   vim.api.nvim_set_current_win(parent_win)
   vim.cmd.split()
