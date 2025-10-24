@@ -43,6 +43,10 @@
 ---@field memory_limit_mb number
 ---@field exit_code integer
 ---@field signal string|nil
+---@field time_actual_width? integer
+---@field time_limit_width? integer
+---@field mem_actual_width? integer
+---@field mem_limit_width? integer
 
 ---@class VerdictHighlight
 ---@field col_start integer

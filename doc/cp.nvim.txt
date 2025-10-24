@@ -102,6 +102,27 @@ COMMANDS                                                         *cp-commands*
                                     :CP C --lang python
 <
 
+        Edit Commands ~
+            :CP edit [n]
+                                Open grid test editor showing all test cases.
+                                Tests displayed as 2×N grid (2 rows, N columns):
+                                • Top row: Test inputs (editable)
+                                • Bottom row: Expected outputs (editable)
+
+                                Optional [n]: Jump cursor to test n's input buffer
+
+                                Changes saved to both cache and disk on exit,
+                                taking effect immediately in :CP run and CLI.
+
+                                Keybindings:
+                                  q         Save all and exit editor
+                                  <c-w>     Normal window navigation
+
+                                Examples: >
+                                    :CP edit        " Edit all tests
+                                    :CP edit 3      " Edit all, start at test 3
+<
+
         State Restoration ~
             :CP                 Restore state from current file.
                                 Automatically detects platform, contest, problem,
@@ -109,10 +130,16 @@ COMMANDS                                                         *cp-commands*
                                 switching files to restore your CP environment.
 
         Cache Commands ~
-            :CP cache clear [contest]
-                                Clear the cache data for the specified contest,
-                                or all contests if none specified.
-
+            :CP cache clear [platform] [contest]
+                                Clear cache data at different granularities:
+                                • No args: Clear all cached data
+                                • [platform]: Clear all data for a platform
+                                • [platform] [contest]: Clear specific contest
+                                Examples: >
+                                    :CP cache clear
+                                    :CP cache clear codeforces
+                                    :CP cache clear codeforces 1848
+<
             :CP cache read
                                 View the cache in a pretty-printed lua buffer.
                                 Exit with q.
@@ -563,14 +590,18 @@ Input: |VerdictFormatData| table with test results
 Output: |VerdictFormatResult| table with formatted line and optional highlights
 
                                                            *VerdictFormatData*
-    {index}           (integer) Test case number
-    {status}          (table) { text: string, highlight_group: string }
-    {time_ms}         (number) Execution time in milliseconds
-    {time_limit_ms}   (number) Time limit in milliseconds
-    {memory_mb}       (number) Peak memory usage in megabytes
-    {memory_limit_mb} (number) Memory limit in megabytes
-    {exit_code}       (integer) Process exit code
-    {signal}          (string|nil) Signal name for crashes (e.g. "SIGSEGV")
+    {index}             (integer) Test case number
+    {status}            (table) { text: string, highlight_group: string }
+    {time_ms}           (number) Execution time in milliseconds
+    {time_limit_ms}     (number) Time limit in milliseconds
+    {memory_mb}         (number) Peak memory usage in megabytes
+    {memory_limit_mb}   (number) Memory limit in megabytes
+    {exit_code}         (integer) Process exit code
+    {signal}            (string|nil) Signal name for crashes (e.g. "SIGSEGV")
+    {time_actual_width} (integer|nil) Dynamic width for time value alignment
+    {time_limit_width}  (integer|nil) Dynamic width for time limit alignment
+    {mem_actual_width}  (integer|nil) Dynamic width for memory value alignment
+    {mem_limit_width}   (integer|nil) Dynamic width for memory limit alignment
 
                                                          *VerdictFormatResult*
     {line}            (string) The formatted verdict line

@@ -40,7 +40,7 @@ function M.toggle_interactive(interactor_cmd)
       end
     end
     if state.saved_interactive_session then
-      vim.cmd(('source %s'):format(state.saved_interactive_session))
+      vim.cmd.source(state.saved_interactive_session)
       vim.fn.delete(state.saved_interactive_session)
       state.saved_interactive_session = nil
     end
@@ -75,8 +75,9 @@ function M.toggle_interactive(interactor_cmd)
   end
 
   state.saved_interactive_session = vim.fn.tempname()
-  vim.cmd(('mksession! %s'):format(state.saved_interactive_session))
-  vim.cmd('silent only')
+  -- selene: allow(mixed_table)
+  vim.cmd.mksession({ state.saved_interactive_session, bang = true })
+  vim.cmd.only({ mods = { silent = true } })
 
   local execute = require('cp.runner.execute')
   local run = require('cp.runner.run')
@@ -104,7 +105,7 @@ function M.toggle_interactive(interactor_cmd)
         vim.log.levels.ERROR
       )
       if state.saved_interactive_session then
-        vim.cmd(('source %s'):format(state.saved_interactive_session))
+        vim.cmd.source(state.saved_interactive_session)
         vim.fn.delete(state.saved_interactive_session)
         state.saved_interactive_session = nil
       end
@@ -122,7 +123,7 @@ function M.toggle_interactive(interactor_cmd)
     cmdline = vim.fn.shellescape(binary)
   end
 
-  vim.cmd('terminal ' .. cmdline)
+  vim.cmd.terminal(cmdline)
   local term_buf = vim.api.nvim_get_current_buf()
   local term_win = vim.api.nvim_get_current_win()
 
@@ -139,7 +140,7 @@ function M.toggle_interactive(interactor_cmd)
       end
     end
     if state.saved_interactive_session then
-      vim.cmd(('source %s'):format(state.saved_interactive_session))
+      vim.cmd.source(state.saved_interactive_session)
       vim.fn.delete(state.saved_interactive_session)
       state.saved_interactive_session = nil
     end
@@ -245,6 +246,23 @@ function M.ensure_io_view()
       output_win = output_win,
       input_win = input_win,
       current_test_index = 1,
+    })
+
+    local source_buf = vim.api.nvim_win_get_buf(solution_win)
+    vim.api.nvim_create_autocmd('BufDelete', {
+      buffer = source_buf,
+      callback = function()
+        local io = state.get_io_view_state()
+        if io then
+          if io.output_buf and vim.api.nvim_buf_is_valid(io.output_buf) then
+            vim.api.nvim_buf_delete(io.output_buf, { force = true })
+          end
+          if io.input_buf and vim.api.nvim_buf_is_valid(io.input_buf) then
+            vim.api.nvim_buf_delete(io.input_buf, { force = true })
+          end
+          state.set_io_view_state(nil)
+        end
+      end,
     })
 
     if cfg.hooks and cfg.hooks.setup_io_output then
@@ -400,6 +418,25 @@ function M.run_io_view(test_index, debug)
 
   local formatter = config.ui.run.format_verdict
 
+  local max_time_actual = 0
+  local max_time_limit = 0
+  local max_mem_actual = 0
+  local max_mem_limit = 0
+
+  for _, idx in ipairs(test_indices) do
+    local tc = test_state.test_cases[idx]
+    max_time_actual = math.max(max_time_actual, #string.format('%.2f', tc.time_ms or 0))
+    max_time_limit = math.max(
+      max_time_limit,
+      #tostring(test_state.constraints and test_state.constraints.timeout_ms or 0)
+    )
+    max_mem_actual = math.max(max_mem_actual, #string.format('%.0f', tc.rss_mb or 0))
+    max_mem_limit = math.max(
+      max_mem_limit,
+      #string.format('%.0f', test_state.constraints and test_state.constraints.memory_mb or 0)
+    )
+  end
+
   for _, idx in ipairs(test_indices) do
     local tc = test_state.test_cases[idx]
 
@@ -425,6 +462,10 @@ function M.run_io_view(test_index, debug)
       exit_code = tc.code or 0,
       signal = (tc.code and tc.code >= 128) and require('cp.constants').signal_codes[tc.code]
         or nil,
+      time_actual_width = max_time_actual,
+      time_limit_width = max_time_limit,
+      mem_actual_width = max_mem_actual,
+      mem_limit_width = max_mem_limit,
     }
 
     local result = formatter(format_data)
@@ -484,7 +525,7 @@ function M.toggle_panel(panel_opts)
     end
     local saved = state.get_saved_session()
     if saved then
-      vim.cmd(('source %s'):format(saved))
+      vim.cmd.source(saved)
       vim.fn.delete(saved)
       state.set_saved_session(nil)
     end
@@ -542,8 +583,9 @@ function M.toggle_panel(panel_opts)
 
   local session_file = vim.fn.tempname()
   state.set_saved_session(session_file)
-  vim.cmd(('mksession! %s'):format(session_file))
-  vim.cmd('silent only')
+  -- selene: allow(mixed_table)
+  vim.cmd.mksession({ session_file, bang = true })
+  vim.cmd.only({ mods = { silent = true } })
 
   local tab_buf = utils.create_buffer_with_options()
   helpers.clearcol(tab_buf)
@@ -589,8 +631,9 @@ function M.toggle_panel(panel_opts)
       and vim.api.nvim_win_is_valid(test_windows.tab_win)
     then
       vim.api.nvim_win_set_cursor(test_windows.tab_win, { current_line, 0 })
+      -- selene: allow(mixed_table)
       vim.api.nvim_win_call(test_windows.tab_win, function()
-        vim.cmd('normal! zz')
+        vim.cmd.normal({ 'zz', bang = true })
       end)
     end
   end

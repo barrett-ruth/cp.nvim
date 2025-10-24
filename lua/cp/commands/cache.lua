@@ -39,7 +39,21 @@ function M.handle_cache_command(cmd)
     vim.api.nvim_set_current_buf(buf)
   elseif cmd.subcommand == 'clear' then
     cache.load()
-    if cmd.platform then
+    if cmd.platform and cmd.contest then
+      if vim.tbl_contains(platforms, cmd.platform) then
+        cache.clear_contest_data(cmd.platform, cmd.contest)
+        logger.log(
+          ("Cache cleared for %s contest '%s'"):format(
+            constants.PLATFORM_DISPLAY_NAMES[cmd.platform],
+            cmd.contest
+          ),
+          vim.log.levels.INFO,
+          true
+        )
+      else
+        logger.log(("Unknown platform '%s'."):format(cmd.platform), vim.log.levels.ERROR)
+      end
+    elseif cmd.platform then
       if vim.tbl_contains(platforms, cmd.platform) then
         cache.clear_platform(cmd.platform)
         logger.log(

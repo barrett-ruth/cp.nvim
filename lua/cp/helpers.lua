@@ -51,17 +51,28 @@ end
 ---@param data VerdictFormatData
 ---@return VerdictFormatResult
 function M.default_verdict_formatter(data)
-  local time_data = string.format('%.2f', data.time_ms) .. '/' .. data.time_limit_ms
-  local mem_data = string.format('%.0f', data.memory_mb)
-    .. '/'
-    .. string.format('%.0f', data.memory_limit_mb)
+  local time_actual = string.format('%.2f', data.time_ms)
+  local time_limit = tostring(data.time_limit_ms)
+  local mem_actual = string.format('%.0f', data.memory_mb)
+  local mem_limit = string.format('%.0f', data.memory_limit_mb)
   local exit_str = data.signal and string.format('%d (%s)', data.exit_code, data.signal)
     or tostring(data.exit_code)
 
+  local time_actual_w = data.time_actual_width or 6
+  local time_limit_w = data.time_limit_width or 4
+  local mem_actual_w = data.mem_actual_width or 3
+  local mem_limit_w = data.mem_limit_width or 3
+
   local test_num_part = 'Test ' .. data.index .. ':'
   local status_part = M.pad_right(data.status.text, 3)
-  local time_part = time_data .. ' ms'
-  local mem_part = mem_data .. ' MB'
+  local time_part = M.pad_left(time_actual, time_actual_w)
+    .. '/'
+    .. M.pad_left(time_limit, time_limit_w)
+    .. ' ms'
+  local mem_part = M.pad_left(mem_actual, mem_actual_w)
+    .. '/'
+    .. M.pad_left(mem_limit, mem_limit_w)
+    .. ' MB'
   local exit_part = 'exit: ' .. exit_str
 
   local line = test_num_part
