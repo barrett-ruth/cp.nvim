@@ -380,13 +380,13 @@ function M.run_io_view(test_index)
     local time_actual = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
     local time_limit = test_state.constraints and tostring(test_state.constraints.timeout_ms)
       or '—'
-    local time_str = time_actual .. '/' .. time_limit .. ' ms'
+    local time_data = time_actual .. '/' .. time_limit
 
     local mem_actual = tc.rss_mb and string.format('%.0f', tc.rss_mb) or '—'
     local mem_limit = test_state.constraints
         and string.format('%.0f', test_state.constraints.memory_mb)
       or '—'
-    local mem_str = mem_actual .. '/' .. mem_limit .. ' MB'
+    local mem_data = mem_actual .. '/' .. mem_limit
 
     local exit_code = tc.code or 0
     local signal_name = exit_code >= 128 and require('cp.constants').signal_codes[exit_code] or nil
@@ -395,15 +395,15 @@ function M.run_io_view(test_index)
 
     widths.test_num = math.max(widths.test_num, #('Test ' .. idx .. ':'))
     widths.status = math.max(widths.status, #status.text)
-    widths.time = math.max(widths.time, #time_str)
-    widths.memory = math.max(widths.memory, #mem_str)
+    widths.time = math.max(widths.time, #(time_data .. ' ms'))
+    widths.memory = math.max(widths.memory, #(mem_data .. ' MB'))
     widths.exit = math.max(widths.exit, #('exit: ' .. exit_str))
 
     table.insert(verdict_data, {
       idx = idx,
       status = status,
-      time_str = time_str,
-      mem_str = mem_str,
+      time_data = time_data,
+      mem_data = mem_data,
       exit_str = exit_str,
     })
 
@@ -420,8 +420,8 @@ function M.run_io_view(test_index)
   for _, vd in ipairs(verdict_data) do
     local test_num_part = helpers.pad_right('Test ' .. vd.idx .. ':', widths.test_num)
     local status_part = helpers.pad_right(vd.status.text, widths.status)
-    local time_part = helpers.pad_right(vd.time_str, widths.time)
-    local mem_part = helpers.pad_right(vd.mem_str, widths.memory)
+    local time_part = helpers.pad_right(vd.time_data, widths.time - 3) .. ' ms'
+    local mem_part = helpers.pad_right(vd.mem_data, widths.memory - 3) .. ' MB'
     local exit_part = helpers.pad_right('exit: ' .. vd.exit_str, widths.exit)
 
     local verdict_line = test_num_part

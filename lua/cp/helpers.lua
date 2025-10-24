@@ -18,6 +18,14 @@ function M.pad_right(text, width)
   return text .. string.rep(' ', pad)
 end
 
+function M.pad_left(text, width)
+  local pad = width - #text
+  if pad <= 0 then
+    return text
+  end
+  return string.rep(' ', pad) .. text
+end
+
 function M.center(text, width)
   local pad = width - #text
   if pad <= 0 then

@@ -378,9 +378,9 @@ Example: Setting up and solving AtCoder contest ABC324
 ==============================================================================
 I/O VIEW                                                          *cp-io-view*
 
-The I/O view provides the main view aggregate view into test input and
-program output. Used time/memory per test case are appended to the output.
-The |cp-panel| offers more fine-grained analysis into each test case.
+The I/O view provides lightweight test feedback in persistent side splits.
+All test outputs are concatenated with verdict summaries at the bottom.
+The |cp-panel| offers more fine-grained analysis with diff modes.
 
 Access the I/O view with :CP run [n]
 
@@ -388,24 +388,33 @@ Layout ~
 
 The I/O view appears as 30% width splits on the right side: >
 
-    ┌──────────────────────────┬──────────────────────────┐
-    │                          │ Output                   │
-    │                          │ Test 1: AC (42ms, 8MB)   │
-    │                          │ Test 2: AC (38ms, 8MB)   │
-    │   Solution Code          │ Test 3: WA (45ms, 8MB)   │
-    │                          │ Test 4: AC (51ms, 9MB)   │
-    │                          ├──────────────────────────┤
-    │                          │ Input                    │
-    │                          │ 5 3                      │
-    │                          │ 1 2 3 4 5                │
-    │                          │ 2 1                      │
-    │                          │ 10 20                    │
-    └──────────────────────────┴──────────────────────────┘
+    ┌──────────────────────────┬─────────────────────────────────────────────┐
+    │                          │ Output (Top Split)                          │
+    │                          │ 5 510                                       │
+    │                          │                                             │
+    │                          │ 7 714                                       │
+    │   Solution Code          │                                             │
+    │                          │ Test 1: WA  | 212.07/2000 ms | 1/512 MB |...│
+    │                          │ Test 2: WA  | 81.94/2000  ms | 1/512 MB |...│ 
+    │                          ├─────────────────────────────────────────────┤
+    │                          │ Input (Bottom Split)                        │
+    │                          │ 1 2 3                                       │
+    │                          │                                             │
+    │                          │ 4 5 6                                       │
+    └──────────────────────────┴─────────────────────────────────────────────┘
 <
+The output split shows:
+1. Concatenated test outputs (separated by blank lines)
+2. Space-aligned verdict summary with:
+   - Test number and status (AC/WA/TLE/MLE/RTE with color highlighting)
+   - Runtime: actual/limit in milliseconds
+   - Memory: actual/limit in megabytes
+   - Exit code (with signal name for crashes)
+
 Usage ~
 
     :CP run             Run all tests
-    :CP run 3           Run test 3
+    :CP run 3           Run test 3 only
 
 Buffer Customization ~
 
