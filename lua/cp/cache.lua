@@ -92,6 +92,26 @@ function M.get_contest_data(platform, contest_id)
   return cache_data[platform][contest_id]
 end
 
+---Get all cached contest IDs for a platform
+---@param platform string
+---@return string[]
+function M.get_cached_contest_ids(platform)
+  vim.validate({
+    platform = { platform, 'string' },
+  })
+
+  if not cache_data[platform] then
+    return {}
+  end
+
+  local contest_ids = {}
+  for contest_id, _ in pairs(cache_data[platform]) do
+    table.insert(contest_ids, contest_id)
+  end
+  table.sort(contest_ids)
+  return contest_ids
+end
+
 ---@param platform string
 ---@param contest_id string
 ---@param problems Problem[]

@@ -59,16 +59,15 @@ local function parse_command(args)
       local debug = false
       local test_index = nil
 
-      for i = 2, #args do
-        local arg = args[i]
-        if arg == '--debug' then
+      if #args == 2 then
+        if args[2] == '--debug' then
           debug = true
         else
-          local idx = tonumber(arg)
+          local idx = tonumber(args[2])
           if not idx then
             return {
               type = 'error',
-              message = ("Invalid argument '%s': expected test number or --debug"):format(arg),
+              message = ("Invalid argument '%s': expected test number or --debug"):format(args[2]),
             }
           end
           if idx < 1 or idx ~= math.floor(idx) then
@@ -76,6 +75,30 @@ local function parse_command(args)
           end
           test_index = idx
         end
+      elseif #args == 3 then
+        local idx = tonumber(args[2])
+        if not idx then
+          return {
+            type = 'error',
+            message = ("Invalid argument '%s': expected test number"):format(args[2]),
+          }
+        end
+        if idx < 1 or idx ~= math.floor(idx) then
+          return { type = 'error', message = ("'%s' is not a valid test index"):format(idx) }
+        end
+        if args[3] ~= '--debug' then
+          return {
+            type = 'error',
+            message = ("Invalid argument '%s': expected --debug"):format(args[3]),
+          }
+        end
+        test_index = idx
+        debug = true
+      elseif #args > 3 then
+        return {
+          type = 'error',
+          message = 'Too many arguments. Usage: :CP ' .. first .. ' [test_num] [--debug]',
+        }
       end
 
       return { type = 'action', action = first, test_index = test_index, debug = debug }
