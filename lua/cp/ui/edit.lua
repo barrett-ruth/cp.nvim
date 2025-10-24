@@ -107,13 +107,23 @@ end
 function M.toggle_edit(test_index)
   if edit_state then
     save_all_tests()
+    edit_state = nil
+
     local saved = state.get_saved_session()
     if saved then
-      vim.cmd(('source %s'):format(saved))
       vim.fn.delete(saved)
       state.set_saved_session(nil)
     end
-    edit_state = nil
+
+    vim.cmd.only({ mods = { silent = true } })
+    local source_file = state.get_source_file()
+    if source_file and vim.fn.filereadable(source_file) == 1 then
+      vim.cmd.edit(source_file)
+    end
+
+    local views = require('cp.ui.views')
+    views.run_io_view()
+
     logger.log('Closed test editor')
     return
   end
@@ -148,24 +158,35 @@ function M.toggle_edit(test_index)
     return
   end
 
+  local io_view_state = state.get_io_view_state()
+  if io_view_state then
+    if io_view_state.output_buf and vim.api.nvim_buf_is_valid(io_view_state.output_buf) then
+      vim.api.nvim_buf_delete(io_view_state.output_buf, { force = true })
+    end
+    if io_view_state.input_buf and vim.api.nvim_buf_is_valid(io_view_state.input_buf) then
+      vim.api.nvim_buf_delete(io_view_state.input_buf, { force = true })
+    end
+    state.set_io_view_state(nil)
+  end
+
   local session_file = vim.fn.tempname()
   state.set_saved_session(session_file)
-  vim.cmd(('mksession! %s'):format(session_file))
-  vim.cmd('silent only')
+  vim.cmd.mksession({ session_file, bang = true })
+  vim.cmd.only({ mods = { silent = true } })
 
   local test_buffers = {}
   local num_tests = #test_cases
 
   for i = 1, num_tests - 1 do
-    vim.cmd('vsplit')
+    vim.cmd.vsplit()
   end
 
-  vim.cmd('1wincmd w')
+  vim.cmd.wincmd('w', { count = 1 })
 
   for col = 1, num_tests do
-    vim.cmd('split')
+    vim.cmd.split()
 
-    vim.cmd('wincmd k')
+    vim.cmd.wincmd('k')
     local input_win = vim.api.nvim_get_current_win()
     local input_buf = utils.create_buffer_with_options()
     vim.api.nvim_win_set_buf(input_win, input_buf)
@@ -175,7 +196,7 @@ function M.toggle_edit(test_index)
     vim.bo[input_buf].buflisted = false
     helpers.clearcol(input_buf)
 
-    vim.cmd('wincmd j')
+    vim.cmd.wincmd('j')
     local expected_win = vim.api.nvim_get_current_win()
     local expected_buf = utils.create_buffer_with_options()
     vim.api.nvim_win_set_buf(expected_win, expected_buf)
@@ -192,8 +213,8 @@ function M.toggle_edit(test_index)
       expected_win = expected_win,
     }
 
-    vim.cmd('wincmd k')
-    vim.cmd('wincmd l')
+    vim.cmd.wincmd('k')
+    vim.cmd.wincmd('l')
   end
 
   edit_state = {
