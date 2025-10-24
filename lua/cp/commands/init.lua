@@ -17,6 +17,7 @@ local actions = constants.ACTIONS
 ---@field problem_id? string
 ---@field interactor_cmd? string
 ---@field test_index? integer
+---@field debug? boolean
 
 --- Turn raw args into normalized structure to later dispatch
 ---@param args string[] The raw command-line mode args
@@ -53,23 +54,30 @@ local function parse_command(args)
       else
         return { type = 'action', action = 'interact' }
       end
-    elseif first == 'run' then
-      local test_arg = args[2]
-      if test_arg then
-        local test_index = tonumber(test_arg)
-        if not test_index then
-          return {
-            type = 'error',
-            message = ("Test index '%s' is not a number"):format(test_index),
-          }
+    elseif first == 'run' or first == 'panel' then
+      local debug = false
+      local test_index = nil
+
+      for i = 2, #args do
+        local arg = args[i]
+        if arg == '--debug' then
+          debug = true
+        else
+          local idx = tonumber(arg)
+          if not idx then
+            return {
+              type = 'error',
+              message = ("Invalid argument '%s': expected test number or --debug"):format(arg),
+            }
+          end
+          if idx < 1 or idx ~= math.floor(idx) then
+            return { type = 'error', message = ("'%s' is not a valid test index"):format(idx) }
+          end
+          test_index = idx
         end
-        if test_index < 1 or test_index ~= math.floor(test_index) then
-          return { type = 'error', message = ("'%s' is not a valid test index"):format(test_index) }
-        end
-        return { type = 'action', action = 'run', test_index = test_index }
-      else
-        return { type = 'action', action = 'run' }
       end
+
+      return { type = 'action', action = first, test_index = test_index, debug = debug }
     else
       return { type = 'action', action = first }
     end
@@ -122,16 +130,14 @@ function M.handle_command(opts)
     restore.restore_from_current_file()
   elseif cmd.type == 'action' then
     local setup = require('cp.setup')
-    local ui = require('cp.ui.panel')
+    local ui = require('cp.ui.views')
 
     if cmd.action == 'interact' then
       ui.toggle_interactive(cmd.interactor_cmd)
     elseif cmd.action == 'run' then
-      ui.run_io_view(cmd.test_index)
+      ui.run_io_view(cmd.test_index, cmd.debug)
     elseif cmd.action == 'panel' then
-      ui.toggle_panel()
-    elseif cmd.action == 'debug' then
-      ui.toggle_panel({ debug = true })
+      ui.toggle_panel({ debug = cmd.debug, test_index = cmd.test_index })
     elseif cmd.action == 'next' then
       setup.navigate_problem(1)
     elseif cmd.action == 'prev' then

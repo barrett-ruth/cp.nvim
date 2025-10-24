@@ -160,19 +160,21 @@ function M.run(cmd, stdin, timeout_ms, memory_mb)
   }
 end
 
-function M.compile_problem()
+function M.compile_problem(debug)
   local state = require('cp.state')
   local config = require('cp.config').get_config()
-  local platform = state.get_platform() or ''
+  local platform = state.get_platform()
   local language = config.platforms[platform].default_language
   local eff = config.runtime.effective[platform][language]
-  local compile_config = eff and eff.commands and eff.commands.build
+
+  local compile_config = (debug and eff.commands.debug) or eff.commands.build
 
   if not compile_config then
     return { success = true, output = nil }
   end
 
-  local substitutions = { source = state.get_source_file(), binary = state.get_binary_file() }
+  local binary = debug and state.get_debug_file() or state.get_binary_file()
+  local substitutions = { source = state.get_source_file(), binary = binary }
   local r = M.compile(compile_config, substitutions)
 
   if r.code ~= 0 then

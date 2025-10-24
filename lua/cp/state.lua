@@ -11,6 +11,7 @@
 ---@field input_buf integer
 ---@field output_win integer
 ---@field input_win integer
+---@field current_test_index integer?
 
 ---@class cp.State
 ---@field get_platform fun(): string?
@@ -125,6 +126,12 @@ end
 function M.get_binary_file()
   local base_name = M.get_base_name()
   return base_name and ('build/%s.run'):format(base_name) or nil
+end
+
+---@return string?
+function M.get_debug_file()
+  local base_name = M.get_base_name()
+  return base_name and ('build/%s.dbg'):format(base_name) or nil
 end
 
 ---@return string?

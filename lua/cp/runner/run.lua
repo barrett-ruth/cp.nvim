@@ -100,11 +100,12 @@ local function build_command(cmd, substitutions)
 end
 
 ---@param test_case RanTestCase
+---@param debug boolean?
 ---@return { status: "pass"|"fail"|"tle"|"mle", actual: string, actual_highlights: Highlight[], error: string, stderr: string, time_ms: number, code: integer, ok: boolean, signal: string, tled: boolean, mled: boolean, rss_mb: number }
-local function run_single_test_case(test_case)
+local function run_single_test_case(test_case, debug)
   local source_file = state.get_source_file()
 
-  local binary_file = state.get_binary_file()
+  local binary_file = debug and state.get_debug_file() or state.get_binary_file()
   local substitutions = { source = source_file, binary = binary_file }
 
   local platform_config = config.platforms[state.get_platform() or '']
@@ -198,15 +199,16 @@ function M.load_test_cases()
 end
 
 ---@param index number
+---@param debug boolean?
 ---@return boolean
-function M.run_test_case(index)
+function M.run_test_case(index, debug)
   local tc = panel_state.test_cases[index]
   if not tc then
     return false
   end
 
   tc.status = 'running'
-  local r = run_single_test_case(tc)
+  local r = run_single_test_case(tc, debug)
 
   tc.status = r.status
   tc.actual = r.actual
@@ -225,8 +227,9 @@ function M.run_test_case(index)
 end
 
 ---@param indices? integer[]
+---@param debug boolean?
 ---@return RanTestCase[]
-function M.run_all_test_cases(indices)
+function M.run_all_test_cases(indices, debug)
   local to_run = indices
   if not to_run then
     to_run = {}
@@ -236,7 +239,7 @@ function M.run_all_test_cases(indices)
   end
 
   for _, i in ipairs(to_run) do
-    M.run_test_case(i)
+    M.run_test_case(i, debug)
   end
 
   return panel_state.test_cases

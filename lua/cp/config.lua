@@ -34,8 +34,14 @@
 ---@field setup_io_input? fun(bufnr: integer, state: cp.State)
 ---@field setup_io_output? fun(bufnr: integer, state: cp.State)
 
+---@class RunConfig
+---@field width number
+---@field next_test_key string|nil
+---@field prev_test_key string|nil
+
 ---@class CpUI
 ---@field ansi boolean
+---@field run RunConfig
 ---@field panel PanelConfig
 ---@field diff DiffConfig
 ---@field picker string|nil
@@ -116,6 +122,7 @@ M.defaults = {
   filename = nil,
   ui = {
     ansi = true,
+    run = { width = 0.3, next_test_key = '<c-n>', prev_test_key = '<c-p>' },
     panel = { diff_mode = 'none', max_output_lines = 50 },
     diff = {
       git = {
@@ -157,6 +164,11 @@ local function validate_language(id, lang)
     extension = { lang.extension, 'string' },
     commands = { lang.commands, { 'table' } },
   })
+
+  if not lang.commands.run then
+    error(('[cp.nvim] languages.%s.commands.run is required'):format(id))
+  end
+
   if lang.commands.build ~= nil then
     vim.validate({ build = { lang.commands.build, { 'table' } } })
     if not has_tokens(lang.commands.build, { '{source}', '{binary}' }) then
@@ -232,6 +244,14 @@ function M.setup(user_config)
   vim.validate({ user_config = { user_config, { 'table', 'nil' }, true } })
   local cfg = vim.tbl_deep_extend('force', vim.deepcopy(M.defaults), user_config or {})
 
+  if not next(cfg.languages) then
+    error('[cp.nvim] At least one language must be configured')
+  end
+
+  if not next(cfg.platforms) then
+    error('[cp.nvim] At least one platform must be configured')
+  end
+
   vim.validate({
     hooks = { cfg.hooks, { 'table' } },
     ui = { cfg.ui, { 'table' } },
@@ -260,6 +280,20 @@ function M.setup(user_config)
       'positive integer',
     },
     git = { cfg.ui.diff.git, { 'table' } },
+    next_test_key = {
+      cfg.ui.run.next_test_key,
+      function(v)
+        return v == nil or (type(v) == 'string' and #v > 0)
+      end,
+      'nil or non-empty string',
+    },
+    prev_test_key = {
+      cfg.ui.run.prev_test_key,
+      function(v)
+        return v == nil or (type(v) == 'string' and #v > 0)
+      end,
+      'nil or non-empty string',
+    },
   })
 
   for id, lang in pairs(cfg.languages) do

@@ -39,22 +39,25 @@ COMMANDS                                                         *cp-commands*
                                     :CP atcoder abc324
 <
         View Commands ~
-            :CP run [n]         Run tests in I/O view (see |cp-io-view|).
+            :CP run [--debug] [n]
+                                Run tests in I/O view (see |cp-io-view|).
                                 Lightweight split showing test verdicts.
                                 Without [n]: runs all tests, shows verdict summary
                                 With [n]: runs test n, shows detailed output
+                                --debug: Use debug build (builds to build/<name>.dbg)
                                 Examples: >
-                                    :CP run          " All tests, verdict list
-                                    :CP run 3        " Test 3 detail
+                                    :CP run              " All tests
+                                    :CP run --debug 2    " Test 2, debug build
 <
-            :CP panel [n]       Open full-screen test panel (see |cp-panel|).
+            :CP panel [--debug] [n]
+                                Open full-screen test panel (see |cp-panel|).
                                 Aggregate table with diff modes for detailed analysis.
                                 Optional [n] focuses on specific test.
-                                Example: >
-                                    :CP panel        " All tests with diffs
-                                    :CP panel 2      " Focus on test 2
+                                --debug: Use debug build (with sanitizers, etc.)
+                                Examples: >
+                                    :CP panel            " All tests
+                                    :CP panel --debug 3  " Test 3, debug build
 <
-            :CP debug [n]       Same as :CP panel but uses debug build configuration.
 
             :CP pick            Launch configured picker for interactive
                                 platform/contest selection.
@@ -97,12 +100,38 @@ Template Variables ~
     Command templates support variable substitution using {variable} syntax:
 
     • {source}      Source file path (e.g. "abc324a.cpp")
-    • {binary}      Output binary path (e.g. "build/abc324a.run")
+    • {binary}      Output binary path (e.g. "build/abc324a.run" or
+                    "build/abc324a.dbg" for debug builds)
 
     Example template: >
         build = { 'g++', '{source}', '-o', '{binary}', '-std=c++17' }
 <    Would expand to: >
         g++ abc324a.cpp -o build/abc324a.run -std=c++17
+<
+Debug Builds ~
+                                                            *cp-debug-builds*
+    The --debug flag uses the debug command configuration instead of build:
+
+    • Normal build:  commands.build → outputs to build/<name>.run
+    • Debug build:   commands.debug → outputs to build/<name>.dbg
+
+    Debug builds typically include sanitizers (address, undefined behavior) to
+    catch memory errors, buffer overflows, and other issues. Both binaries
+    coexist, so you can switch between normal and debug mode without
+    recompiling.
+
+    Example debug configuration: >
+        languages = {
+          cpp = {
+            extension = 'cc',
+            commands = {
+              build = { 'g++', '-std=c++17', '{source}', '-o', '{binary}' },
+              run   = { '{binary}' },
+              debug = { 'g++', '-std=c++17', '-fsanitize=address,undefined',
+                        '{source}', '-o', '{binary}' },
+            }
+          }
+        }
 <
 
 ==============================================================================
@@ -155,6 +184,11 @@ Here's an example configuration with lazy.nvim:
         debug = false,
         ui = {
           ansi = true,
+          run = {
+            width = 0.3,
+            next_test_key = '<c-n>',  -- or nil to disable
+            prev_test_key = '<c-p>',  -- or nil to disable
+          },
           panel = {
             diff_mode = 'vim',
             max_output_lines = 50,
@@ -249,9 +283,19 @@ run CSES problems with Rust using the single schema:
     Fields: ~
         {ansi}          (boolean, default: true) Enable ANSI color parsing
                         and highlighting in both I/O view and panel.
+        {run}           (|RunConfig|) I/O view configuration.
         {panel}         (|PanelConfig|) Test panel behavior configuration.
         {diff}          (|DiffConfig|) Diff backend configuration.
         {picker}        (string|nil) 'telescope', 'fzf-lua', or nil.
+
+                                                                  *RunConfig*
+    Fields: ~
+        {width}            (number, default: 0.3) Width of I/O view splits as
+                           fraction of screen (0.0 to 1.0).
+        {next_test_key}    (string|nil, default: '<c-n>') Keymap to navigate
+                           to next test in I/O view. Set to nil to disable.
+        {prev_test_key}    (string|nil, default: '<c-p>') Keymap to navigate
+                           to previous test in I/O view. Set to nil to disable.
 
                                                               *cp.PanelConfig*
     Fields: ~
@@ -416,6 +460,12 @@ Usage ~
     :CP run             Run all tests
     :CP run 3           Run test 3 only
 
+Navigation ~
+
+While in the I/O view buffers, use the configured keymaps to cycle through tests:
+    <c-n>               Next test (default, see |RunConfig|.next_test_key)
+    <c-p>               Previous test (default, see |RunConfig|.prev_test_key)
+
 Buffer Customization ~
 
 Use the setup_io_input and setup_io_output hooks (see |cp.Hooks|) to customize
@@ -446,7 +496,7 @@ The panel provides full-screen test analysis with diff modes for detailed
 debugging. Problem time/memory limit constraints are in columns Time/Mem
 respectively. Used time/memory are in columns Runtime/RSS respectively.
 
-Access with :CP panel or :CP debug (uses debug build configuration).
+Access with :CP panel or :CP panel --debug (uses debug build configuration).
 
 Interface ~
 
