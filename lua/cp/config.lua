@@ -59,7 +59,7 @@
 ---@field width number
 ---@field next_test_key string|nil
 ---@field prev_test_key string|nil
----@field format_verdict VerdictFormatter|nil
+---@field format_verdict VerdictFormatter
 
 ---@class CpUI
 ---@field ansi boolean
