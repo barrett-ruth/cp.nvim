@@ -400,6 +400,25 @@ function M.run_io_view(test_index, debug)
 
   local formatter = config.ui.run.format_verdict
 
+  local max_time_actual = 0
+  local max_time_limit = 0
+  local max_mem_actual = 0
+  local max_mem_limit = 0
+
+  for _, idx in ipairs(test_indices) do
+    local tc = test_state.test_cases[idx]
+    max_time_actual = math.max(max_time_actual, #string.format('%.2f', tc.time_ms or 0))
+    max_time_limit = math.max(
+      max_time_limit,
+      #tostring(test_state.constraints and test_state.constraints.timeout_ms or 0)
+    )
+    max_mem_actual = math.max(max_mem_actual, #string.format('%.0f', tc.rss_mb or 0))
+    max_mem_limit = math.max(
+      max_mem_limit,
+      #string.format('%.0f', test_state.constraints and test_state.constraints.memory_mb or 0)
+    )
+  end
+
   for _, idx in ipairs(test_indices) do
     local tc = test_state.test_cases[idx]
 
@@ -425,6 +444,10 @@ function M.run_io_view(test_index, debug)
       exit_code = tc.code or 0,
       signal = (tc.code and tc.code >= 128) and require('cp.constants').signal_codes[tc.code]
         or nil,
+      time_actual_width = max_time_actual,
+      time_limit_width = max_time_limit,
+      mem_actual_width = max_mem_actual,
+      mem_limit_width = max_mem_limit,
     }
 
     local result = formatter(format_data)

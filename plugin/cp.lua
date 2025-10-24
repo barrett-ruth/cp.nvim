@@ -69,6 +69,23 @@ end, {
       elseif args[2] == 'interact' then
         local utils = require('cp.utils')
         return filter_candidates(utils.cwd_executables())
+      elseif args[2] == 'edit' then
+        local state = require('cp.state')
+        local platform = state.get_platform()
+        local contest_id = state.get_contest_id()
+        local problem_id = state.get_problem_id()
+        local candidates = {}
+        if platform and contest_id and problem_id then
+          local cache = require('cp.cache')
+          cache.load()
+          local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
+          if test_cases then
+            for i = 1, #test_cases do
+              table.insert(candidates, tostring(i))
+            end
+          end
+        end
+        return filter_candidates(candidates)
       elseif args[2] == 'run' or args[2] == 'panel' then
         local state = require('cp.state')
         local platform = state.get_platform()

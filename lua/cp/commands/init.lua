@@ -207,6 +207,9 @@ function M.handle_command(opts)
     elseif cmd.action == 'pick' then
       local picker = require('cp.commands.picker')
       picker.handle_pick_action(cmd.language)
+    elseif cmd.action == 'edit' then
+      local edit = require('cp.ui.edit')
+      edit.toggle_edit(cmd.test_index)
     end
   elseif cmd.type == 'problem_jump' then
     local platform = state.get_platform()

@@ -102,6 +102,27 @@ COMMANDS                                                         *cp-commands*
                                     :CP C --lang python
 <
 
+        Edit Commands ~
+            :CP edit [n]
+                                Open grid test editor showing all test cases.
+                                Tests displayed as 2×N grid (2 rows, N columns):
+                                • Top row: Test inputs (editable)
+                                • Bottom row: Expected outputs (editable)
+
+                                Optional [n]: Jump cursor to test n's input buffer
+
+                                Changes saved to both cache and disk on exit,
+                                taking effect immediately in :CP run and CLI.
+
+                                Keybindings:
+                                  q         Save all and exit editor
+                                  <c-w>     Normal window navigation
+
+                                Examples: >
+                                    :CP edit        " Edit all tests
+                                    :CP edit 3      " Edit all, start at test 3
+<
+
         State Restoration ~
             :CP                 Restore state from current file.
                                 Automatically detects platform, contest, problem,
@@ -115,9 +136,9 @@ COMMANDS                                                         *cp-commands*
                                 • [platform]: Clear all data for a platform
                                 • [platform] [contest]: Clear specific contest
                                 Examples: >
-                                    :CP cache clear                    " Clear all
-                                    :CP cache clear codeforces         " Clear CF
-                                    :CP cache clear codeforces 1848    " Clear CF 1848
+                                    :CP cache clear
+                                    :CP cache clear codeforces
+                                    :CP cache clear codeforces 1848
 <
             :CP cache read
                                 View the cache in a pretty-printed lua buffer.
