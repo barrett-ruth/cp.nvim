@@ -58,7 +58,6 @@ function M.default_verdict_formatter(data)
   local exit_str = data.signal and string.format('%d (%s)', data.exit_code, data.signal)
     or tostring(data.exit_code)
 
-  -- Use dynamic widths if provided, otherwise use reasonable defaults
   local time_actual_w = data.time_actual_width or 6
   local time_limit_w = data.time_limit_width or 4
   local mem_actual_w = data.mem_actual_width or 3

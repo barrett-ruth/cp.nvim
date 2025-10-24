@@ -247,6 +247,23 @@ function M.ensure_io_view()
       current_test_index = 1,
     })
 
+    local source_buf = vim.api.nvim_win_get_buf(solution_win)
+    vim.api.nvim_create_autocmd('BufDelete', {
+      buffer = source_buf,
+      callback = function()
+        local io = state.get_io_view_state()
+        if io then
+          if io.output_buf and vim.api.nvim_buf_is_valid(io.output_buf) then
+            vim.api.nvim_buf_delete(io.output_buf, { force = true })
+          end
+          if io.input_buf and vim.api.nvim_buf_is_valid(io.input_buf) then
+            vim.api.nvim_buf_delete(io.input_buf, { force = true })
+          end
+          state.set_io_view_state(nil)
+        end
+      end,
+    })
+
     if cfg.hooks and cfg.hooks.setup_io_output then
       pcall(cfg.hooks.setup_io_output, output_buf, state)
     end

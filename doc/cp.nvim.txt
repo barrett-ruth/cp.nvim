@@ -590,14 +590,18 @@ Input: |VerdictFormatData| table with test results
 Output: |VerdictFormatResult| table with formatted line and optional highlights
 
                                                            *VerdictFormatData*
-    {index}           (integer) Test case number
-    {status}          (table) { text: string, highlight_group: string }
-    {time_ms}         (number) Execution time in milliseconds
-    {time_limit_ms}   (number) Time limit in milliseconds
-    {memory_mb}       (number) Peak memory usage in megabytes
-    {memory_limit_mb} (number) Memory limit in megabytes
-    {exit_code}       (integer) Process exit code
-    {signal}          (string|nil) Signal name for crashes (e.g. "SIGSEGV")
+    {index}             (integer) Test case number
+    {status}            (table) { text: string, highlight_group: string }
+    {time_ms}           (number) Execution time in milliseconds
+    {time_limit_ms}     (number) Time limit in milliseconds
+    {memory_mb}         (number) Peak memory usage in megabytes
+    {memory_limit_mb}   (number) Memory limit in megabytes
+    {exit_code}         (integer) Process exit code
+    {signal}            (string|nil) Signal name for crashes (e.g. "SIGSEGV")
+    {time_actual_width} (integer|nil) Dynamic width for time value alignment
+    {time_limit_width}  (integer|nil) Dynamic width for time limit alignment
+    {mem_actual_width}  (integer|nil) Dynamic width for memory value alignment
+    {mem_limit_width}   (integer|nil) Dynamic width for memory limit alignment
 
                                                          *VerdictFormatResult*
     {line}            (string) The formatted verdict line

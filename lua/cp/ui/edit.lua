@@ -156,20 +156,15 @@ function M.toggle_edit(test_index)
   local test_buffers = {}
   local num_tests = #test_cases
 
-  -- Step 1: Create N columns (vsplit creates full-height columns)
   for i = 1, num_tests - 1 do
     vim.cmd('vsplit')
   end
 
-  -- Step 2: Go to leftmost window
   vim.cmd('1wincmd w')
 
-  -- Step 3: For each column, split horizontally into input (top) and expected (bottom)
   for col = 1, num_tests do
-    -- Split current window horizontally
     vim.cmd('split')
 
-    -- After split, cursor is in bottom window. Go up to input window.
     vim.cmd('wincmd k')
     local input_win = vim.api.nvim_get_current_win()
     local input_buf = utils.create_buffer_with_options()
@@ -180,7 +175,6 @@ function M.toggle_edit(test_index)
     vim.bo[input_buf].buflisted = false
     helpers.clearcol(input_buf)
 
-    -- Go down to expected window
     vim.cmd('wincmd j')
     local expected_win = vim.api.nvim_get_current_win()
     local expected_buf = utils.create_buffer_with_options()
@@ -198,7 +192,6 @@ function M.toggle_edit(test_index)
       expected_win = expected_win,
     }
 
-    -- Move to next column (go up to top, then right)
     vim.cmd('wincmd k')
     vim.cmd('wincmd l')
   end
