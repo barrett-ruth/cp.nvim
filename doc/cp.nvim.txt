@@ -4,7 +4,7 @@ Author:  Barrett Ruth <br.barrettruth@gmail.com>
 License: Same terms as Vim itself (see |license|)
 
 ==============================================================================
-INTRODUCTION                                                        *cp.nvim*
+INTRODUCTION                                                         *cp.nvim*
 
 cp.nvim is a competitive programming plugin that automates problem setup,
 compilation, and testing workflow for online judges.
@@ -12,16 +12,16 @@ compilation, and testing workflow for online judges.
 Supported platforms (for now!): AtCoder, Codeforces, CSES
 
 ==============================================================================
-REQUIREMENTS                                                *cp-requirements*
+REQUIREMENTS                                                 *cp-requirements*
 
 - Neovim 0.10.0+
 - Unix-like operating system
 - uv package manager (https://docs.astral.sh/uv/)
 
 ==============================================================================
-COMMANDS                                                        *cp-commands*
+COMMANDS                                                         *cp-commands*
 
-:CP                                                                     *:CP*
+:CP                                                                      *:CP*
         cp.nvim uses a single :CP command with intelligent argument parsing:
 
         Setup Commands ~
@@ -38,14 +38,23 @@ COMMANDS                                                        *cp-commands*
                                 Example: >
                                     :CP atcoder abc324
 <
-        Action Commands ~
-            :CP run             Toggle run panel for individual test cases.
-                                Shows per-test results with redesigned
-                                layout for efficient comparison.
-
-            :CP debug
-                                Same as above but with the debug mode configured
-                                settings.
+        View Commands ~
+            :CP run [n]         Run tests in I/O view (see |cp-io-view|).
+                                Lightweight split showing test verdicts.
+                                Without [n]: runs all tests, shows verdict summary
+                                With [n]: runs test n, shows detailed output
+                                Examples: >
+                                    :CP run          " All tests, verdict list
+                                    :CP run 3        " Test 3 detail
+<
+            :CP panel [n]       Open full-screen test panel (see |cp-panel|).
+                                Aggregate table with diff modes for detailed analysis.
+                                Optional [n] focuses on specific test.
+                                Example: >
+                                    :CP panel        " All tests with diffs
+                                    :CP panel 2      " Focus on test 2
+<
+            :CP debug [n]       Same as :CP panel but uses debug build configuration.
 
             :CP pick            Launch configured picker for interactive
                                 platform/contest selection.
@@ -84,7 +93,7 @@ COMMANDS                                                        *cp-commands*
                                 Exit with q.
 
 Template Variables ~
-                                                        *cp-template-vars*
+                                                            *cp-template-vars*
     Command templates support variable substitution using {variable} syntax:
 
     • {source}      Source file path (e.g. "abc324a.cpp")
@@ -97,7 +106,7 @@ Template Variables ~
 <
 
 ==============================================================================
-CONFIGURATION                                                   *cp-config*
+CONFIGURATION                                                      *cp-config*
 
 Here's an example configuration with lazy.nvim:
 >lua
@@ -145,8 +154,8 @@ Here's an example configuration with lazy.nvim:
         open_url = true,
         debug = false,
         ui = {
+          ansi = true,
           panel = {
-            ansi = true,
             diff_mode = 'vim',
             max_output_lines = 50,
           },
@@ -197,7 +206,7 @@ run CSES problems with Rust using the single schema:
       },
     }
 <
-                                                               *cp.Config*
+                                                                   *cp.Config*
     Fields: ~
         {languages}     (table<string,|CpLanguage|>) Global language registry.
                         Each language provides an {extension} and {commands}.
@@ -214,19 +223,19 @@ run CSES problems with Rust using the single schema:
         {open_url}      (boolean) Open the contest & problem url in the browser
                         when the contest is first opened.
 
-                                                             *CpPlatform*
+                                                                  *CpPlatform*
     Fields: ~
         {enabled_languages} (string[]) Language ids enabled on this platform.
         {default_language}  (string)   One of {enabled_languages}.
         {overrides}         (table<string,|CpPlatformOverrides|>, optional)
                             Per-language overrides of {extension} and/or {commands}.
 
-                                                           *CpLanguage*
+                                                                  *CpLanguage*
     Fields: ~
         {extension}     (string) File extension without leading dot.
         {commands}      (|CpLangCommands|) Command templates.
 
-                                                        *CpLangCommands*
+                                                              *CpLangCommands*
     Fields: ~
         {build}         (string[], optional) For compiled languages.
                          Must include {source} and {binary}.
@@ -236,25 +245,25 @@ run CSES problems with Rust using the single schema:
         {debug}         (string[], optional) Debug variant; same token rules
                          as {build} (compiled) or {run} (interpreted).
 
-                                                              *CpUI*
+                                                                        *CpUI*
     Fields: ~
+        {ansi}          (boolean, default: true) Enable ANSI color parsing
+                        and highlighting in both I/O view and panel.
         {panel}         (|PanelConfig|) Test panel behavior configuration.
         {diff}          (|DiffConfig|) Diff backend configuration.
         {picker}        (string|nil) 'telescope', 'fzf-lua', or nil.
 
-                                                        *cp.PanelConfig*
+                                                              *cp.PanelConfig*
     Fields: ~
-        {ansi}             (boolean, default: true) Enable ANSI color parsing
-                           and highlighting.
         {diff_mode}        (string, default: "none") Diff backend: "none",
                            "vim", or "git".
         {max_output_lines} (number, default: 50) Maximum lines of test output.
 
-                                                            *cp.DiffConfig*
+                                                               *cp.DiffConfig*
     Fields: ~
         {git}           (|cp.DiffGitConfig|) Git diff backend configuration.
 
-                                                         *cp.DiffGitConfig*
+                                                            *cp.DiffGitConfig*
     Fields: ~
         {args}          (string[]) Command-line arguments for git diff.
                         Default: { 'diff', '--no-index', '--word-diff=plain',
@@ -264,40 +273,56 @@ run CSES problems with Rust using the single schema:
                         • --word-diff-regex=.: Split on every character
                         • --no-prefix: Remove a/ b/ prefixes from output
 
-                                                                *cp.Hooks*
+                                                                    *cp.Hooks*
     Fields: ~
-        {before_run}    (function, optional) Called before test panel opens.
-                        function(state: cp.State)
-        {before_debug}  (function, optional) Called before debug build/run.
-                        function(state: cp.State)
-        {setup_code}    (function, optional) Called after source file is opened.
-                        function(state: cp.State)
+        {before_run}       (function, optional) Called before test panel opens.
+                           function(state: cp.State)
+        {before_debug}     (function, optional) Called before debug build/run.
+                           function(state: cp.State)
+        {setup_code}       (function, optional) Called after source file is opened.
+                           function(state: cp.State)
+        {setup_io_input}   (function, optional) Called when I/O input buffer created.
+                           function(bufnr: integer, state: cp.State)
+                           Default: helpers.clearcol (removes line numbers/columns)
+        {setup_io_output}  (function, optional) Called when I/O output buffer created.
+                           function(bufnr: integer, state: cp.State)
+                           Default: helpers.clearcol (removes line numbers/columns)
 
-    Hook functions receive the cp.nvim state object (cp.State). See the state
-    module documentation (lua/cp/state.lua) for available methods and fields.
+    Hook functions receive the cp.nvim state object (|cp.State|). See
+    |lua/cp/state.lua| for available methods and fields.
 
-    Example usage in hook:
+    The I/O buffer hooks are called once when the buffers are first created
+    during problem setup. Use these to customize buffer appearance (e.g.,
+    remove line numbers, set custom options). Access helpers via:
+>lua
+        local helpers = require('cp').helpers
+<
+    Example usage:
 >lua
         hooks = {
           setup_code = function(state)
             print("Setting up " .. state.get_base_name())
             print("Source file: " .. state.get_source_file())
+          end,
+          setup_io_input = function(bufnr, state)
+            -- Custom setup for input buffer
+            vim.api.nvim_set_option_value('number', false, { buf = bufnr })
           end
         }
 <
 
 ==============================================================================
-WORKFLOW                                                        *cp-workflow*
+WORKFLOW                                                         *cp-workflow*
 
 For the sake of consistency and simplicity, cp.nvim extracts contest/problem
 identifiers from URLs. This means that, for example, CodeForces/AtCoder
 contests are configured by their round id rather than round number. See below.
 
 ==============================================================================
-PLATFORM-SPECIFIC USAGE                                        *cp-platforms*
+PLATFORM-SPECIFIC USAGE                                         *cp-platforms*
 
 AtCoder ~
-                                                             *cp-atcoder*
+                                                                  *cp-atcoder*
 URL format:
 https://atcoder.jp/contests/{contest_id}/tasks/{contest_id}_{problem_id}
 
@@ -305,14 +330,14 @@ Usage examples: >
     :CP atcoder abc324            " Set up atcoder.jp/contests/abc324
 
 Codeforces ~
-                                                          *cp-codeforces*
+                                                               *cp-codeforces*
 URL format: https://codeforces.com/contest/{contest_id}/problem/{problem_id}
 
 Usage examples: >
     :CP codeforces 1934           " Set up codeforces.com/contest/1934
 
 CSES ~
-                                                                *cp-cses*
+                                                                     *cp-cses*
 URL format: https://cses.fi/problemset/task/{problem_id}
 
 Usage examples: >
@@ -320,7 +345,7 @@ Usage examples: >
 
 ==============================================================================
 
-COMPLETE WORKFLOW EXAMPLE                                       *cp-example*
+COMPLETE WORKFLOW EXAMPLE                                         *cp-example*
 
 Example: Setting up and solving AtCoder contest ABC324
 
@@ -333,8 +358,9 @@ Example: Setting up and solving AtCoder contest ABC324
 
 3. Code your solution, then test: >
     :CP run
-<   Navigate with j/k, run specific tests with <enter>
-    Exit test panel with q or :CP run when done
+<   View test verdicts in I/O splits. For detailed analysis:
+    :CP panel
+<   Navigate tests with <c-n>/<c-p>, exit with q
 
 4. Move to next problem: >
     :CP next
@@ -350,28 +376,68 @@ Example: Setting up and solving AtCoder contest ABC324
 7. Submit solutions on AtCoder website
 
 ==============================================================================
-PICKER INTEGRATION                                              *cp-picker*
+I/O VIEW                                                          *cp-io-view*
+
+The I/O view provides the main view aggregate view into test input and
+program output. Used time/memory per test case are appended to the output.
+The |cp-panel| offers more fine-grained analysis into each test case.
+
+Access the I/O view with :CP run [n]
+
+Layout ~
+
+The I/O view appears as 30% width splits on the right side: >
+
+    ┌──────────────────────────┬──────────────────────────┐
+    │                          │ Output                   │
+    │                          │ Test 1: AC (42ms, 8MB)   │
+    │                          │ Test 2: AC (38ms, 8MB)   │
+    │   Solution Code          │ Test 3: WA (45ms, 8MB)   │
+    │                          │ Test 4: AC (51ms, 9MB)   │
+    │                          ├──────────────────────────┤
+    │                          │ Input                    │
+    │                          │ 5 3                      │
+    │                          │ 1 2 3 4 5                │
+    │                          │ 2 1                      │
+    │                          │ 10 20                    │
+    └──────────────────────────┴──────────────────────────┘
+<
+Usage ~
+
+    :CP run             Run all tests
+    :CP run 3           Run test 3
+
+Buffer Customization ~
+
+Use the setup_io_input and setup_io_output hooks (see |cp.Hooks|) to customize
+buffer appearance. By default, line numbers and columns are removed via
+helpers.clearcol (see |cp-helpers|).
+
+==============================================================================
+PICKER INTEGRATION                                                 *cp-picker*
 
 When picker integration is enabled in configuration, cp.nvim provides interactive
 platform and contest selection using telescope.nvim or fzf-lua.
 
-:CP pick                                                        *:CP-pick*
+:CP pick                                                            *:CP-pick*
         Launch configured picker for interactive problem selection.
         Control Flow: Select Platform → Contest → Code!
 
         Requires picker = 'telescope' or picker = 'fzf-lua' in configuration.
         Requires corresponding plugin (telescope.nvim or fzf-lua) to be installed.
 
-PICKER KEYMAPS                                                  *cp-picker-keys*
+PICKER KEYMAPS                                                *cp-picker-keys*
 <c-r>   Force refresh/update contest list.
         Useful when contest lists are outdated or incomplete
 
 ==============================================================================
-PANEL                                                           *cp-run*
+PANEL                                                               *cp-panel*
 
-The panel provides individual test case debugging. Problem time/memory
-limit constraints are in columns Time/Mem respectively. Used time/memory are
-in columns Runtime/RSS respectively.
+The panel provides full-screen test analysis with diff modes for detailed
+debugging. Problem time/memory limit constraints are in columns Time/Mem
+respectively. Used time/memory are in columns Runtime/RSS respectively.
+
+Access with :CP panel or :CP debug (uses debug build configuration).
 
 Interface ~
 
@@ -409,7 +475,7 @@ Test cases use competitive programming terminology with color highlighting:
 <
 
 ==============================================================================
-INTERACTIVE MODE                                                  *cp-interact*
+INTERACTIVE MODE                                                 *cp-interact*
 
 Run interactive problems manually or with an orchestrator. :CP interact is
 available for interactive problems. Test cases are ignored in interactive mode
@@ -436,7 +502,7 @@ Keymaps ~
     <c-q>   Close the terminal and restore the previous layout.
 
 ==============================================================================
-ANSI COLORS AND HIGHLIGHTING                                    *cp-ansi*
+ANSI COLORS AND HIGHLIGHTING                                         *cp-ansi*
 
 cp.nvim provides comprehensive ANSI color support and highlighting for
 compiler output, program stderr, and diff visualization.
@@ -459,7 +525,7 @@ alter your config as follows:
 <
 
 ==============================================================================
-HIGHLIGHT GROUPS                                            *cp-highlights*
+HIGHLIGHT GROUPS                                               *cp-highlights*
 
 Test Status Groups ~
 
@@ -485,13 +551,13 @@ adapt to your colorscheme:
     DiffDelete              Highlights removed text in git diffs
 
 ==============================================================================
-TERMINAL COLOR INTEGRATION                          *cp-terminal-colors*
+TERMINAL COLOR INTEGRATION                                *cp-terminal-colors*
 
 ANSI colors automatically use the terminal's color palette through Neovim's
 vim.g.terminal_color_* variables.
 
 ==============================================================================
-HIGHLIGHT CUSTOMIZATION                             *cp-highlight-custom*
+HIGHLIGHT CUSTOMIZATION                                  *cp-highlight-custom*
 
 Customize highlight groups after your colorscheme loads:
 >lua
@@ -502,12 +568,33 @@ Customize highlight groups after your colorscheme loads:
     })
 
 ==============================================================================
-PANEL KEYMAPS                                           *cp-test-keys*
+HELPERS                                                           *cp-helpers*
+
+The helpers module provides utility functions for buffer customization.
+Access via:
+>lua
+    local helpers = require('cp').helpers
+<
+Functions ~
+
+    helpers.clearcol({bufnr})                              *helpers.clearcol*
+        Remove line numbers, columns, and signs from buffer.
+        Sets:
+            • number = false
+            • relativenumber = false
+            • signcolumn = 'no'
+            • statuscolumn = ''
+
+        Parameters: ~
+            {bufnr}  (integer) Buffer handle
+
+==============================================================================
+PANEL KEYMAPS                                                  *cp-panel-keys*
 
 <c-n>   Navigate to next test case
 <c-p>   Navigate to previous test case
 t       Cycle through diff modes: none → git → vim
-q       Exit run panel and restore layout
+q       Exit panel and restore layout
 <c-q>   Exit interactive terminal and restore layout
 
 Diff Modes ~
@@ -528,7 +615,7 @@ execution pipeline, but with isolated input/output for
 precise failure analysis.
 
 ==============================================================================
-FILE STRUCTURE                                                  *cp-files*
+FILE STRUCTURE                                                      *cp-files*
 
 cp.nvim creates the following file structure upon problem setup: >
 
@@ -537,11 +624,10 @@ cp.nvim creates the following file structure upon problem setup: >
       {problem_id}.run              " Compiled binary
     io/
       {problem_id}.n.cpin           " nth test input
-      {problem_id}.n.cpout          " nth program output
-      {problem_id}.expected         " Expected output
+      {problem_id}.n.cpout          " nth test expected output
 <
 ==============================================================================
-HEALTH CHECK                                                    *cp-health*
+HEALTH CHECK                                                       *cp-health*
 
 Run |:checkhealth| cp to verify your setup.
 
