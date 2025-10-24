@@ -280,6 +280,7 @@ function M.run_io_view(test_index)
       'No platform/contest/problem configured. Use :CP <platform> <contest> [...] first.',
       vim.log.levels.ERROR
     )
+    return
   end
 
   cache.load()
