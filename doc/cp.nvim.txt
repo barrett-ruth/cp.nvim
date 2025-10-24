@@ -114,8 +114,12 @@ COMMANDS                                                         *cp-commands*
                                 Changes saved to both cache and disk on exit,
                                 taking effect immediately in :CP run and CLI.
 
-                                Keybindings:
+                                Keybindings (configurable via |EditConfig|):
                                   q         Save all and exit editor
+                                  ]t        Jump to next test column
+                                  [t        Jump to previous test column
+                                  gd        Delete current test column
+                                  ga        Add new test column at end
                                   <c-w>     Normal window navigation
 
                                 Examples: >
@@ -347,6 +351,15 @@ run CSES problems with Rust using the single schema:
                            to previous test in I/O view. Set to nil to disable.
         {format_verdict}   (|VerdictFormatter|, default: nil) Custom verdict line
                            formatter. See |cp-verdict-format|.
+
+                                                                *EditConfig*
+    Fields: ~
+        {next_test_key}      (string|nil, default: ']t') Jump to next test.
+        {prev_test_key}      (string|nil, default: '[t') Jump to previous test.
+        {delete_test_key}    (string|nil, default: 'gd') Delete current test.
+        {add_test_key}       (string|nil, default: 'ga') Add new test.
+        {save_and_exit_key}  (string|nil, default: 'q') Save and exit editor.
+                             All keys are nil-able. Set to nil to disable.
 
                                                               *cp.PanelConfig*
     Fields: ~

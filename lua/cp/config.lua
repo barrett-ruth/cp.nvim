@@ -65,9 +65,17 @@
 ---@field prev_test_key string|nil
 ---@field format_verdict VerdictFormatter
 
+---@class EditConfig
+---@field next_test_key string|nil
+---@field prev_test_key string|nil
+---@field delete_test_key string|nil
+---@field add_test_key string|nil
+---@field save_and_exit_key string|nil
+
 ---@class CpUI
 ---@field ansi boolean
 ---@field run RunConfig
+---@field edit EditConfig
 ---@field panel PanelConfig
 ---@field diff DiffConfig
 ---@field picker string|nil
@@ -153,6 +161,13 @@ M.defaults = {
       next_test_key = '<c-n>',
       prev_test_key = '<c-p>',
       format_verdict = helpers.default_verdict_formatter,
+    },
+    edit = {
+      next_test_key = ']t',
+      prev_test_key = '[t',
+      delete_test_key = 'gd',
+      add_test_key = 'ga',
+      save_and_exit_key = 'q',
     },
     panel = { diff_mode = 'none', max_output_lines = 50 },
     diff = {
@@ -328,6 +343,41 @@ function M.setup(user_config)
     format_verdict = {
       cfg.ui.run.format_verdict,
       'function',
+    },
+    edit_next_test_key = {
+      cfg.ui.edit.next_test_key,
+      function(v)
+        return v == nil or (type(v) == 'string' and #v > 0)
+      end,
+      'nil or non-empty string',
+    },
+    edit_prev_test_key = {
+      cfg.ui.edit.prev_test_key,
+      function(v)
+        return v == nil or (type(v) == 'string' and #v > 0)
+      end,
+      'nil or non-empty string',
+    },
+    delete_test_key = {
+      cfg.ui.edit.delete_test_key,
+      function(v)
+        return v == nil or (type(v) == 'string' and #v > 0)
+      end,
+      'nil or non-empty string',
+    },
+    add_test_key = {
+      cfg.ui.edit.add_test_key,
+      function(v)
+        return v == nil or (type(v) == 'string' and #v > 0)
+      end,
+      'nil or non-empty string',
+    },
+    save_and_exit_key = {
+      cfg.ui.edit.save_and_exit_key,
+      function(v)
+        return v == nil or (type(v) == 'string' and #v > 0)
+      end,
+      'nil or non-empty string',
     },
   })
 
