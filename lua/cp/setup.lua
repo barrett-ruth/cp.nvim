@@ -230,7 +230,7 @@ function M.setup_problem(problem_id, language)
       state.get_problem_id() or '',
       lang
     )
-    require('cp.ui.panel').ensure_io_view()
+    require('cp.ui.views').ensure_io_view()
   end)
 end
 

@@ -231,12 +231,12 @@ function M.ensure_io_view()
     local cfg = config_module.get_config()
     local width = math.floor(vim.o.columns * (cfg.ui.run.width or 0.3))
     vim.api.nvim_win_set_width(output_win, width)
-    output_buf = utils.create_buffer_with_options()
+    output_buf = utils.create_buffer_with_options('cpout')
     vim.api.nvim_win_set_buf(output_win, output_buf)
 
     vim.cmd.split()
     input_win = vim.api.nvim_get_current_win()
-    input_buf = utils.create_buffer_with_options()
+    input_buf = utils.create_buffer_with_options('cpin')
     vim.api.nvim_win_set_buf(input_win, input_buf)
 
     state.set_io_view_state({
@@ -395,9 +395,10 @@ function M.run_io_view(test_index, debug)
 
   local input_lines = {}
   local output_lines = {}
-  local verdict_data = {}
+  local verdict_lines = {}
+  local verdict_highlights = {}
 
-  local widths = { test_num = 0, status = 0, time = 0, memory = 0, exit = 0 }
+  local formatter = config.ui.run.format_verdict
 
   for _, idx in ipairs(test_indices) do
     local tc = test_state.test_cases[idx]
@@ -413,70 +414,38 @@ function M.run_io_view(test_index, debug)
 
     local status = run_render.get_status_info(tc)
 
-    local time_actual = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
-    local time_limit = test_state.constraints and tostring(test_state.constraints.timeout_ms)
-      or '—'
-    local time_data = time_actual .. '/' .. time_limit
-
-    local mem_actual = tc.rss_mb and string.format('%.0f', tc.rss_mb) or '—'
-    local mem_limit = test_state.constraints
-        and string.format('%.0f', test_state.constraints.memory_mb)
-      or '—'
-    local mem_data = mem_actual .. '/' .. mem_limit
-
-    local exit_code = tc.code or 0
-    local signal_name = exit_code >= 128 and require('cp.constants').signal_codes[exit_code] or nil
-    local exit_str = signal_name and string.format('%d (%s)', exit_code, signal_name)
-      or tostring(exit_code)
-
-    widths.test_num = math.max(widths.test_num, #('Test ' .. idx .. ':'))
-    widths.status = math.max(widths.status, #status.text)
-    widths.time = math.max(widths.time, #(time_data .. ' ms'))
-    widths.memory = math.max(widths.memory, #(mem_data .. ' MB'))
-    widths.exit = math.max(widths.exit, #('exit: ' .. exit_str))
-
-    table.insert(verdict_data, {
-      idx = idx,
+    ---@type VerdictFormatData
+    local format_data = {
+      index = idx,
       status = status,
-      time_data = time_data,
-      mem_data = mem_data,
-      exit_str = exit_str,
-    })
+      time_ms = tc.time_ms or 0,
+      time_limit_ms = test_state.constraints and test_state.constraints.timeout_ms or 0,
+      memory_mb = tc.rss_mb or 0,
+      memory_limit_mb = test_state.constraints and test_state.constraints.memory_mb or 0,
+      exit_code = tc.code or 0,
+      signal = (tc.code and tc.code >= 128) and require('cp.constants').signal_codes[tc.code]
+        or nil,
+    }
+
+    local result = formatter(format_data)
+    table.insert(verdict_lines, result.line)
+
+    if result.highlights then
+      for _, hl in ipairs(result.highlights) do
+        table.insert(verdict_highlights, {
+          line_offset = #verdict_lines - 1,
+          col_start = hl.col_start,
+          col_end = hl.col_end,
+          group = hl.group,
+        })
+      end
+    end
 
     for _, line in ipairs(vim.split(tc.input, '\n')) do
       table.insert(input_lines, line)
     end
     if idx < #test_indices then
       table.insert(input_lines, '')
-    end
-  end
-
-  local verdict_lines = {}
-  local verdict_highlights = {}
-  for _, vd in ipairs(verdict_data) do
-    local test_num_part = helpers.pad_right('Test ' .. vd.idx .. ':', widths.test_num)
-    local status_part = helpers.pad_right(vd.status.text, widths.status)
-    local time_part = helpers.pad_right(vd.time_data, widths.time - 3) .. ' ms'
-    local mem_part = helpers.pad_right(vd.mem_data, widths.memory - 3) .. ' MB'
-    local exit_part = helpers.pad_right('exit: ' .. vd.exit_str, widths.exit)
-
-    local verdict_line = test_num_part
-      .. ' '
-      .. status_part
-      .. ' | '
-      .. time_part
-      .. ' | '
-      .. mem_part
-      .. ' | '
-      .. exit_part
-    table.insert(verdict_lines, verdict_line)
-
-    local status_pos = verdict_line:find(vd.status.text, 1, true)
-    if status_pos then
-      table.insert(verdict_highlights, {
-        status = vd.status,
-        verdict_line = verdict_line,
-      })
     end
   end
 
@@ -490,16 +459,13 @@ function M.run_io_view(test_index, debug)
   end
 
   local final_highlights = {}
-  for i, vh in ipairs(verdict_highlights) do
-    local status_pos = vh.verdict_line:find(vh.status.text, 1, true)
-    if status_pos then
-      table.insert(final_highlights, {
-        line = verdict_start + i - 1,
-        col_start = status_pos - 1,
-        col_end = status_pos - 1 + #vh.status.text,
-        highlight_group = vh.status.highlight_group,
-      })
-    end
+  for _, vh in ipairs(verdict_highlights) do
+    table.insert(final_highlights, {
+      line = verdict_start + vh.line_offset,
+      col_start = vh.col_start,
+      col_end = vh.col_end,
+      highlight_group = vh.group,
+    })
   end
 
   utils.update_buffer_content(io_state.input_buf, input_lines, nil, nil)

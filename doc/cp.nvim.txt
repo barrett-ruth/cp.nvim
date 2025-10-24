@@ -296,6 +296,8 @@ run CSES problems with Rust using the single schema:
                            to next test in I/O view. Set to nil to disable.
         {prev_test_key}    (string|nil, default: '<c-p>') Keymap to navigate
                            to previous test in I/O view. Set to nil to disable.
+        {format_verdict}   (|VerdictFormatter|, default: nil) Custom verdict line
+                           formatter. See |cp-verdict-format|.
 
                                                               *cp.PanelConfig*
     Fields: ~
@@ -471,6 +473,51 @@ Buffer Customization ~
 Use the setup_io_input and setup_io_output hooks (see |cp.Hooks|) to customize
 buffer appearance. By default, line numbers and columns are removed via
 helpers.clearcol (see |cp-helpers|).
+
+==============================================================================
+VERDICT FORMATTING                                           *cp-verdict-format*
+
+Customize how verdict summaries appear in the I/O view using format_verdict.
+
+Configuration ~
+
+Set ui.run.format_verdict to a function that formats verdict data: >lua
+    format_verdict = function(data)
+      return { line = "...", highlights = {...} }
+    end
+<
+Format Function ~
+                                                             *VerdictFormatter*
+Input: |VerdictFormatData| table with test results
+Output: |VerdictFormatResult| table with formatted line and optional highlights
+
+                                                           *VerdictFormatData*
+    {index}           (integer) Test case number
+    {status}          (table) { text: string, highlight_group: string }
+    {time_ms}         (number) Execution time in milliseconds
+    {time_limit_ms}   (number) Time limit in milliseconds
+    {memory_mb}       (number) Peak memory usage in megabytes
+    {memory_limit_mb} (number) Memory limit in megabytes
+    {exit_code}       (integer) Process exit code
+    {signal}          (string|nil) Signal name for crashes (e.g. "SIGSEGV")
+
+                                                         *VerdictFormatResult*
+    {line}            (string) The formatted verdict line
+    {highlights}      (table[], optional) Highlight regions:
+        {col_start}   (integer) Start column (0-indexed)
+        {col_end}     (integer) End column (exclusive)
+        {group}       (string) Highlight group name
+
+Examples ~
+
+Minimal format: >lua
+    format_verdict = function(data)
+      return {
+        line = string.format("#%d %s", data.index, data.status.text)
+      }
+    end
+<
+See |cp-helpers| for alignment functions: pad_right, pad_left, center.
 
 ==============================================================================
 PICKER INTEGRATION                                                 *cp-picker*
