@@ -36,6 +36,8 @@
 
 ---@class RunConfig
 ---@field width number
+---@field next_test_key string|nil
+---@field prev_test_key string|nil
 
 ---@class CpUI
 ---@field ansi boolean
@@ -120,7 +122,7 @@ M.defaults = {
   filename = nil,
   ui = {
     ansi = true,
-    run = { width = 0.3 },
+    run = { width = 0.3, next_test_key = '<c-n>', prev_test_key = '<c-p>' },
     panel = { diff_mode = 'none', max_output_lines = 50 },
     diff = {
       git = {
@@ -278,6 +280,20 @@ function M.setup(user_config)
       'positive integer',
     },
     git = { cfg.ui.diff.git, { 'table' } },
+    next_test_key = {
+      cfg.ui.run.next_test_key,
+      function(v)
+        return v == nil or (type(v) == 'string' and #v > 0)
+      end,
+      'nil or non-empty string',
+    },
+    prev_test_key = {
+      cfg.ui.run.prev_test_key,
+      function(v)
+        return v == nil or (type(v) == 'string' and #v > 0)
+      end,
+      'nil or non-empty string',
+    },
   })
 
   for id, lang in pairs(cfg.languages) do

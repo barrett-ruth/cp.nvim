@@ -184,6 +184,11 @@ Here's an example configuration with lazy.nvim:
         debug = false,
         ui = {
           ansi = true,
+          run = {
+            width = 0.3,
+            next_test_key = '<c-n>',  -- or nil to disable
+            prev_test_key = '<c-p>',  -- or nil to disable
+          },
           panel = {
             diff_mode = 'vim',
             max_output_lines = 50,
@@ -278,9 +283,19 @@ run CSES problems with Rust using the single schema:
     Fields: ~
         {ansi}          (boolean, default: true) Enable ANSI color parsing
                         and highlighting in both I/O view and panel.
+        {run}           (|RunConfig|) I/O view configuration.
         {panel}         (|PanelConfig|) Test panel behavior configuration.
         {diff}          (|DiffConfig|) Diff backend configuration.
         {picker}        (string|nil) 'telescope', 'fzf-lua', or nil.
+
+                                                                  *RunConfig*
+    Fields: ~
+        {width}            (number, default: 0.3) Width of I/O view splits as
+                           fraction of screen (0.0 to 1.0).
+        {next_test_key}    (string|nil, default: '<c-n>') Keymap to navigate
+                           to next test in I/O view. Set to nil to disable.
+        {prev_test_key}    (string|nil, default: '<c-p>') Keymap to navigate
+                           to previous test in I/O view. Set to nil to disable.
 
                                                               *cp.PanelConfig*
     Fields: ~
@@ -444,6 +459,12 @@ Usage ~
 
     :CP run             Run all tests
     :CP run 3           Run test 3 only
+
+Navigation ~
+
+While in the I/O view buffers, use the configured keymaps to cycle through tests:
+    <c-n>               Next test (default, see |RunConfig|.next_test_key)
+    <c-p>               Previous test (default, see |RunConfig|.prev_test_key)
 
 Buffer Customization ~
 

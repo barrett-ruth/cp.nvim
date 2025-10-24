@@ -273,18 +273,23 @@ function M.ensure_io_view()
       M.run_io_view(new_index)
     end
 
-    vim.keymap.set('n', '<c-n>', function()
-      navigate_test(1)
-    end, { buffer = output_buf, silent = true, desc = 'Next test' })
-    vim.keymap.set('n', '<c-p>', function()
-      navigate_test(-1)
-    end, { buffer = output_buf, silent = true, desc = 'Previous test' })
-    vim.keymap.set('n', '<c-n>', function()
-      navigate_test(1)
-    end, { buffer = input_buf, silent = true, desc = 'Next test' })
-    vim.keymap.set('n', '<c-p>', function()
-      navigate_test(-1)
-    end, { buffer = input_buf, silent = true, desc = 'Previous test' })
+    if config.ui.run.next_test_key then
+      vim.keymap.set('n', config.ui.run.next_test_key, function()
+        navigate_test(1)
+      end, { buffer = output_buf, silent = true, desc = 'Next test' })
+      vim.keymap.set('n', config.ui.run.next_test_key, function()
+        navigate_test(1)
+      end, { buffer = input_buf, silent = true, desc = 'Next test' })
+    end
+
+    if config.ui.run.prev_test_key then
+      vim.keymap.set('n', config.ui.run.prev_test_key, function()
+        navigate_test(-1)
+      end, { buffer = output_buf, silent = true, desc = 'Previous test' })
+      vim.keymap.set('n', config.ui.run.prev_test_key, function()
+        navigate_test(-1)
+      end, { buffer = input_buf, silent = true, desc = 'Previous test' })
+    end
   end
 
   utils.update_buffer_content(input_buf, {})
