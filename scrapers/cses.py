@@ -72,7 +72,7 @@ async def fetch_text(client: httpx.AsyncClient, path: str) -> str:
 
 
 CATEGORY_BLOCK_RE = re.compile(
-    r'<h2>(?P<cat>[^<]+)</h2>\s*<ul class="task-list">(?P<body>.*?)</ul>',
+    r'<h2>(?P<cat>[^<]+)</h2>\s*<ul\s+class="task-list">(?P<body>.*?)</ul>',
     re.DOTALL,
 )
 TASK_LINK_RE = re.compile(
@@ -81,15 +81,15 @@ TASK_LINK_RE = re.compile(
 )
 
 TITLE_RE = re.compile(
-    r'<div class="title-block">.*?<h1>(?P<title>[^<]+)</h1>', re.DOTALL
+    r'<div\s+class="title-block">.*?<h1>(?P<title>[^<]+)</h1>', re.DOTALL
 )
-TIME_RE = re.compile(r"<li><b>Time limit:</b>\s*([0-9.]+)\s*s</li>")
-MEM_RE = re.compile(r"<li><b>Memory limit:</b>\s*(\d+)\s*MB</li>")
+TIME_RE = re.compile(r"<li>\s*<b>Time limit:</b>\s*([0-9.]+)\s*s\s*</li>")
+MEM_RE = re.compile(r"<li>\s*<b>Memory limit:</b>\s*(\d+)\s*MB\s*</li>")
 SIDEBAR_CAT_RE = re.compile(
-    r'<div class="nav sidebar">.*?<h4>(?P<cat>[^<]+)</h4>', re.DOTALL
+    r'<div\s+class="nav sidebar">.*?<h4>(?P<cat>[^<]+)</h4>', re.DOTALL
 )
 
-MD_BLOCK_RE = re.compile(r'<div class="md">(.*?)</div>', re.DOTALL | re.IGNORECASE)
+MD_BLOCK_RE = re.compile(r'<div\s+class="md">(.*?)</div>', re.DOTALL | re.IGNORECASE)
 EXAMPLE_SECTION_RE = re.compile(
     r"<h[1-6][^>]*>\s*example[s]?:?\s*</h[1-6]>\s*(?P<section>.*?)(?=<h[1-6][^>]*>|$)",
     re.DOTALL | re.IGNORECASE,
