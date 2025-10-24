@@ -272,20 +272,20 @@ function M.ensure_io_view()
       M.run_io_view(new_index)
     end
 
-    if config.ui.run.next_test_key then
-      vim.keymap.set('n', config.ui.run.next_test_key, function()
+    if cfg.ui.run.next_test_key then
+      vim.keymap.set('n', cfg.ui.run.next_test_key, function()
         navigate_test(1)
       end, { buffer = output_buf, silent = true, desc = 'Next test' })
-      vim.keymap.set('n', config.ui.run.next_test_key, function()
+      vim.keymap.set('n', cfg.ui.run.next_test_key, function()
         navigate_test(1)
       end, { buffer = input_buf, silent = true, desc = 'Next test' })
     end
 
-    if config.ui.run.prev_test_key then
-      vim.keymap.set('n', config.ui.run.prev_test_key, function()
+    if cfg.ui.run.prev_test_key then
+      vim.keymap.set('n', cfg.ui.run.prev_test_key, function()
         navigate_test(-1)
       end, { buffer = output_buf, silent = true, desc = 'Previous test' })
-      vim.keymap.set('n', config.ui.run.prev_test_key, function()
+      vim.keymap.set('n', cfg.ui.run.prev_test_key, function()
         navigate_test(-1)
       end, { buffer = input_buf, silent = true, desc = 'Previous test' })
     end
