@@ -574,7 +574,7 @@ function M.toggle_panel(panel_opts)
     end
     run_render.setup_highlights()
     local test_state = run.get_panel_state()
-    local tab_lines, tab_highlights = run_render.render_test_list(test_state)
+    local tab_lines, tab_highlights, current_line = run_render.render_test_list(test_state)
     utils.update_buffer_content(
       test_buffers.tab_buf,
       tab_lines,
@@ -582,6 +582,17 @@ function M.toggle_panel(panel_opts)
       test_list_namespace
     )
     update_diff_panes()
+
+    if
+      current_line
+      and test_windows.tab_win
+      and vim.api.nvim_win_is_valid(test_windows.tab_win)
+    then
+      vim.api.nvim_win_set_cursor(test_windows.tab_win, { current_line, 0 })
+      vim.api.nvim_win_call(test_windows.tab_win, function()
+        vim.cmd('normal! zz')
+      end)
+    end
   end
 
   local function navigate_test_case(delta)
