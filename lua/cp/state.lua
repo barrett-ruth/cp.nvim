@@ -20,6 +20,8 @@
 ---@field set_contest_id fun(contest_id: string)
 ---@field get_problem_id fun(): string?
 ---@field set_problem_id fun(problem_id: string)
+---@field get_language fun(): string?
+---@field set_language fun(language: string)
 ---@field get_active_panel fun(): string?
 ---@field set_active_panel fun(panel: string?)
 ---@field get_base_name fun(): string?
@@ -42,6 +44,7 @@ local state = {
   platform = nil,
   contest_id = nil,
   problem_id = nil,
+  language = nil,
   test_cases = nil,
   saved_session = nil,
   active_panel = nil,
@@ -81,6 +84,16 @@ function M.set_problem_id(problem_id)
 end
 
 ---@return string?
+function M.get_language()
+  return state.language
+end
+
+---@param language string
+function M.set_language(language)
+  state.language = language
+end
+
+---@return string?
 function M.get_base_name()
   local platform, contest_id, problem_id = M.get_platform(), M.get_contest_id(), M.get_problem_id()
   if not platform or not contest_id or not problem_id then
@@ -112,7 +125,7 @@ function M.get_source_file(language)
     return nil
   end
 
-  local target_language = language or platform_cfg.default_language
+  local target_language = language or state.language or platform_cfg.default_language
   local eff = config.runtime.effective[plat] and config.runtime.effective[plat][target_language]
     or nil
   if not eff or not eff.extension then

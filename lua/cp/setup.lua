@@ -202,6 +202,8 @@ function M.setup_problem(problem_id, language)
     end
   end
 
+  state.set_language(lang)
+
   local source_file = state.get_source_file(lang)
   if not source_file then
     return
