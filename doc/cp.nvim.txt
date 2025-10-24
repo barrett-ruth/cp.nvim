@@ -109,10 +109,16 @@ COMMANDS                                                         *cp-commands*
                                 switching files to restore your CP environment.
 
         Cache Commands ~
-            :CP cache clear [contest]
-                                Clear the cache data for the specified contest,
-                                or all contests if none specified.
-
+            :CP cache clear [platform] [contest]
+                                Clear cache data at different granularities:
+                                • No args: Clear all cached data
+                                • [platform]: Clear all data for a platform
+                                • [platform] [contest]: Clear specific contest
+                                Examples: >
+                                    :CP cache clear                    " Clear all
+                                    :CP cache clear codeforces         " Clear CF
+                                    :CP cache clear codeforces 1848    " Clear CF 1848
+<
             :CP cache read
                                 View the cache in a pretty-printed lua buffer.
                                 Exit with q.

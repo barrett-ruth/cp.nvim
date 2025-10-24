@@ -96,7 +96,9 @@ end, {
       end
     elseif num_args == 4 then
       if args[2] == 'cache' and args[3] == 'clear' then
-        return filter_candidates(platforms)
+        local candidates = vim.list_extend({}, platforms)
+        table.insert(candidates, '')
+        return filter_candidates(candidates)
       elseif args[3] == '--lang' then
         local platform = require('cp.state').get_platform()
         return filter_candidates(get_enabled_languages(platform))
@@ -115,7 +117,12 @@ end, {
         return filter_candidates(candidates)
       end
     elseif num_args == 5 then
-      if vim.tbl_contains(platforms, args[2]) then
+      if args[2] == 'cache' and args[3] == 'clear' and vim.tbl_contains(platforms, args[4]) then
+        local cache = require('cp.cache')
+        cache.load()
+        local contests = cache.get_cached_contest_ids(args[4])
+        return filter_candidates(contests)
+      elseif vim.tbl_contains(platforms, args[2]) then
         if args[4] == '--lang' then
           return filter_candidates(get_enabled_languages(args[2]))
         else

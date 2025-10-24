@@ -40,10 +40,12 @@ local function parse_command(args)
       end
       if vim.tbl_contains({ 'clear', 'read' }, subcommand) then
         local platform = args[3]
+        local contest = args[4]
         return {
           type = 'cache',
           subcommand = subcommand,
           platform = platform,
+          contest = contest,
         }
       else
         return { type = 'error', message = 'unknown cache subcommand: ' .. subcommand }
@@ -55,6 +57,22 @@ local function parse_command(args)
       else
         return { type = 'action', action = 'interact' }
       end
+    elseif first == 'edit' then
+      local test_index = nil
+      if #args >= 2 then
+        local idx = tonumber(args[2])
+        if not idx then
+          return {
+            type = 'error',
+            message = ("Invalid argument '%s': expected test number"):format(args[2]),
+          }
+        end
+        if idx < 1 or idx ~= math.floor(idx) then
+          return { type = 'error', message = ("'%s' is not a valid test index"):format(idx) }
+        end
+        test_index = idx
+      end
+      return { type = 'action', action = 'edit', test_index = test_index }
     elseif first == 'run' or first == 'panel' then
       local debug = false
       local test_index = nil
