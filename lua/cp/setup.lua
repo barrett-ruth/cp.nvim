@@ -306,8 +306,16 @@ function M.navigate_problem(direction, language)
     require('cp.ui.views').disable()
   end
 
+  if language then
+    local lang_result = config_module.get_language_for_platform(platform, language)
+    if not lang_result.valid then
+      logger.log(lang_result.error, vim.log.levels.ERROR)
+      return
+    end
+  end
+
   local lang = language or get_current_file_language()
-  if lang then
+  if lang and not language then
     local lang_result = config_module.get_language_for_platform(platform, lang)
     if not lang_result.valid then
       lang = nil
