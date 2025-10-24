@@ -362,17 +362,22 @@ function M.get_language_for_platform(platform_id, language_id)
     return { valid = false, error = string.format("Unknown platform '%s'", platform_id) }
   end
 
+  local platform = cfg.platforms[platform_id]
+
   if not cfg.languages[language_id] then
-    return { valid = false, error = string.format("Unknown language '%s'", language_id) }
+    local available = table.concat(platform.enabled_languages, ', ')
+    return {
+      valid = false,
+      error = string.format("Unknown language '%s'. Available: [%s]", language_id, available),
+    }
   end
 
-  local platform = cfg.platforms[platform_id]
   if not vim.tbl_contains(platform.enabled_languages, language_id) then
     local available = table.concat(platform.enabled_languages, ', ')
     return {
       valid = false,
       error = string.format(
-        "Language '%s' not enabled for %s. Available: %s",
+        "Language '%s' not enabled for %s. Available: [%s]",
         language_id,
         platform_id,
         available
