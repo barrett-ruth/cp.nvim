@@ -14,6 +14,7 @@ https://github.com/user-attachments/assets/50b19481-8e6d-47b4-bebc-15e16c61a9c9
 - **Automatic problem setup**: Scrape test cases and metadata in seconds
 - **Dual view modes**: Lightweight I/O view for quick feedback, full panel for
   detailed analysis
+- **Test case management**: Quickly view, edit, add, & remove test cases
 - **Rich test output**: 256 color ANSI support for compiler errors and program
   output
 - **Language agnostic**: Works with any language
@@ -31,21 +32,20 @@ cp.nvim follows a simple principle: **solve locally, submit remotely**.
 
 ### Basic Usage
 
-1. **Find a contest or problem** on the judge website
-2. **Set up locally** with `:CP <platform> <contest>`
+1. Find a contest or problem
+2. Set up contests locally
 
    ```
    :CP codeforces 1848
    ```
 
-3. **Code and test** with instant feedback
+3. Code and test
 
    ```
-   :CP run        " Quick verdict summary in splits
-   :CP panel      " Detailed analysis with diffs
+   :CP run
    ```
 
-4. **Navigate between problems**
+4. Navigate between problems
 
    ```
    :CP next
@@ -53,7 +53,14 @@ cp.nvim follows a simple principle: **solve locally, submit remotely**.
    :CP e1
    ```
 
-5. **Submit** on the original website
+5. Debug and edit test cases
+
+```
+:CP edit
+:CP panel --debug
+```
+
+5. Submit on the original website
 
 ## Documentation
 
