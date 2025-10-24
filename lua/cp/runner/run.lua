@@ -109,7 +109,7 @@ local function run_single_test_case(test_case, debug)
   local substitutions = { source = source_file, binary = binary_file }
 
   local platform_config = config.platforms[state.get_platform() or '']
-  local language = platform_config.default_language
+  local language = state.get_language() or platform_config.default_language
   local eff = config.runtime.effective[state.get_platform() or ''][language]
   local run_template = eff and eff.commands and eff.commands.run or {}
   local cmd = build_command(run_template, substitutions)

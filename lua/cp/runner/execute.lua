@@ -164,7 +164,7 @@ function M.compile_problem(debug)
   local state = require('cp.state')
   local config = require('cp.config').get_config()
   local platform = state.get_platform()
-  local language = config.platforms[platform].default_language
+  local language = state.get_language() or config.platforms[platform].default_language
   local eff = config.runtime.effective[platform][language]
 
   local compile_config = (debug and eff.commands.debug) or eff.commands.build

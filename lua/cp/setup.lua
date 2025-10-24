@@ -8,6 +8,18 @@ local logger = require('cp.log')
 local scraper = require('cp.scraper')
 local state = require('cp.state')
 
+---Get the language of the current file from cache
+---@return string|nil
+local function get_current_file_language()
+  local current_file = vim.fn.expand('%:p')
+  if current_file == '' then
+    return nil
+  end
+  cache.load()
+  local file_state = cache.get_file_state(current_file)
+  return file_state and file_state.language or nil
+end
+
 ---@class TestCaseLite
 ---@field input string
 ---@field expected string
@@ -85,6 +97,14 @@ function M.setup_contest(platform, contest_id, problem_id, language)
 
   state.set_platform(platform)
   state.set_contest_id(contest_id)
+
+  if language then
+    local lang_result = config_module.get_language_for_platform(platform, language)
+    if not lang_result.valid then
+      logger.log(lang_result.error, vim.log.levels.ERROR)
+      return
+    end
+  end
 
   local is_new_contest = old_platform ~= platform and old_contest_id ~= contest_id
 
@@ -173,6 +193,17 @@ function M.setup_problem(problem_id, language)
   local config = config_module.get_config()
   local lang = language
     or (config.platforms[platform] and config.platforms[platform].default_language)
+
+  if language then
+    local lang_result = config_module.get_language_for_platform(platform, language)
+    if not lang_result.valid then
+      logger.log(lang_result.error, vim.log.levels.ERROR)
+      return
+    end
+  end
+
+  state.set_language(lang)
+
   local source_file = state.get_source_file(lang)
   if not source_file then
     return
@@ -235,7 +266,8 @@ function M.setup_problem(problem_id, language)
 end
 
 ---@param direction integer
-function M.navigate_problem(direction)
+---@param language? string
+function M.navigate_problem(direction, language)
   if direction == 0 then
     return
   end
@@ -274,7 +306,23 @@ function M.navigate_problem(direction)
     require('cp.ui.views').disable()
   end
 
-  M.setup_contest(platform, contest_id, problems[new_index].id)
+  if language then
+    local lang_result = config_module.get_language_for_platform(platform, language)
+    if not lang_result.valid then
+      logger.log(lang_result.error, vim.log.levels.ERROR)
+      return
+    end
+  end
+
+  local lang = language or get_current_file_language()
+  if lang and not language then
+    local lang_result = config_module.get_language_for_platform(platform, lang)
+    if not lang_result.valid then
+      lang = nil
+    end
+  end
+
+  M.setup_contest(platform, contest_id, problems[new_index].id, lang)
 end
 
 return M

@@ -25,18 +25,13 @@ COMMANDS                                                         *cp-commands*
         cp.nvim uses a single :CP command with intelligent argument parsing:
 
         Setup Commands ~
-            :CP {platform} {contest_id}
+            :CP {platform} {contest_id} [--lang {language}]
                                 Full setup: set platform and load contest metadata.
                                 Scrapes test cases and creates source file.
-                                Example: >
+                                --lang: Use specific language (default: platform default)
+                                Examples: >
                                     :CP codeforces 1933
-<
-            :CP {platform} {contest_id}
-                                Contest setup: set platform, load contest metadata,
-                                and scrape all test cases in the contest. 
-                                Opens the first problem after completion.
-                                Example: >
-                                    :CP atcoder abc324
+                                    :CP codeforces 1933 --lang python
 <
         View Commands ~
             :CP run [--debug] [n]
@@ -59,8 +54,14 @@ COMMANDS                                                         *cp-commands*
                                     :CP panel --debug 3  " Test 3, debug build
 <
 
-            :CP pick            Launch configured picker for interactive
+            :CP pick [--lang {language}]
+                                Launch configured picker for interactive
                                 platform/contest selection.
+                                --lang: Pre-select language for chosen contest.
+                                Example: >
+                                    :CP pick
+                                    :CP pick --lang python
+<
 
             :CP interact [script]
                                 Open an interactive terminal for the current problem.
@@ -70,15 +71,36 @@ COMMANDS                                                         *cp-commands*
                                 file. Only valid for interactive problems.
 
         Navigation Commands ~
-            :CP next            Navigate to next problem in current contest.
+            :CP next [--lang {language}]
+                                Navigate to next problem in current contest.
                                 Stops at last problem (no wrapping).
-
-
-            :CP prev            Navigate to previous problem in current contest.
+                                --lang: Use specific language for next problem.
+                                By default, preserves current file's language if
+                                enabled for the new problem, otherwise uses platform
+                                default.
+                                Examples: >
+                                    :CP next
+                                    :CP next --lang python
+<
+            :CP prev [--lang {language}]
+                                Navigate to previous problem in current contest.
                                 Stops at first problem (no wrapping).
-
-            :CP {problem_id}    Jump to problem {problem_id} in a contest.
+                                --lang: Use specific language for previous problem.
+                                By default, preserves current file's language if
+                                enabled for the new problem, otherwise uses platform
+                                default.
+                                Examples: >
+                                    :CP prev
+                                    :CP prev --lang cpp
+<
+            :CP {problem_id} [--lang {language}]
+                                Jump to problem {problem_id} in a contest.
                                 Requires that a contest has already been set up.
+                                --lang: Use specific language for this problem.
+                                Examples: >
+                                    :CP B
+                                    :CP C --lang python
+<
 
         State Restoration ~
             :CP                 Restore state from current file.
@@ -358,6 +380,49 @@ run CSES problems with Rust using the single schema:
 <
 
 ==============================================================================
+LANGUAGE SELECTION                                           *cp-lang-selection*
+
+cp.nvim supports multiple languages per problem. Each platform enables specific
+languages and has a default. You can override the language for any setup or
+navigation command using the --lang flag.
+
+Language Selection Behavior ~
+
+When setting up or navigating to a problem:
+
+1. Explicit --lang flag takes highest priority
+2. If no --lang flag, tries to preserve current file's language
+   (only if that language is enabled for the new problem)
+3. Falls back to platform's default language
+
+Multiple Solution Files ~
+
+Different languages create different solution files. For example:
+    1848a.cc        (C++ solution)
+    1848a.py        (Python solution)
+
+Both files can exist simultaneously with their own state. Switching between
+languages means switching between different files.
+
+Examples ~
+>
+    :CP codeforces 1848             " Use platform default (likely C++)
+    :CP codeforces 1848 --lang python   " Use Python explicitly
+
+    " In 1848a.cc (C++ file):
+    :CP next                        " Next problem tries to use C++
+    :CP next --lang python          " Next problem uses Python
+
+    " In 1848a.py (Python file):
+    :CP next                        " Next problem tries to use Python
+    :CP next --lang cpp             " Next problem switches to C++
+<
+Language Validation ~
+
+If you request a language that isn't enabled for a platform, cp.nvim will show
+a helpful error message listing available languages for that platform.
+
+==============================================================================
 WORKFLOW                                                         *cp-workflow*
 
 For the sake of consistency and simplicity, cp.nvim extracts contest/problem
@@ -374,6 +439,7 @@ https://atcoder.jp/contests/{contest_id}/tasks/{contest_id}_{problem_id}
 
 Usage examples: >
     :CP atcoder abc324            " Set up atcoder.jp/contests/abc324
+    :CP atcoder abc324 --lang python  " Set up with Python instead of default
 
 Codeforces ~
                                                                *cp-codeforces*
@@ -381,6 +447,7 @@ URL format: https://codeforces.com/contest/{contest_id}/problem/{problem_id}
 
 Usage examples: >
     :CP codeforces 1934           " Set up codeforces.com/contest/1934
+    :CP codeforces 1934 --lang cpp    " Set up with C++
 
 CSES ~
                                                                      *cp-cses*
@@ -404,7 +471,7 @@ Example: Setting up and solving AtCoder contest ABC324
 
 3. Code your solution, then test: >
     :CP run
-<   View test verdicts in I/O splits. For detailed analysis:
+<   View test verdicts in I/O splits. For detailed analysis: >
     :CP panel
 <   Navigate tests with <c-n>/<c-p>, exit with q
 
@@ -414,12 +481,16 @@ Example: Setting up and solving AtCoder contest ABC324
 
 5. Continue solving problems with :CP next/:CP prev navigation
 
-6. Switch to another file (e.g. previous contest): >
+6. Try a different language for a problem: >
+    :CP C --lang python
+<   Opens problem C with Python instead of C++
+
+7. Switch to another file (e.g. previous contest): >
     :e ~/contests/abc323/a.cpp
     :CP
 <   Automatically restores abc323 contest context
 
-7. Submit solutions on AtCoder website
+8. Submit solutions on AtCoder website
 
 ==============================================================================
 I/O VIEW                                                          *cp-io-view*

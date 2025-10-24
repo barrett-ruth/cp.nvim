@@ -2,7 +2,7 @@ local picker_utils = require('cp.pickers')
 
 local M = {}
 
-local function contest_picker(platform, refresh)
+local function contest_picker(platform, refresh, language)
   local constants = require('cp.constants')
   local platform_display_name = constants.PLATFORM_DISPLAY_NAMES[platform]
   local fzf = require('fzf-lua')
@@ -42,19 +42,24 @@ local function contest_picker(platform, refresh)
 
         if contest then
           local cp = require('cp')
-          cp.handle_command({ fargs = { platform, contest.id } })
+          local fargs = { platform, contest.id }
+          if language then
+            table.insert(fargs, '--lang')
+            table.insert(fargs, language)
+          end
+          cp.handle_command({ fargs = fargs })
         end
       end,
       ['ctrl-r'] = function()
         local cache = require('cp.cache')
         cache.clear_contest_list(platform)
-        contest_picker(platform, true)
+        contest_picker(platform, true, language)
       end,
     },
   })
 end
 
-function M.pick()
+function M.pick(language)
   local fzf = require('fzf-lua')
   local platforms = picker_utils.get_platforms()
   local entries = vim.tbl_map(function(platform)
@@ -79,7 +84,7 @@ function M.pick()
         end
 
         if platform then
-          contest_picker(platform.id)
+          contest_picker(platform.id, false, language)
         end
       end,
     },
