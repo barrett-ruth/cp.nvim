@@ -517,29 +517,6 @@ Minimal format: >lua
       }
     end
 <
-With custom alignment using helpers: >lua
-    local helpers = require('cp').helpers
-    format_verdict = function(data)
-      local status = helpers.pad_right(data.status.text, 3)
-      local time = string.format("%.1fms", data.time_ms)
-      return { line = string.format("Test %d: %s %s", data.index, status, time) }
-    end
-<
-With highlighting: >lua
-    format_verdict = function(data)
-      local line = string.format("%d: %s", data.index, data.status.text)
-      return {
-        line = line,
-        highlights = {
-          {
-            col_start = #tostring(data.index) + 2,
-            col_end = #line,
-            group = data.status.highlight_group
-          }
-        }
-      }
-    end
-<
 See |cp-helpers| for alignment functions: pad_right, pad_left, center.
 
 ==============================================================================
