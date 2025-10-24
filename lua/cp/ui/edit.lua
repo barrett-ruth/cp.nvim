@@ -21,12 +21,48 @@ local utils = require('cp.utils')
 ---@type EditState?
 local edit_state = nil
 
-local function setup_keybindings(buf)
-  vim.keymap.set('n', 'q', function()
-    M.toggle_edit()
-  end, { buffer = buf, silent = true, desc = 'Save and exit test editor' })
+local setup_keybindings
+
+---@param bufnr integer
+---@return integer? test_index
+local function get_current_test_index(bufnr)
+  if not edit_state then
+    return nil
+  end
+  for i, pair in ipairs(edit_state.test_buffers) do
+    if pair.input_buf == bufnr or pair.expected_buf == bufnr then
+      return i
+    end
+  end
+  return nil
 end
 
+---@param index integer
+local function jump_to_test(index)
+  if not edit_state then
+    return
+  end
+  local pair = edit_state.test_buffers[index]
+  if pair and vim.api.nvim_win_is_valid(pair.input_win) then
+    vim.api.nvim_set_current_win(pair.input_win)
+  end
+end
+
+---@param delta integer
+local function navigate_test(delta)
+  local current_buf = vim.api.nvim_get_current_buf()
+  local current_index = get_current_test_index(current_buf)
+  if not current_index or not edit_state then
+    return
+  end
+  local new_index = current_index + delta
+  if new_index < 1 or new_index > #edit_state.test_buffers then
+    return
+  end
+  jump_to_test(new_index)
+end
+
+---@param test_index integer
 local function load_test_into_buffer(test_index)
   if not edit_state then
     return
@@ -47,6 +83,140 @@ local function load_test_into_buffer(test_index)
 
   vim.api.nvim_buf_set_name(pair.input_buf, string.format('cp://test-%d-input', test_index))
   vim.api.nvim_buf_set_name(pair.expected_buf, string.format('cp://test-%d-expected', test_index))
+end
+
+local function delete_current_test()
+  if not edit_state then
+    return
+  end
+  if #edit_state.test_buffers == 1 then
+    logger.log('Cannot have 0 problem tests.', vim.log.levels.ERROR)
+    return
+  end
+
+  local current_buf = vim.api.nvim_get_current_buf()
+  local current_index = get_current_test_index(current_buf)
+  if not current_index then
+    return
+  end
+
+  local pair = edit_state.test_buffers[current_index]
+  if vim.api.nvim_win_is_valid(pair.input_win) then
+    vim.api.nvim_win_close(pair.input_win, true)
+  end
+  if vim.api.nvim_win_is_valid(pair.expected_win) then
+    vim.api.nvim_win_close(pair.expected_win, true)
+  end
+  if vim.api.nvim_buf_is_valid(pair.input_buf) then
+    vim.api.nvim_buf_delete(pair.input_buf, { force = true })
+  end
+  if vim.api.nvim_buf_is_valid(pair.expected_buf) then
+    vim.api.nvim_buf_delete(pair.expected_buf, { force = true })
+  end
+
+  table.remove(edit_state.test_buffers, current_index)
+  table.remove(edit_state.test_cases, current_index)
+
+  for i = current_index, #edit_state.test_buffers do
+    load_test_into_buffer(i)
+  end
+
+  local next_index = math.min(current_index, #edit_state.test_buffers)
+  jump_to_test(next_index)
+
+  logger.log(('Deleted test %d'):format(current_index))
+end
+
+local function add_new_test()
+  if not edit_state then
+    return
+  end
+
+  local last_pair = edit_state.test_buffers[#edit_state.test_buffers]
+  if not last_pair or not vim.api.nvim_win_is_valid(last_pair.input_win) then
+    return
+  end
+
+  vim.api.nvim_set_current_win(last_pair.input_win)
+  vim.cmd.vsplit()
+  local input_win = vim.api.nvim_get_current_win()
+  local input_buf = utils.create_buffer_with_options()
+  vim.api.nvim_win_set_buf(input_win, input_buf)
+  vim.bo[input_buf].modifiable = true
+  vim.bo[input_buf].readonly = false
+  vim.bo[input_buf].buftype = 'nofile'
+  vim.bo[input_buf].buflisted = false
+  helpers.clearcol(input_buf)
+
+  vim.api.nvim_set_current_win(last_pair.expected_win)
+  vim.cmd.vsplit()
+  local expected_win = vim.api.nvim_get_current_win()
+  local expected_buf = utils.create_buffer_with_options()
+  vim.api.nvim_win_set_buf(expected_win, expected_buf)
+  vim.bo[expected_buf].modifiable = true
+  vim.bo[expected_buf].readonly = false
+  vim.bo[expected_buf].buftype = 'nofile'
+  vim.bo[expected_buf].buflisted = false
+  helpers.clearcol(expected_buf)
+
+  local new_index = #edit_state.test_buffers + 1
+  local new_pair = {
+    input_buf = input_buf,
+    expected_buf = expected_buf,
+    input_win = input_win,
+    expected_win = expected_win,
+  }
+  table.insert(edit_state.test_buffers, new_pair)
+  table.insert(edit_state.test_cases, { index = new_index, input = '', expected = '' })
+
+  setup_keybindings(input_buf)
+  setup_keybindings(expected_buf)
+  load_test_into_buffer(new_index)
+
+  vim.api.nvim_set_current_win(input_win)
+  logger.log(('Added test %d'):format(new_index))
+end
+
+---@param buf integer
+setup_keybindings = function(buf)
+  local config = config_module.get_config()
+  local keys = config.ui.edit
+
+  if keys.save_and_exit_key then
+    vim.keymap.set('n', keys.save_and_exit_key, function()
+      M.toggle_edit()
+    end, { buffer = buf, silent = true, desc = 'Save and exit test editor' })
+  end
+
+  if keys.next_test_key then
+    vim.keymap.set('n', keys.next_test_key, function()
+      navigate_test(1)
+    end, { buffer = buf, silent = true, desc = 'Next test' })
+  end
+
+  if keys.prev_test_key then
+    vim.keymap.set('n', keys.prev_test_key, function()
+      navigate_test(-1)
+    end, { buffer = buf, silent = true, desc = 'Previous test' })
+  end
+
+  if keys.delete_test_key then
+    vim.keymap.set(
+      'n',
+      keys.delete_test_key,
+      delete_current_test,
+      { buffer = buf, silent = true, desc = 'Delete test' }
+    )
+  end
+
+  if keys.add_test_key then
+    vim.keymap.set(
+      'n',
+      keys.add_test_key,
+      add_new_test,
+      { buffer = buf, silent = true, desc = 'Add test' }
+    )
+  end
 end
 
 local function save_all_tests()
