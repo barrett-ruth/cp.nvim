@@ -445,9 +445,6 @@ function M.run_io_view(test_index, debug)
         table.insert(output_lines, line)
       end
     end
-    if idx < #test_indices then
-      table.insert(output_lines, '')
-    end
 
     local status = run_render.get_status_info(tc)
 
@@ -484,9 +481,6 @@ function M.run_io_view(test_index, debug)
 
     for _, line in ipairs(vim.split(tc.input, '\n')) do
       table.insert(input_lines, line)
-    end
-    if idx < #test_indices then
-      table.insert(input_lines, '')
     end
   end
 
