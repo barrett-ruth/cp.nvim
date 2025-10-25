@@ -139,6 +139,10 @@ M.defaults = {
       enabled_languages = { 'cpp', 'python' },
       default_language = 'cpp',
     },
+    codechef = {
+      enabled_languages = { 'cpp', 'python' },
+      default_language = 'cpp',
+    },
     cses = {
       enabled_languages = { 'cpp', 'python' },
       default_language = 'cpp',

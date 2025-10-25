@@ -63,13 +63,13 @@ def run_scraper_offline(fixture_text):
             target = target.removeprefix("https://cses.fi")
 
         if target.strip("/") == "problemset":
-            return fixture_text("cses_contests.html")
+            return fixture_text("cses/contests.html")
 
         if target.startswith("/problemset/task/") or target.startswith(
             "problemset/task/"
         ):
             pid = target.rstrip("/").split("/")[-1]
-            return fixture_text(f"cses_task_{pid}.html")
+            return fixture_text(f"cses/task_{pid}.html")
 
         raise AssertionError(f"No fixture for CSES path={path!r} url={url!r}")
 
@@ -77,12 +77,12 @@ def run_scraper_offline(fixture_text):
         if not url:
             raise AssertionError("AtCoder expects url routing")
         if "/contests/archive" in url:
-            return fixture_text("atcoder_contests.html")
+            return fixture_text("atcoder/contests.html")
         if url.endswith("/tasks"):
-            return fixture_text("atcoder_abc100_tasks.html")
+            return fixture_text("atcoder/abc100_tasks.html")
         if "/tasks/" in url:
             slug = url.rsplit("/", 1)[-1]
-            return fixture_text(f"atcoder_task_{slug}.html")
+            return fixture_text(f"atcoder/task_{slug}.html")
         raise AssertionError(f"No fixture for AtCoder url={url!r}")
 
     def _router_codeforces(*, path: str | None = None, url: str | None = None) -> str:
@@ -90,17 +90,17 @@ def run_scraper_offline(fixture_text):
             raise AssertionError("Codeforces expects url routing")
         if "/contest/" in url and url.endswith("/problems"):
             contest_id = url.rstrip("/").split("/")[-2]
-            return fixture_text(f"codeforces_{contest_id}_problems.html")
+            return fixture_text(f"codeforces/{contest_id}_problems.html")
         if "/contests" in url and "/problem/" not in url:
-            return fixture_text("codeforces_contests.html")
+            return fixture_text("codeforces/contests.html")
         if "/problem/" in url:
             parts = url.rstrip("/").split("/")
             contest_id, index = parts[-3], parts[-1]
-            return fixture_text(f"codeforces_{contest_id}_{index}.html")
+            return fixture_text(f"codeforces/{contest_id}_{index}.html")
         if "/problemset/problem/" in url:
             parts = url.rstrip("/").split("/")
             contest_id, index = parts[-2], parts[-1]
-            return fixture_text(f"codeforces_{contest_id}_{index}.html")
+            return fixture_text(f"codeforces/{contest_id}_{index}.html")
 
         raise AssertionError(f"No fixture for Codeforces url={url!r}")
 
@@ -136,12 +136,12 @@ def run_scraper_offline(fixture_text):
 
             case "codeforces":
 
-                class MockPage:
+                class MockCodeForcesPage:
                     def __init__(self, html: str):
                         self.html_content = html
 
                 def _mock_stealthy_fetch(url: str, **kwargs):
-                    return MockPage(_router_codeforces(url=url))
+                    return MockCodeForcesPage(_router_codeforces(url=url))
 
                 def _mock_requests_get(url: str, **kwargs):
                     if "api/contest.list" in url:
@@ -176,6 +176,59 @@ def run_scraper_offline(fixture_text):
                     "requests.get": _mock_requests_get,
                 }
 
+            case "codechef":
+
+                class MockResponse:
+                    def __init__(self, json_data):
+                        self._json_data = json_data
+                        self.status_code = 200
+
+                    def json(self):
+                        return self._json_data
+
+                    def raise_for_status(self):
+                        pass
+
+                async def __offline_get_async(client, url: str, **kwargs):
+                    if "/api/list/contests/all" in url:
+                        data = json.loads(fixture_text("codechef/contests.json"))
+                        return MockResponse(data)
+                    if "/api/contests/START" in url and "/problems/" not in url:
+                        contest_id = url.rstrip("/").split("/")[-1]
+                        try:
+                            data = json.loads(
+                                fixture_text(f"codechef/{contest_id}.json")
+                            )
+                            return MockResponse(data)
+                        except FileNotFoundError:
+                            raise AssertionError(f"No fixture for CodeChef url={url!r}")
+                    if "/api/contests/START" in url and "/problems/" in url:
+                        parts = url.rstrip("/").split("/")
+                        contest_id = parts[-3]
+                        problem_id = parts[-1]
+                        data = json.loads(
+                            fixture_text(f"codechef/{contest_id}_{problem_id}.json")
+                        )
+                        return MockResponse(data)
+                    raise AssertionError(f"No fixture for CodeChef url={url!r}")
+
+                class MockCodeChefPage:
+                    def __init__(self, html: str):
+                        self.body = html
+                        self.status = 200
+
+                def _mock_stealthy_fetch(url: str, **kwargs):
+                    if "/problems/" in url:
+                        problem_id = url.rstrip("/").split("/")[-1]
+                        html = fixture_text(f"codechef/{problem_id}.html")
+                        return MockCodeChefPage(html)
+                    raise AssertionError(f"No fixture for CodeChef url={url!r}")
+
+                return {
+                    "__offline_get_async": __offline_get_async,
+                    "StealthyFetcher.fetch": _mock_stealthy_fetch,
+                }
+
             case _:
                 raise AssertionError(f"Unknown scraper: {scraper_name}")
 
@@ -192,6 +245,9 @@ def run_scraper_offline(fixture_text):
             ns._get_async = offline_fetches["_get_async"]
         elif scraper_name == "cses":
             httpx.AsyncClient.get = offline_fetches["__offline_fetch_text"]  # type: ignore[assignment]
+        elif scraper_name == "codechef":
+            httpx.AsyncClient.get = offline_fetches["__offline_get_async"]  # type: ignore[assignment]
+            fetchers.StealthyFetcher.fetch = offline_fetches["StealthyFetcher.fetch"]  # type: ignore[assignment]
 
         main_async = getattr(ns, "main_async")
         assert callable(main_async), f"main_async not found in {scraper_name}"
