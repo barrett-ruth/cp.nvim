@@ -191,15 +191,21 @@ def run_scraper_offline(fixture_text):
 
                 async def __offline_get_async(client, url: str, **kwargs):
                     if "/api/list/contests/all" in url:
-                        data = json.loads(fixture_text("codechef_contests.json"))
+                        data = json.loads(
+                            fixture_text("codechef/codechef_contests.json")
+                        )
                         return MockResponse(data)
                     if "/api/contests/START209D" in url and "/problems/" not in url:
-                        data = json.loads(fixture_text("codechef_START209D.json"))
+                        data = json.loads(
+                            fixture_text("codechef/codechef_START209D.json")
+                        )
                         return MockResponse(data)
                     if "/api/contests/START209D/problems/" in url:
                         problem_id = url.rstrip("/").split("/")[-1]
                         data = json.loads(
-                            fixture_text(f"codechef_START209D_{problem_id}.json")
+                            fixture_text(
+                                f"codechef/codechef_START209D_{problem_id}.json"
+                            )
                         )
                         return MockResponse(data)
                     raise AssertionError(f"No fixture for CodeChef url={url!r}")
@@ -212,7 +218,7 @@ def run_scraper_offline(fixture_text):
                 def _mock_stealthy_fetch(url: str, **kwargs):
                     if "/problems/" in url:
                         problem_id = url.rstrip("/").split("/")[-1]
-                        html = fixture_text(f"codechef_{problem_id}.html")
+                        html = fixture_text(f"codechef/codechef_{problem_id}.html")
                         return MockCodeChefPage(html)
                     raise AssertionError(f"No fixture for CodeChef url={url!r}")
 
