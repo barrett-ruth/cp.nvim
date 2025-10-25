@@ -90,7 +90,7 @@ local function delete_current_test()
     return
   end
   if #edit_state.test_buffers == 1 then
-    logger.log('Cannot have 0 problem tests.', vim.log.levels.ERROR)
+    logger.log('Problems must have at least one test case.', vim.log.levels.ERROR)
     return
   end
 
@@ -217,6 +217,32 @@ setup_keybindings = function(buf)
       { buffer = buf, silent = true, desc = 'Add test' }
     )
   end
+
+  local augroup = vim.api.nvim_create_augroup('cp_edit_guard', { clear = false })
+  vim.api.nvim_create_autocmd({ 'BufDelete', 'BufWipeout' }, {
+    group = augroup,
+    buffer = buf,
+    callback = function()
+      vim.schedule(function()
+        if not edit_state then
+          return
+        end
+
+        local is_tracked = false
+        for _, pair in ipairs(edit_state.test_buffers) do
+          if pair.input_buf == buf or pair.expected_buf == buf then
+            is_tracked = true
+            break
+          end
+        end
+
+        if is_tracked then
+          logger.log('Test buffer closed unexpectedly. Exiting editor.', vim.log.levels.WARN)
+          M.toggle_edit()
+        end
+      end)
+    end,
+  })
 end
 
 local function save_all_tests()
@@ -278,6 +304,8 @@ function M.toggle_edit(test_index)
   if edit_state then
     save_all_tests()
     edit_state = nil
+
+    pcall(vim.api.nvim_clear_autocmds, { group = 'cp_edit_guard' })
 
     local saved = state.get_saved_session()
     if saved then
