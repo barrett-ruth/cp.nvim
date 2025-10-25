@@ -77,12 +77,12 @@ def run_scraper_offline(fixture_text):
         if not url:
             raise AssertionError("AtCoder expects url routing")
         if "/contests/archive" in url:
-            return fixture_text("atcoder/atcoder_contests.html")
+            return fixture_text("atcoder/contests.html")
         if url.endswith("/tasks"):
-            return fixture_text("atcoder/atcoder_abc100_tasks.html")
+            return fixture_text("atcoder/abc100_tasks.html")
         if "/tasks/" in url:
             slug = url.rsplit("/", 1)[-1]
-            return fixture_text(f"atcoder/atcoder_task_{slug}.html")
+            return fixture_text(f"atcoder/task_{slug}.html")
         raise AssertionError(f"No fixture for AtCoder url={url!r}")
 
     def _router_codeforces(*, path: str | None = None, url: str | None = None) -> str:
