@@ -193,13 +193,21 @@ def run_scraper_offline(fixture_text):
                     if "/api/list/contests/all" in url:
                         data = json.loads(fixture_text("codechef/contests.json"))
                         return MockResponse(data)
-                    if "/api/contests/START209D" in url and "/problems/" not in url:
-                        data = json.loads(fixture_text("codechef/START209D.json"))
-                        return MockResponse(data)
-                    if "/api/contests/START209D/problems/" in url:
-                        problem_id = url.rstrip("/").split("/")[-1]
+                    if "/api/contests/START" in url and "/problems/" not in url:
+                        contest_id = url.rstrip("/").split("/")[-1]
+                        try:
+                            data = json.loads(
+                                fixture_text(f"codechef/{contest_id}.json")
+                            )
+                            return MockResponse(data)
+                        except FileNotFoundError:
+                            raise AssertionError(f"No fixture for CodeChef url={url!r}")
+                    if "/api/contests/START" in url and "/problems/" in url:
+                        parts = url.rstrip("/").split("/")
+                        contest_id = parts[-3]
+                        problem_id = parts[-1]
                         data = json.loads(
-                            fixture_text(f"codechef/START209D_{problem_id}.json")
+                            fixture_text(f"codechef/{contest_id}_{problem_id}.json")
                         )
                         return MockResponse(data)
                     raise AssertionError(f"No fixture for CodeChef url={url!r}")

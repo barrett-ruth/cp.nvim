@@ -28,8 +28,8 @@ MATRIX = {
         "contests": tuple(),
     },
     "codechef": {
-        "metadata": ("START209",),
-        "tests": ("START209",),
+        "metadata": ("START209D",),
+        "tests": ("START209D",),
         "contests": tuple(),
     },
 }
