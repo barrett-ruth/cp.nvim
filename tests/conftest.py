@@ -63,13 +63,13 @@ def run_scraper_offline(fixture_text):
             target = target.removeprefix("https://cses.fi")
 
         if target.strip("/") == "problemset":
-            return fixture_text("cses_contests.html")
+            return fixture_text("cses/cses_contests.html")
 
         if target.startswith("/problemset/task/") or target.startswith(
             "problemset/task/"
         ):
             pid = target.rstrip("/").split("/")[-1]
-            return fixture_text(f"cses_task_{pid}.html")
+            return fixture_text(f"cses/cses_task_{pid}.html")
 
         raise AssertionError(f"No fixture for CSES path={path!r} url={url!r}")
 
@@ -77,12 +77,12 @@ def run_scraper_offline(fixture_text):
         if not url:
             raise AssertionError("AtCoder expects url routing")
         if "/contests/archive" in url:
-            return fixture_text("atcoder_contests.html")
+            return fixture_text("atcoder/atcoder_contests.html")
         if url.endswith("/tasks"):
-            return fixture_text("atcoder_abc100_tasks.html")
+            return fixture_text("atcoder/atcoder_abc100_tasks.html")
         if "/tasks/" in url:
             slug = url.rsplit("/", 1)[-1]
-            return fixture_text(f"atcoder_task_{slug}.html")
+            return fixture_text(f"atcoder/atcoder_task_{slug}.html")
         raise AssertionError(f"No fixture for AtCoder url={url!r}")
 
     def _router_codeforces(*, path: str | None = None, url: str | None = None) -> str:
@@ -90,17 +90,17 @@ def run_scraper_offline(fixture_text):
             raise AssertionError("Codeforces expects url routing")
         if "/contest/" in url and url.endswith("/problems"):
             contest_id = url.rstrip("/").split("/")[-2]
-            return fixture_text(f"codeforces_{contest_id}_problems.html")
+            return fixture_text(f"codeforces/codeforces_{contest_id}_problems.html")
         if "/contests" in url and "/problem/" not in url:
-            return fixture_text("codeforces_contests.html")
+            return fixture_text("codeforces/codeforces_contests.html")
         if "/problem/" in url:
             parts = url.rstrip("/").split("/")
             contest_id, index = parts[-3], parts[-1]
-            return fixture_text(f"codeforces_{contest_id}_{index}.html")
+            return fixture_text(f"codeforces/codeforces_{contest_id}_{index}.html")
         if "/problemset/problem/" in url:
             parts = url.rstrip("/").split("/")
             contest_id, index = parts[-2], parts[-1]
-            return fixture_text(f"codeforces_{contest_id}_{index}.html")
+            return fixture_text(f"codeforces/codeforces_{contest_id}_{index}.html")
 
         raise AssertionError(f"No fixture for Codeforces url={url!r}")
 
