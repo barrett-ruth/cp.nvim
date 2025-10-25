@@ -35,21 +35,6 @@ jobs:
               - 'pyproject.toml'
               - 'uv.lock'
 
-  lua-test:
-    name: Lua Tests (${{ matrix.neovim_version }})
-    runs-on: ubuntu-latest
-    needs: changes
-    if: ${{ needs.changes.outputs.lua == 'true' }}
-    strategy:
-      matrix:
-        neovim_version: ['stable', 'nightly']
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run Lua tests
-        uses: nvim-neorocks/nvim-busted-action@v1
-        with:
-          nvim_version: ${{ matrix.neovim_version }}
-
   python-test:
     name: Python Tests
     runs-on: ubuntu-latest

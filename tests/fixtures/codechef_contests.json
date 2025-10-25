@@ -1,0 +1,330 @@
+{
+  "status": "success",
+  "message": "All contests list",
+  "present_contests": [
+    {
+      "contest_code": "DEVWEEKEND21",
+      "contest_name": "Weekend Dev Challenge 21: Full Stack Projects using MERN",
+      "contest_start_date": "25 Oct 2025  00:00:00",
+      "contest_end_date": "27 Oct 2025  00:00:00",
+      "contest_start_date_iso": "2025-10-25T00:00:00+05:30",
+      "contest_end_date_iso": "2025-10-27T00:00:00+05:30",
+      "contest_duration": "2880",
+      "distinct_users": 8
+    }
+  ],
+  "future_contests": [
+    {
+      "contest_code": "START210",
+      "contest_name": "Starters 210",
+      "contest_start_date": "29 Oct 2025  20:00:00",
+      "contest_end_date": "29 Oct 2025  22:00:00",
+      "contest_start_date_iso": "2025-10-29T20:00:00+05:30",
+      "contest_end_date_iso": "2025-10-29T22:00:00+05:30",
+      "contest_duration": "120",
+      "distinct_users": 0
+    },
+    {
+      "contest_code": "START211",
+      "contest_name": "Starters 211",
+      "contest_start_date": "05 Nov 2025  20:00:00",
+      "contest_end_date": "05 Nov 2025  22:00:00",
+      "contest_start_date_iso": "2025-11-05T20:00:00+05:30",
+      "contest_end_date_iso": "2025-11-05T22:00:00+05:30",
+      "contest_duration": "120",
+      "distinct_users": 0
+    }
+  ],
+  "practice_contests": [],
+  "past_contests": [
+    {
+      "contest_code": "START209",
+      "contest_name": "Starters 209 (Rated till 5 star)",
+      "contest_start_date": "22 Oct 2025  20:00:00",
+      "contest_end_date": "22 Oct 2025  22:00:00",
+      "contest_start_date_iso": "2025-10-22T20:00:00+05:30",
+      "contest_end_date_iso": "2025-10-22T22:00:00+05:30",
+      "contest_duration": "120",
+      "distinct_users": 30408
+    },
+    {
+      "contest_code": "DSAMONDAY08",
+      "contest_name": "Monday Munch - DSA Challenge 08",
+      "contest_start_date": "20 Oct 2025  18:00:31",
+      "contest_end_date": "20 Oct 2025  21:00:31",
+      "contest_start_date_iso": "2025-10-20T18:00:31+05:30",
+      "contest_end_date_iso": "2025-10-20T21:00:31+05:30",
+      "contest_duration": "180",
+      "distinct_users": 653
+    },
+    {
+      "contest_code": "DEVWEEKEND20",
+      "contest_name": "Weekend Dev Challenge 20: Full Stack Projects using MERN",
+      "contest_start_date": "18 Oct 2025  00:00:00",
+      "contest_end_date": "20 Oct 2025  00:00:00",
+      "contest_start_date_iso": "2025-10-18T00:00:00+05:30",
+      "contest_end_date_iso": "2025-10-20T00:00:00+05:30",
+      "contest_duration": "2880",
+      "distinct_users": 318
+    },
+    {
+      "contest_code": "START208",
+      "contest_name": "Starters 208 (Rated till 6 star)",
+      "contest_start_date": "15 Oct 2025  20:00:00",
+      "contest_end_date": "15 Oct 2025  22:00:00",
+      "contest_start_date_iso": "2025-10-15T20:00:00+05:30",
+      "contest_end_date_iso": "2025-10-15T22:00:00+05:30",
+      "contest_duration": "120",
+      "distinct_users": 37727
+    },
+    {
+      "contest_code": "DSAMONDAY07",
+      "contest_name": "Monday Munch - DSA Challenge 07",
+      "contest_start_date": "13 Oct 2025  18:00:00",
+      "contest_end_date": "13 Oct 2025  21:00:00",
+      "contest_start_date_iso": "2025-10-13T18:00:00+05:30",
+      "contest_end_date_iso": "2025-10-13T21:00:00+05:30",
+      "contest_duration": "180",
+      "distinct_users": 4934
+    },
+    {
+      "contest_code": "DEVWEEKEND19",
+      "contest_name": "Weekend Dev Challenge 19: Full Stack Projects using MERN",
+      "contest_start_date": "11 Oct 2025  00:00:00",
+      "contest_end_date": "13 Oct 2025  00:00:00",
+      "contest_start_date_iso": "2025-10-11T00:00:00+05:30",
+      "contest_end_date_iso": "2025-10-13T00:00:00+05:30",
+      "contest_duration": "2880",
+      "distinct_users": 5376
+    },
+    {
+      "contest_code": "START207",
+      "contest_name": "Starters 207 (Rated till 5 star)",
+      "contest_start_date": "08 Oct 2025  20:00:00",
+      "contest_end_date": "08 Oct 2025  22:00:00",
+      "contest_start_date_iso": "2025-10-08T20:00:00+05:30",
+      "contest_end_date_iso": "2025-10-08T22:00:00+05:30",
+      "contest_duration": "120",
+      "distinct_users": 32785
+    },
+    {
+      "contest_code": "DSAMONDAY06",
+      "contest_name": "Monday Munch - DSA Challenge 06",
+      "contest_start_date": "06 Oct 2025  18:00:02",
+      "contest_end_date": "06 Oct 2025  21:00:02",
+      "contest_start_date_iso": "2025-10-06T18:00:02+05:30",
+      "contest_end_date_iso": "2025-10-06T21:00:02+05:30",
+      "contest_duration": "180",
+      "distinct_users": 892
+    },
+    {
+      "contest_code": "DEVWEEKEND18",
+      "contest_name": "Weekend Dev Challenge 18: Full Stack Projects using MERN",
+      "contest_start_date": "04 Oct 2025  00:00:00",
+      "contest_end_date": "06 Oct 2025  00:00:00",
+      "contest_start_date_iso": "2025-10-04T00:00:00+05:30",
+      "contest_end_date_iso": "2025-10-06T00:00:00+05:30",
+      "contest_duration": "2880",
+      "distinct_users": 223
+    },
+    {
+      "contest_code": "START206",
+      "contest_name": "Starters 206 (Rated till 5 star)",
+      "contest_start_date": "01 Oct 2025  20:00:00",
+      "contest_end_date": "01 Oct 2025  22:00:00",
+      "contest_start_date_iso": "2025-10-01T20:00:00+05:30",
+      "contest_end_date_iso": "2025-10-01T22:00:00+05:30",
+      "contest_duration": "120",
+      "distinct_users": 23977
+    },
+    {
+      "contest_code": "DSAMONDAY05",
+      "contest_name": "Monday Munch - DSA Challenge 05",
+      "contest_start_date": "29 Sep 2025  18:00:00",
+      "contest_end_date": "29 Sep 2025  21:00:00",
+      "contest_start_date_iso": "2025-09-29T18:00:00+05:30",
+      "contest_end_date_iso": "2025-09-29T21:00:00+05:30",
+      "contest_duration": "180",
+      "distinct_users": 1160
+    },
+    {
+      "contest_code": "DEVWEEKEND17",
+      "contest_name": "Weekend Dev Challenge 17: GenAI Projects using LLM",
+      "contest_start_date": "27 Sep 2025  00:00:00",
+      "contest_end_date": "29 Sep 2025  00:00:00",
+      "contest_start_date_iso": "2025-09-27T00:00:00+05:30",
+      "contest_end_date_iso": "2025-09-29T00:00:00+05:30",
+      "contest_duration": "2880",
+      "distinct_users": 130
+    },
+    {
+      "contest_code": "START205",
+      "contest_name": "Starters 205 (Rated till 6 star)",
+      "contest_start_date": "24 Sep 2025  20:00:00",
+      "contest_end_date": "24 Sep 2025  22:00:00",
+      "contest_start_date_iso": "2025-09-24T20:00:00+05:30",
+      "contest_end_date_iso": "2025-09-24T22:00:00+05:30",
+      "contest_duration": "120",
+      "distinct_users": 32552
+    },
+    {
+      "contest_code": "DSAMONDAY04",
+      "contest_name": "Monday Munch - DSA Challenge 04",
+      "contest_start_date": "22 Sep 2025  18:00:00",
+      "contest_end_date": "22 Sep 2025  21:00:00",
+      "contest_start_date_iso": "2025-09-22T18:00:00+05:30",
+      "contest_end_date_iso": "2025-09-22T21:00:00+05:30",
+      "contest_duration": "180",
+      "distinct_users": 759
+    },
+    {
+      "contest_code": "DEVWEEKEND16",
+      "contest_name": "Weekend Dev Challenge 16: GenAI Projects using LLM",
+      "contest_start_date": "20 Sep 2025  00:00:00",
+      "contest_end_date": "22 Sep 2025  00:00:00",
+      "contest_start_date_iso": "2025-09-20T00:00:00+05:30",
+      "contest_end_date_iso": "2025-09-22T00:00:00+05:30",
+      "contest_duration": "2880",
+      "distinct_users": 171
+    },
+    {
+      "contest_code": "START204",
+      "contest_name": "Starters 204 (Rated till 5 star)",
+      "contest_start_date": "17 Sep 2025  20:00:00",
+      "contest_end_date": "17 Sep 2025  22:00:00",
+      "contest_start_date_iso": "2025-09-17T20:00:00+05:30",
+      "contest_end_date_iso": "2025-09-17T22:00:00+05:30",
+      "contest_duration": "120",
+      "distinct_users": 36282
+    },
+    {
+      "contest_code": "DSAMONDAY03",
+      "contest_name": "Monday Munch - DSA Challenge 03",
+      "contest_start_date": "15 Sep 2025  18:00:00",
+      "contest_end_date": "15 Sep 2025  21:00:00",
+      "contest_start_date_iso": "2025-09-15T18:00:00+05:30",
+      "contest_end_date_iso": "2025-09-15T21:00:00+05:30",
+      "contest_duration": "180",
+      "distinct_users": 657
+    },
+    {
+      "contest_code": "DEVWEEKEND15",
+      "contest_name": "Weekend Dev Challenge 15: Classify images using Deep Learning",
+      "contest_start_date": "13 Sep 2025  00:00:00",
+      "contest_end_date": "14 Sep 2025  00:00:00",
+      "contest_start_date_iso": "2025-09-13T00:00:00+05:30",
+      "contest_end_date_iso": "2025-09-14T00:00:00+05:30",
+      "contest_duration": "1440",
+      "distinct_users": 112
+    },
+    {
+      "contest_code": "START203",
+      "contest_name": "Starters 203 (Rated till 5 star)",
+      "contest_start_date": "10 Sep 2025  20:00:00",
+      "contest_end_date": "10 Sep 2025  22:00:00",
+      "contest_start_date_iso": "2025-09-10T20:00:00+05:30",
+      "contest_end_date_iso": "2025-09-10T22:00:00+05:30",
+      "contest_duration": "120",
+      "distinct_users": 36512
+    },
+    {
+      "contest_code": "DSAMONDAY02",
+      "contest_name": "Monday Munch - DSA Challenge 02",
+      "contest_start_date": "08 Sep 2025  18:00:00",
+      "contest_end_date": "08 Sep 2025  21:00:00",
+      "contest_start_date_iso": "2025-09-08T18:00:00+05:30",
+      "contest_end_date_iso": "2025-09-08T21:00:00+05:30",
+      "contest_duration": "180",
+      "distinct_users": 737
+    }
+  ],
+  "skill_tests": [
+    {
+      "contest_code": "basic-python",
+      "contest_name": "Python Online Test & Quiz",
+      "contest_start_date": "27 Mar 2024  15:00:00",
+      "contest_end_date": "01 Jan 2027  01:30:00",
+      "contest_start_date_iso": "2024-03-27T15:00:00+05:30",
+      "contest_end_date_iso": "2027-01-01T01:30:00+05:30",
+      "contest_duration": "90",
+      "problem_count": 30,
+      "distinct_users": 61244
+    },
+    {
+      "contest_code": "basic-java",
+      "contest_name": "Java Online Test & Quiz",
+      "contest_start_date": "28 Mar 2024  00:00:00",
+      "contest_end_date": "01 Jan 2027  01:30:00",
+      "contest_start_date_iso": "2024-03-28T00:00:00+05:30",
+      "contest_end_date_iso": "2027-01-01T01:30:00+05:30",
+      "contest_duration": "90",
+      "problem_count": 30,
+      "distinct_users": 49993
+    },
+    {
+      "contest_code": "basic-c-language",
+      "contest_name": "C language online test",
+      "contest_start_date": "28 Mar 2024  00:00:00",
+      "contest_end_date": "01 Jan 2027  01:30:00",
+      "contest_start_date_iso": "2024-03-28T00:00:00+05:30",
+      "contest_end_date_iso": "2027-01-01T01:30:00+05:30",
+      "contest_duration": "90",
+      "problem_count": 30,
+      "distinct_users": 41373
+    },
+    {
+      "contest_code": "basic-c-plus-plus",
+      "contest_name": "C++ Online Test and Quiz",
+      "contest_start_date": "28 Mar 2024  00:00:00",
+      "contest_end_date": "01 Jan 2027  01:30:00",
+      "contest_start_date_iso": "2024-03-28T00:00:00+05:30",
+      "contest_end_date_iso": "2027-01-01T01:30:00+05:30",
+      "contest_duration": "90",
+      "problem_count": 30,
+      "distinct_users": 32507
+    },
+    {
+      "contest_code": "basic-sql",
+      "contest_name": "SQL Online Test and Quiz",
+      "contest_start_date": "01 Jun 2024  00:00:00",
+      "contest_end_date": "01 Jan 2027  01:00:00",
+      "contest_start_date_iso": "2024-06-01T00:00:00+05:30",
+      "contest_end_date_iso": "2027-01-01T01:00:00+05:30",
+      "contest_duration": "60",
+      "problem_count": 17,
+      "distinct_users": 17426
+    },
+    {
+      "contest_code": "operating-systems",
+      "contest_name": "Operating Systems Skill Test",
+      "contest_start_date": "01 Jun 2024  00:00:00",
+      "contest_end_date": "01 Jan 2027  00:45:00",
+      "contest_start_date_iso": "2024-06-01T00:00:00+05:30",
+      "contest_end_date_iso": "2027-01-01T00:45:00+05:30",
+      "contest_duration": "45",
+      "problem_count": 30,
+      "distinct_users": 8751
+    },
+    {
+      "contest_code": "c-language-dsa",
+      "contest_name": "Data structures and Algorithms in C test",
+      "contest_start_date": "01 Apr 2024  12:00:00",
+      "contest_end_date": "01 Jan 2027  02:00:00",
+      "contest_start_date_iso": "2024-04-01T12:00:00+05:30",
+      "contest_end_date_iso": "2027-01-01T02:00:00+05:30",
+      "contest_duration": "120",
+      "problem_count": 28,
+      "distinct_users": 6611
+    }
+  ],
+  "banners": [
+    {
+      "image": "1760933050.png",
+      "link": "https:\/\/www.codechef.com\/START209"
+    },
+    {
+      "image": "1719492535.png",
+      "link": "https:\/\/www.codechef.com\/roadmap\/data-structures-and-algorithms"
+    }
+  ]
+}

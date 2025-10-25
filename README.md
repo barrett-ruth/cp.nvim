@@ -9,8 +9,7 @@ https://github.com/user-attachments/assets/956ec4c4-5ef1-4391-abea-3a51fa771809
 
 ## Features
 
-- **Multi-platform support**: AtCoder, Codeforces, CSES with consistent
-  interface
+- **Multi-platform support**: AtCoder, CodeChef, Codeforces, and CSES
 - **Automatic problem setup**: Scrape test cases and metadata in seconds
 - **Dual view modes**: Lightweight I/O view for quick feedback, full panel for
   detailed analysis
