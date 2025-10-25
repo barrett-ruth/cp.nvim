@@ -63,13 +63,13 @@ def run_scraper_offline(fixture_text):
             target = target.removeprefix("https://cses.fi")
 
         if target.strip("/") == "problemset":
-            return fixture_text("cses/cses_contests.html")
+            return fixture_text("cses/contests.html")
 
         if target.startswith("/problemset/task/") or target.startswith(
             "problemset/task/"
         ):
             pid = target.rstrip("/").split("/")[-1]
-            return fixture_text(f"cses/cses_task_{pid}.html")
+            return fixture_text(f"cses/task_{pid}.html")
 
         raise AssertionError(f"No fixture for CSES path={path!r} url={url!r}")
 
