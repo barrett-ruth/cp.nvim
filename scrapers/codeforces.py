@@ -202,7 +202,7 @@ class CodeforcesScraper(BaseScraper):
                 error="",
                 contest_id=cid,
                 problems=problems,
-                url=f"https://codeforces.com/contest/{contest_id}/%s",
+                url=f"https://codeforces.com/contest/{contest_id}/problem/%s",
             )
 
         return await self._safe_execute("metadata", impl, contest_id)
