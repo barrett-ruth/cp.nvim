@@ -242,60 +242,66 @@ function M.setup_problem(problem_id, language)
   local prov = state.get_provisional()
   if prov and prov.platform == platform and prov.contest_id == (state.get_contest_id() or '') then
     if vim.api.nvim_buf_is_valid(prov.bufnr) then
-      vim.api.nvim_buf_set_name(prov.bufnr, source_file)
-      vim.bo[prov.bufnr].swapfile = true
-      -- selene: allow(mixed_table)
-      vim.cmd.write({
-        vim.fn.fnameescape(source_file),
-        bang = true,
-        mods = { silent = true, noautocmd = true, keepalt = true },
-      })
-      state.set_solution_win(vim.api.nvim_get_current_win())
-      if config.hooks and config.hooks.setup_code and not vim.b[prov.bufnr].cp_setup_done then
-        local ok = pcall(config.hooks.setup_code, state)
-        if ok then
+      local existing_bufnr = vim.fn.bufnr(source_file)
+      if existing_bufnr ~= -1 then
+        vim.api.nvim_buf_delete(prov.bufnr, { force = true })
+        state.set_provisional(nil)
+      else
+        vim.api.nvim_buf_set_name(prov.bufnr, source_file)
+        vim.bo[prov.bufnr].swapfile = true
+        -- selene: allow(mixed_table)
+        vim.cmd.write({
+          vim.fn.fnameescape(source_file),
+          bang = true,
+          mods = { silent = true, noautocmd = true, keepalt = true },
+        })
+        state.set_solution_win(vim.api.nvim_get_current_win())
+        if config.hooks and config.hooks.setup_code and not vim.b[prov.bufnr].cp_setup_done then
+          local ok = pcall(config.hooks.setup_code, state)
+          if ok then
+            vim.b[prov.bufnr].cp_setup_done = true
+          end
+        elseif not vim.b[prov.bufnr].cp_setup_done then
+          helpers.clearcol(prov.bufnr)
           vim.b[prov.bufnr].cp_setup_done = true
         end
-      elseif not vim.b[prov.bufnr].cp_setup_done then
-        helpers.clearcol(prov.bufnr)
-        vim.b[prov.bufnr].cp_setup_done = true
+        cache.set_file_state(
+          vim.fn.fnamemodify(source_file, ':p'),
+          platform,
+          state.get_contest_id() or '',
+          state.get_problem_id() or '',
+          lang
+        )
+        require('cp.ui.views').ensure_io_view()
+        state.set_provisional(nil)
+        return
       end
-      cache.set_file_state(
-        vim.fn.fnamemodify(source_file, ':p'),
-        platform,
-        state.get_contest_id() or '',
-        state.get_problem_id() or '',
-        lang
-      )
-      require('cp.ui.views').ensure_io_view()
+    else
+      state.set_provisional(nil)
     end
-    state.set_provisional(nil)
-    return
   end
 
-  vim.schedule(function()
-    vim.cmd.only({ mods = { silent = true } })
-    vim.cmd.e(source_file)
-    local bufnr = vim.api.nvim_get_current_buf()
-    state.set_solution_win(vim.api.nvim_get_current_win())
-    if config.hooks and config.hooks.setup_code and not vim.b[bufnr].cp_setup_done then
-      local ok = pcall(config.hooks.setup_code, state)
-      if ok then
-        vim.b[bufnr].cp_setup_done = true
-      end
-    elseif not vim.b[bufnr].cp_setup_done then
-      helpers.clearcol(bufnr)
+  vim.cmd.only({ mods = { silent = true } })
+  vim.cmd.e(source_file)
+  local bufnr = vim.api.nvim_get_current_buf()
+  state.set_solution_win(vim.api.nvim_get_current_win())
+  require('cp.ui.views').ensure_io_view()
+  if config.hooks and config.hooks.setup_code and not vim.b[bufnr].cp_setup_done then
+    local ok = pcall(config.hooks.setup_code, state)
+    if ok then
       vim.b[bufnr].cp_setup_done = true
     end
-    cache.set_file_state(
-      vim.fn.expand('%:p'),
-      platform,
-      state.get_contest_id() or '',
-      state.get_problem_id() or '',
-      lang
-    )
-    require('cp.ui.views').ensure_io_view()
-  end)
+  elseif not vim.b[bufnr].cp_setup_done then
+    helpers.clearcol(bufnr)
+    vim.b[bufnr].cp_setup_done = true
+  end
+  cache.set_file_state(
+    vim.fn.expand('%:p'),
+    platform,
+    state.get_contest_id() or '',
+    state.get_problem_id() or '',
+    lang
+  )
 end
 
 ---@param direction integer
