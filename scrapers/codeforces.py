@@ -83,7 +83,7 @@ def _extract_title(block: Tag) -> tuple[str, str]:
     return parts[0].strip().upper(), parts[1].strip()
 
 
-def _extract_samples(block: Tag) -> list[TestCase]:
+def _extract_samples(block: Tag, multi_test: bool = False) -> list[TestCase]:
     st = block.find("div", class_="sample-test")
     if not st:
         return []
@@ -119,24 +119,45 @@ def _extract_samples(block: Tag) -> list[TestCase]:
         outputs_by_gid.pop(0, None)
         keys = sorted(set(inputs_by_gid.keys()) & set(outputs_by_gid.keys()))
         if keys:
-            return [
+            samples = [
                 TestCase(
                     input="\n".join(inputs_by_gid[k]).strip(),
                     expected="\n".join(outputs_by_gid[k]).strip(),
                 )
                 for k in keys
             ]
+            if multi_test:
+                return [TestCase(input=f"1\n{tc.input}", expected=tc.expected) for tc in samples]
+            return samples
 
     inputs = [_text_from_pre(p) for p in input_pres]
     outputs = [_text_from_pre(p) for p in output_pres]
     n = min(len(inputs), len(outputs))
-    return [TestCase(input=inputs[i], expected=outputs[i]) for i in range(n)]
+    samples = [TestCase(input=inputs[i], expected=outputs[i]) for i in range(n)]
+
+    if multi_test and samples:
+        return [TestCase(input=f"1\n{tc.input}", expected=tc.expected) for tc in samples]
+
+    return samples
 
 
 def _is_interactive(block: Tag) -> bool:
     ps = block.find("div", class_="problem-statement")
     txt = ps.get_text(" ", strip=True) if ps else block.get_text(" ", strip=True)
     return "This is an interactive problem" in txt
+
+
+def _is_multi_test_case(block: Tag) -> bool:
+    input_spec = block.find("div", class_="input-specification")
+    if not input_spec:
+        return False
+    txt = input_spec.get_text(" ", strip=True).lower()
+    patterns = [
+        r"first line.*contains.*integer.*number of test case",
+        r"first line.*integer.*denoting.*number of test case",
+        r"first line.*number of test case",
+    ]
+    return any(re.search(pattern, txt) for pattern in patterns)
 
 
 def _fetch_problems_html(contest_id: str) -> str:
@@ -156,10 +177,11 @@ def _parse_all_blocks(html: str) -> list[dict[str, Any]]:
     for b in blocks:
         holder = b.find_parent("div", class_="problemindexholder")
         letter = (holder.get("problemindex") if holder else "").strip().upper()
-        name = _extract_title(b)[1]  # keep your name extraction
+        name = _extract_title(b)[1]
         if not letter:
             continue
-        tests = _extract_samples(b)
+        multi_test = _is_multi_test_case(b)
+        tests = _extract_samples(b, multi_test)
         timeout_ms, memory_mb = _extract_limits(b)
         interactive = _is_interactive(b)
         out.append(
