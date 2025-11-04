@@ -24,6 +24,7 @@
 ---@field memory_mb? number
 ---@field timeout_ms? number
 ---@field test_cases TestCase[]
+---@field granular_test_cases? TestCase[]
 
 ---@class TestCase
 ---@field index? number
@@ -183,12 +184,37 @@ end
 
 ---@param platform string
 ---@param contest_id string
+---@param problem_id? string
+---@return TestCase[]?
+function M.get_granular_test_cases(platform, contest_id, problem_id)
+  vim.validate({
+    platform = { platform, 'string' },
+    contest_id = { contest_id, 'string' },
+    problem_id = { problem_id, { 'string', 'nil' }, true },
+  })
+
+  if
+    not cache_data[platform]
+    or not cache_data[platform][contest_id]
+    or not cache_data[platform][contest_id].problems
+    or not cache_data[platform][contest_id].index_map
+  then
+    return nil
+  end
+
+  local index = cache_data[platform][contest_id].index_map[problem_id]
+  return cache_data[platform][contest_id].problems[index].granular_test_cases
+end
+
+---@param platform string
+---@param contest_id string
 ---@param problem_id string
 ---@param test_cases TestCase[]
 ---@param timeout_ms number
 ---@param memory_mb number
 ---@param interactive boolean
 ---@param multi_test boolean
+---@param granular_test_cases? TestCase[]
 function M.set_test_cases(
   platform,
   contest_id,
@@ -197,7 +223,8 @@ function M.set_test_cases(
   timeout_ms,
   memory_mb,
   interactive,
-  multi_test
+  multi_test,
+  granular_test_cases
 )
   vim.validate({
     platform = { platform, 'string' },
@@ -208,6 +235,7 @@ function M.set_test_cases(
     memory_mb = { memory_mb, { 'number', 'nil' }, true },
     interactive = { interactive, { 'boolean', 'nil' }, true },
     multi_test = { multi_test, { 'boolean', 'nil' }, true },
+    granular_test_cases = { granular_test_cases, { 'table', 'nil' }, true },
   })
 
   local index = cache_data[platform][contest_id].index_map[problem_id]
@@ -217,6 +245,7 @@ function M.set_test_cases(
   cache_data[platform][contest_id].problems[index].memory_mb = memory_mb
   cache_data[platform][contest_id].problems[index].interactive = interactive
   cache_data[platform][contest_id].problems[index].multi_test = multi_test
+  cache_data[platform][contest_id].problems[index].granular_test_cases = granular_test_cases
 
   M.save()
 end

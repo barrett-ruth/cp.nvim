@@ -195,6 +195,7 @@ function M.scrape_all_tests(platform, contest_id, callback)
         if type(callback) == 'function' then
           callback({
             tests = ev.tests,
+            granular_tests = ev.granular_tests,
             timeout_ms = ev.timeout_ms or 0,
             memory_mb = ev.memory_mb or 0,
             interactive = ev.interactive or false,

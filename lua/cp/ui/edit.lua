@@ -282,7 +282,8 @@ local function save_all_tests()
     edit_state.constraints and edit_state.constraints.timeout_ms or 0,
     edit_state.constraints and edit_state.constraints.memory_mb or 0,
     false,
-    is_multi_test
+    is_multi_test,
+    nil
   )
 
   local config = config_module.get_config()

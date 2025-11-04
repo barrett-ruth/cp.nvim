@@ -47,6 +47,7 @@ class ContestListResult(ScrapingResult):
 class TestsResult(ScrapingResult):
     problem_id: str
     tests: list[TestCase] = Field(default_factory=list)
+    granular_tests: list[TestCase] | None = None
     timeout_ms: int
     memory_mb: float
     interactive: bool = False

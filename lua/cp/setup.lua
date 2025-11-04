@@ -91,6 +91,15 @@ local function start_tests(platform, contest_id, problems)
       for i, t in ipairs(ev.tests) do
         cached_tests[i] = { index = i, input = t.input, expected = t.expected }
       end
+
+      local cached_granular_tests = nil
+      if ev.granular_tests and type(ev.granular_tests) == 'table' then
+        cached_granular_tests = {}
+        for i, t in ipairs(ev.granular_tests) do
+          cached_granular_tests[i] = { index = i, input = t.input, expected = t.expected }
+        end
+      end
+
       cache.set_test_cases(
         platform,
         contest_id,
@@ -99,7 +108,8 @@ local function start_tests(platform, contest_id, problems)
         ev.timeout_ms or 0,
         ev.memory_mb or 0,
         ev.interactive,
-        ev.multi_test
+        ev.multi_test,
+        cached_granular_tests
       )
 
       local io_state = state.get_io_view_state()
@@ -108,22 +118,9 @@ local function start_tests(platform, contest_id, problems)
         local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
         local input_lines = {}
 
-        local contest_data = cache.get_contest_data(platform, contest_id)
-        local is_multi_test = contest_data.problems[contest_data.index_map[problem_id]].multi_test
-
-        if is_multi_test and #test_cases > 1 then
-          table.insert(input_lines, tostring(#test_cases))
-          for _, tc in ipairs(test_cases) do
-            local stripped = tc.input:gsub('^1\n', '')
-            for _, line in ipairs(vim.split(stripped, '\n')) do
-              table.insert(input_lines, line)
-            end
-          end
-        else
-          for _, tc in ipairs(test_cases) do
-            for _, line in ipairs(vim.split(tc.input, '\n')) do
-              table.insert(input_lines, line)
-            end
+        for _, tc in ipairs(test_cases) do
+          for _, line in ipairs(vim.split(tc.input, '\n')) do
+            table.insert(input_lines, line)
           end
         end
 

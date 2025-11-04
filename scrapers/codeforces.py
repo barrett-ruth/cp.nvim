@@ -126,10 +126,7 @@ def _extract_samples(block: Tag) -> tuple[list[TestCase], bool]:
                 )
                 for k in keys
             ]
-            samples_with_prefix = [
-                TestCase(input=f"1\n{tc.input}", expected=tc.expected) for tc in samples
-            ]
-            return samples_with_prefix, True
+            return samples, True
 
     inputs = [_text_from_pre(p) for p in input_pres]
     outputs = [_text_from_pre(p) for p in output_pres]
@@ -167,11 +164,21 @@ def _parse_all_blocks(html: str) -> list[dict[str, Any]]:
         tests, multi_test = _extract_samples(b)
         timeout_ms, memory_mb = _extract_limits(b)
         interactive = _is_interactive(b)
+
+        if multi_test and len(tests) > 0:
+            granular_tests = tests
+            combined_input = f"{len(tests)}\n" + "\n".join(t.input for t in tests)
+            combined_expected = "\n".join(t.expected for t in tests)
+            tests = [TestCase(input=combined_input, expected=combined_expected)]
+        else:
+            granular_tests = None
+
         out.append(
             {
                 "letter": letter,
                 "name": name,
                 "tests": tests,
+                "granular_tests": granular_tests,
                 "timeout_ms": timeout_ms,
                 "memory_mb": memory_mb,
                 "interactive": interactive,
@@ -248,6 +255,7 @@ class CodeforcesScraper(BaseScraper):
         for b in blocks:
             pid = b["letter"].lower()
             tests: list[TestCase] = b.get("tests", [])
+            granular_tests = b.get("granular_tests")
             print(
                 json.dumps(
                     {
@@ -255,6 +263,14 @@ class CodeforcesScraper(BaseScraper):
                         "tests": [
                             {"input": t.input, "expected": t.expected} for t in tests
                         ],
+                        "granular_tests": (
+                            [
+                                {"input": t.input, "expected": t.expected}
+                                for t in granular_tests
+                            ]
+                            if granular_tests
+                            else None
+                        ),
                         "timeout_ms": b.get("timeout_ms", 0),
                         "memory_mb": b.get("memory_mb", 0),
                         "interactive": bool(b.get("interactive")),

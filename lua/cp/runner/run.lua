@@ -180,19 +180,16 @@ end
 
 ---@return boolean
 function M.load_test_cases()
-  local tcs = cache.get_test_cases(
-    state.get_platform() or '',
-    state.get_contest_id() or '',
-    state.get_problem_id()
-  )
+  local platform = state.get_platform() or ''
+  local contest_id = state.get_contest_id() or ''
+  local problem_id = state.get_problem_id()
+
+  local granular_tcs = cache.get_granular_test_cases(platform, contest_id, problem_id)
+  local tcs = granular_tcs or cache.get_test_cases(platform, contest_id, problem_id)
 
   panel_state.test_cases = create_sentinal_panel_data(tcs)
   panel_state.current_index = 1
-  panel_state.constraints = load_constraints_from_cache(
-    state.get_platform() or '',
-    state.get_contest_id() or '',
-    state.get_problem_id()
-  )
+  panel_state.constraints = load_constraints_from_cache(platform, contest_id, problem_id)
 
   logger.log(('Loaded %d test case(s)'):format(#tcs), vim.log.levels.INFO)
   return #tcs > 0
@@ -226,20 +223,126 @@ function M.run_test_case(index, debug)
   return true
 end
 
+---@param debug boolean?
+---@return boolean
+local function run_multi_test_aggregate(debug)
+  local platform = state.get_platform() or ''
+  local contest_id = state.get_contest_id() or ''
+  local problem_id = state.get_problem_id()
+
+  local combined_tests = cache.get_test_cases(platform, contest_id, problem_id)
+  if #combined_tests ~= 1 then
+    return false
+  end
+
+  local combined_test = combined_tests[1]
+  local source_file = state.get_source_file()
+  local binary_file = debug and state.get_debug_file() or state.get_binary_file()
+  local substitutions = { source = source_file, binary = binary_file }
+
+  local platform_config = config.platforms[platform]
+  local language = state.get_language() or platform_config.default_language
+  local eff = config.runtime.effective[platform][language]
+  local run_template = eff and eff.commands and eff.commands.run or {}
+  local cmd = build_command(run_template, substitutions)
+  local stdin_content = (combined_test.input or '') .. '\n'
+  local timeout_ms = (panel_state.constraints and panel_state.constraints.timeout_ms) or 0
+  local memory_mb = panel_state.constraints and panel_state.constraints.memory_mb or 0
+
+  local r = execute.run(cmd, stdin_content, timeout_ms, memory_mb)
+
+  local ansi = require('cp.ui.ansi')
+  local out = r.stdout or ''
+  if out ~= '' then
+    if config.ui.ansi then
+      local parsed = ansi.parse_ansi_text(out)
+      out = table.concat(parsed.lines, '\n')
+    else
+      out = out:gsub('\027%[[%d;]*[a-zA-Z]', '')
+    end
+  end
+
+  local output_lines = vim.split(out, '\n', { plain = true, trimempty = false })
+  local line_idx = 1
+
+  for i, tc in ipairs(panel_state.test_cases) do
+    local expected_lines = vim.split(tc.expected or '', '\n', { plain = true, trimempty = false })
+    local actual_lines = {}
+
+    for _ = 1, #expected_lines do
+      if line_idx <= #output_lines then
+        table.insert(actual_lines, output_lines[line_idx])
+        line_idx = line_idx + 1
+      end
+    end
+
+    local actual = table.concat(actual_lines, '\n')
+    local ok = normalize_lines(actual) == normalize_lines(tc.expected or '')
+
+    local signal = r.signal
+    if not signal and r.code and r.code >= 128 then
+      signal = constants.signal_codes[r.code]
+    end
+
+    local status
+    if r.tled then
+      status = 'tle'
+    elseif r.mled then
+      status = 'mle'
+    elseif ok then
+      status = 'pass'
+    else
+      status = 'fail'
+    end
+
+    panel_state.test_cases[i].status = status
+    panel_state.test_cases[i].actual = actual
+    panel_state.test_cases[i].error = (r.code ~= 0 and not ok) and actual or ''
+    panel_state.test_cases[i].stderr = ''
+    panel_state.test_cases[i].time_ms = r.time_ms
+    panel_state.test_cases[i].code = r.code
+    panel_state.test_cases[i].ok = ok
+    panel_state.test_cases[i].signal = signal
+    panel_state.test_cases[i].tled = r.tled or false
+    panel_state.test_cases[i].mled = r.mled or false
+    panel_state.test_cases[i].rss_mb = r.peak_mb or 0
+  end
+
+  return true
+end
+
 ---@param indices? integer[]
 ---@param debug boolean?
 ---@return RanTestCase[]
 function M.run_all_test_cases(indices, debug)
-  local to_run = indices
-  if not to_run then
-    to_run = {}
-    for i = 1, #panel_state.test_cases do
-      to_run[i] = i
-    end
-  end
+  local platform = state.get_platform() or ''
+  local contest_id = state.get_contest_id() or ''
+  local problem_id = state.get_problem_id()
 
-  for _, i in ipairs(to_run) do
-    M.run_test_case(i, debug)
+  cache.load()
+  local contest_data = cache.get_contest_data(platform, contest_id)
+  local is_multi_test = contest_data
+    and contest_data.problems
+    and contest_data.index_map
+    and contest_data.problems[contest_data.index_map[problem_id]]
+    and contest_data.problems[contest_data.index_map[problem_id]].multi_test
+
+  local granular_tcs = cache.get_granular_test_cases(platform, contest_id, problem_id)
+
+  if is_multi_test and granular_tcs and #granular_tcs > 0 and not indices then
+    run_multi_test_aggregate(debug)
+  else
+    local to_run = indices
+    if not to_run then
+      to_run = {}
+      for i = 1, #panel_state.test_cases do
+        to_run[i] = i
+      end
+    end
+
+    for _, i in ipairs(to_run) do
+      M.run_test_case(i, debug)
+    end
   end
 
   return panel_state.test_cases
