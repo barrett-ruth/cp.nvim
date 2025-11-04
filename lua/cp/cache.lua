@@ -20,6 +20,7 @@
 ---@field id string
 ---@field name? string
 ---@field interactive? boolean
+---@field multi_test? boolean
 ---@field memory_mb? number
 ---@field timeout_ms? number
 ---@field test_cases TestCase[]
@@ -187,6 +188,7 @@ end
 ---@param timeout_ms number
 ---@param memory_mb number
 ---@param interactive boolean
+---@param multi_test boolean
 function M.set_test_cases(
   platform,
   contest_id,
@@ -194,7 +196,8 @@ function M.set_test_cases(
   test_cases,
   timeout_ms,
   memory_mb,
-  interactive
+  interactive,
+  multi_test
 )
   vim.validate({
     platform = { platform, 'string' },
@@ -204,6 +207,7 @@ function M.set_test_cases(
     timeout_ms = { timeout_ms, { 'number', 'nil' }, true },
     memory_mb = { memory_mb, { 'number', 'nil' }, true },
     interactive = { interactive, { 'boolean', 'nil' }, true },
+    multi_test = { multi_test, { 'boolean', 'nil' }, true },
   })
 
   local index = cache_data[platform][contest_id].index_map[problem_id]
@@ -212,6 +216,7 @@ function M.set_test_cases(
   cache_data[platform][contest_id].problems[index].timeout_ms = timeout_ms
   cache_data[platform][contest_id].problems[index].memory_mb = memory_mb
   cache_data[platform][contest_id].problems[index].interactive = interactive
+  cache_data[platform][contest_id].problems[index].multi_test = multi_test
 
   M.save()
 end

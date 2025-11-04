@@ -198,6 +198,7 @@ function M.scrape_all_tests(platform, contest_id, callback)
             timeout_ms = ev.timeout_ms or 0,
             memory_mb = ev.memory_mb or 0,
             interactive = ev.interactive or false,
+            multi_test = ev.multi_test or false,
             problem_id = ev.problem_id,
           })
         end

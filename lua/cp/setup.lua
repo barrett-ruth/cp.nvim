@@ -98,18 +98,35 @@ local function start_tests(platform, contest_id, problems)
         cached_tests,
         ev.timeout_ms or 0,
         ev.memory_mb or 0,
-        ev.interactive
+        ev.interactive,
+        ev.multi_test
       )
 
       local io_state = state.get_io_view_state()
       if io_state then
-        local test_cases = cache.get_test_cases(platform, contest_id, state.get_problem_id())
+        local problem_id = state.get_problem_id()
+        local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
         local input_lines = {}
-        for _, tc in ipairs(test_cases) do
-          for _, line in ipairs(vim.split(tc.input, '\n')) do
-            table.insert(input_lines, line)
+
+        local contest_data = cache.get_contest_data(platform, contest_id)
+        local is_multi_test = contest_data.problems[contest_data.index_map[problem_id]].multi_test
+
+        if is_multi_test and #test_cases > 1 then
+          table.insert(input_lines, tostring(#test_cases))
+          for _, tc in ipairs(test_cases) do
+            local stripped = tc.input:gsub('^1\n', '')
+            for _, line in ipairs(vim.split(stripped, '\n')) do
+              table.insert(input_lines, line)
+            end
+          end
+        else
+          for _, tc in ipairs(test_cases) do
+            for _, line in ipairs(vim.split(tc.input, '\n')) do
+              table.insert(input_lines, line)
+            end
           end
         end
+
         require('cp.utils').update_buffer_content(io_state.input_buf, input_lines, nil, nil)
       end
     end)

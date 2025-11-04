@@ -83,10 +83,10 @@ def _extract_title(block: Tag) -> tuple[str, str]:
     return parts[0].strip().upper(), parts[1].strip()
 
 
-def _extract_samples(block: Tag) -> list[TestCase]:
+def _extract_samples(block: Tag) -> tuple[list[TestCase], bool]:
     st = block.find("div", class_="sample-test")
     if not st:
-        return []
+        return [], False
 
     input_pres: list[Tag] = [  # type: ignore[misc]
         inp.find("pre")  # type: ignore[misc]
@@ -119,18 +119,23 @@ def _extract_samples(block: Tag) -> list[TestCase]:
         outputs_by_gid.pop(0, None)
         keys = sorted(set(inputs_by_gid.keys()) & set(outputs_by_gid.keys()))
         if keys:
-            return [
+            samples = [
                 TestCase(
                     input="\n".join(inputs_by_gid[k]).strip(),
                     expected="\n".join(outputs_by_gid[k]).strip(),
                 )
                 for k in keys
             ]
+            samples_with_prefix = [
+                TestCase(input=f"1\n{tc.input}", expected=tc.expected) for tc in samples
+            ]
+            return samples_with_prefix, True
 
     inputs = [_text_from_pre(p) for p in input_pres]
     outputs = [_text_from_pre(p) for p in output_pres]
     n = min(len(inputs), len(outputs))
-    return [TestCase(input=inputs[i], expected=outputs[i]) for i in range(n)]
+    samples = [TestCase(input=inputs[i], expected=outputs[i]) for i in range(n)]
+    return samples, False
 
 
 def _is_interactive(block: Tag) -> bool:
@@ -156,10 +161,10 @@ def _parse_all_blocks(html: str) -> list[dict[str, Any]]:
     for b in blocks:
         holder = b.find_parent("div", class_="problemindexholder")
         letter = (holder.get("problemindex") if holder else "").strip().upper()
-        name = _extract_title(b)[1]  # keep your name extraction
+        name = _extract_title(b)[1]
         if not letter:
             continue
-        tests = _extract_samples(b)
+        tests, multi_test = _extract_samples(b)
         timeout_ms, memory_mb = _extract_limits(b)
         interactive = _is_interactive(b)
         out.append(
@@ -170,6 +175,7 @@ def _parse_all_blocks(html: str) -> list[dict[str, Any]]:
                 "timeout_ms": timeout_ms,
                 "memory_mb": memory_mb,
                 "interactive": interactive,
+                "multi_test": multi_test,
             }
         )
     return out
@@ -252,6 +258,7 @@ class CodeforcesScraper(BaseScraper):
                         "timeout_ms": b.get("timeout_ms", 0),
                         "memory_mb": b.get("memory_mb", 0),
                         "interactive": bool(b.get("interactive")),
+                        "multi_test": bool(b.get("multi_test", False)),
                     }
                 ),
                 flush=True,
