@@ -271,7 +271,8 @@ local function save_all_tests()
   end
 
   local contest_data = cache.get_contest_data(platform, contest_id)
-  local is_multi_test = contest_data.problems[contest_data.index_map[problem_id]].multi_test or false
+  local is_multi_test = contest_data.problems[contest_data.index_map[problem_id]].multi_test
+    or false
 
   cache.set_test_cases(
     platform,
