@@ -270,6 +270,9 @@ local function save_all_tests()
     end
   end
 
+  local contest_data = cache.get_contest_data(platform, contest_id)
+  local is_multi_test = contest_data.problems[contest_data.index_map[problem_id]].multi_test or false
+
   cache.set_test_cases(
     platform,
     contest_id,
@@ -277,7 +280,8 @@ local function save_all_tests()
     edit_state.test_cases,
     edit_state.constraints and edit_state.constraints.timeout_ms or 0,
     edit_state.constraints and edit_state.constraints.memory_mb or 0,
-    false
+    false,
+    is_multi_test
   )
 
   local config = config_module.get_config()
