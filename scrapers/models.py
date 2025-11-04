@@ -50,6 +50,7 @@ class TestsResult(ScrapingResult):
     timeout_ms: int
     memory_mb: float
     interactive: bool = False
+    multi_test: bool = False
 
     model_config = ConfigDict(extra="forbid")
 

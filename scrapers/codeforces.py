@@ -83,10 +83,10 @@ def _extract_title(block: Tag) -> tuple[str, str]:
     return parts[0].strip().upper(), parts[1].strip()
 
 
-def _extract_samples(block: Tag, multi_test: bool = False) -> list[TestCase]:
+def _extract_samples(block: Tag) -> tuple[list[TestCase], bool]:
     st = block.find("div", class_="sample-test")
     if not st:
-        return []
+        return [], False
 
     input_pres: list[Tag] = [  # type: ignore[misc]
         inp.find("pre")  # type: ignore[misc]
@@ -126,38 +126,22 @@ def _extract_samples(block: Tag, multi_test: bool = False) -> list[TestCase]:
                 )
                 for k in keys
             ]
-            if multi_test:
-                return [TestCase(input=f"1\n{tc.input}", expected=tc.expected) for tc in samples]
-            return samples
+            samples_with_prefix = [
+                TestCase(input=f"1\n{tc.input}", expected=tc.expected) for tc in samples
+            ]
+            return samples_with_prefix, True
 
     inputs = [_text_from_pre(p) for p in input_pres]
     outputs = [_text_from_pre(p) for p in output_pres]
     n = min(len(inputs), len(outputs))
     samples = [TestCase(input=inputs[i], expected=outputs[i]) for i in range(n)]
-
-    if multi_test and samples:
-        return [TestCase(input=f"1\n{tc.input}", expected=tc.expected) for tc in samples]
-
-    return samples
+    return samples, False
 
 
 def _is_interactive(block: Tag) -> bool:
     ps = block.find("div", class_="problem-statement")
     txt = ps.get_text(" ", strip=True) if ps else block.get_text(" ", strip=True)
     return "This is an interactive problem" in txt
-
-
-def _is_multi_test_case(block: Tag) -> bool:
-    input_spec = block.find("div", class_="input-specification")
-    if not input_spec:
-        return False
-    txt = input_spec.get_text(" ", strip=True).lower()
-    patterns = [
-        r"first line.*contains.*integer.*number of test case",
-        r"first line.*integer.*denoting.*number of test case",
-        r"first line.*number of test case",
-    ]
-    return any(re.search(pattern, txt) for pattern in patterns)
 
 
 def _fetch_problems_html(contest_id: str) -> str:
@@ -180,8 +164,7 @@ def _parse_all_blocks(html: str) -> list[dict[str, Any]]:
         name = _extract_title(b)[1]
         if not letter:
             continue
-        multi_test = _is_multi_test_case(b)
-        tests = _extract_samples(b, multi_test)
+        tests, multi_test = _extract_samples(b)
         timeout_ms, memory_mb = _extract_limits(b)
         interactive = _is_interactive(b)
         out.append(
@@ -192,6 +175,7 @@ def _parse_all_blocks(html: str) -> list[dict[str, Any]]:
                 "timeout_ms": timeout_ms,
                 "memory_mb": memory_mb,
                 "interactive": interactive,
+                "multi_test": multi_test,
             }
         )
     return out
@@ -274,6 +258,7 @@ class CodeforcesScraper(BaseScraper):
                         "timeout_ms": b.get("timeout_ms", 0),
                         "memory_mb": b.get("memory_mb", 0),
                         "interactive": bool(b.get("interactive")),
+                        "multi_test": bool(b.get("multi_test", False)),
                     }
                 ),
                 flush=True,

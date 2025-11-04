@@ -315,9 +315,21 @@ function M.ensure_io_view()
   local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
   if test_cases and #test_cases > 0 then
     local input_lines = {}
-    for _, tc in ipairs(test_cases) do
-      for _, line in ipairs(vim.split(tc.input, '\n')) do
-        table.insert(input_lines, line)
+    local is_multi_test = contest_data.problems[contest_data.index_map[problem_id]].multi_test
+
+    if is_multi_test and #test_cases > 1 then
+      table.insert(input_lines, tostring(#test_cases))
+      for _, tc in ipairs(test_cases) do
+        local stripped = tc.input:gsub('^1\n', '')
+        for _, line in ipairs(vim.split(stripped, '\n')) do
+          table.insert(input_lines, line)
+        end
+      end
+    else
+      for _, tc in ipairs(test_cases) do
+        for _, line in ipairs(vim.split(tc.input, '\n')) do
+          table.insert(input_lines, line)
+        end
       end
     end
     utils.update_buffer_content(input_buf, input_lines, nil, nil)
@@ -437,6 +449,12 @@ function M.run_io_view(test_index, debug)
     )
   end
 
+  local is_multi_test = contest_data.problems[contest_data.index_map[problem_id]].multi_test
+
+  if is_multi_test and #test_indices > 1 then
+    table.insert(input_lines, tostring(#test_indices))
+  end
+
   for _, idx in ipairs(test_indices) do
     local tc = test_state.test_cases[idx]
 
@@ -479,7 +497,11 @@ function M.run_io_view(test_index, debug)
       end
     end
 
-    for _, line in ipairs(vim.split(tc.input, '\n')) do
+    local test_input = tc.input
+    if is_multi_test and #test_indices > 1 then
+      test_input = test_input:gsub('^1\n', '')
+    end
+    for _, line in ipairs(vim.split(test_input, '\n')) do
       table.insert(input_lines, line)
     end
   end
