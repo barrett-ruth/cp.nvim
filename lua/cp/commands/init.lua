@@ -75,7 +75,7 @@ local function parse_command(args)
       return { type = 'action', action = 'edit', test_index = test_index }
     elseif first == 'run' or first == 'panel' then
       local debug = false
-      local test_index = nil
+      local test_indices = nil
       local mode = 'combined'
 
       if #args == 2 then
@@ -84,20 +84,39 @@ local function parse_command(args)
         elseif args[2] == 'all' then
           mode = 'individual'
         else
-          local idx = tonumber(args[2])
-          if not idx then
-            return {
-              type = 'error',
-              message = ("Invalid argument '%s': expected test number, 'all', or --debug"):format(
-                args[2]
-              ),
-            }
+          if args[2]:find(',') then
+            local indices = {}
+            for num in args[2]:gmatch('[^,]+') do
+              local idx = tonumber(num)
+              if not idx or idx < 1 or idx ~= math.floor(idx) then
+                return {
+                  type = 'error',
+                  message = ("Invalid test index '%s' in list"):format(num),
+                }
+              end
+              table.insert(indices, idx)
+            end
+            if #indices == 0 then
+              return { type = 'error', message = 'No valid test indices provided' }
+            end
+            test_indices = indices
+            mode = 'individual'
+          else
+            local idx = tonumber(args[2])
+            if not idx then
+              return {
+                type = 'error',
+                message = ("Invalid argument '%s': expected test number(s), 'all', or --debug"):format(
+                  args[2]
+                ),
+              }
+            end
+            if idx < 1 or idx ~= math.floor(idx) then
+              return { type = 'error', message = ("'%s' is not a valid test index"):format(idx) }
+            end
+            test_indices = { idx }
+            mode = 'individual'
           end
-          if idx < 1 or idx ~= math.floor(idx) then
-            return { type = 'error', message = ("'%s' is not a valid test index"):format(idx) }
-          end
-          test_index = idx
-          mode = 'individual'
         end
       elseif #args == 3 then
         if args[2] == 'all' then
@@ -108,6 +127,30 @@ local function parse_command(args)
               message = ("Invalid argument '%s': expected --debug"):format(args[3]),
             }
           end
+          debug = true
+        elseif args[2]:find(',') then
+          local indices = {}
+          for num in args[2]:gmatch('[^,]+') do
+            local idx = tonumber(num)
+            if not idx or idx < 1 or idx ~= math.floor(idx) then
+              return {
+                type = 'error',
+                message = ("Invalid test index '%s' in list"):format(num),
+              }
+            end
+            table.insert(indices, idx)
+          end
+          if #indices == 0 then
+            return { type = 'error', message = 'No valid test indices provided' }
+          end
+          if args[3] ~= '--debug' then
+            return {
+              type = 'error',
+              message = ("Invalid argument '%s': expected --debug"):format(args[3]),
+            }
+          end
+          test_indices = indices
+          mode = 'individual'
           debug = true
         else
           local idx = tonumber(args[2])
@@ -126,21 +169,23 @@ local function parse_command(args)
               message = ("Invalid argument '%s': expected --debug"):format(args[3]),
             }
           end
-          test_index = idx
+          test_indices = { idx }
           mode = 'individual'
           debug = true
         end
       elseif #args > 3 then
         return {
           type = 'error',
-          message = 'Too many arguments. Usage: :CP ' .. first .. ' [all|test_num] [--debug]',
+          message = 'Too many arguments. Usage: :CP '
+            .. first
+            .. ' [all|test_num[,test_num...]] [--debug]',
         }
       end
 
       return {
         type = 'action',
         action = first,
-        test_index = test_index,
+        test_indices = test_indices,
         debug = debug,
         mode = mode,
       }
@@ -221,9 +266,12 @@ function M.handle_command(opts)
     if cmd.action == 'interact' then
       ui.toggle_interactive(cmd.interactor_cmd)
     elseif cmd.action == 'run' then
-      ui.run_io_view(cmd.test_index, cmd.debug, cmd.mode)
+      ui.run_io_view(cmd.test_indices, cmd.debug, cmd.mode)
     elseif cmd.action == 'panel' then
-      ui.toggle_panel({ debug = cmd.debug, test_index = cmd.test_index })
+      ui.toggle_panel({
+        debug = cmd.debug,
+        test_index = cmd.test_indices and cmd.test_indices[1] or nil,
+      })
     elseif cmd.action == 'next' then
       setup.navigate_problem(1, cmd.language)
     elseif cmd.action == 'prev' then

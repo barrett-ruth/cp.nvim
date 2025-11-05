@@ -287,7 +287,7 @@ function M.ensure_io_view()
         return
       end
       io_view_state.current_test_index = new_index
-      M.run_io_view(new_index)
+      M.run_io_view({ new_index }, false, 'individual')
     end
 
     if cfg.ui.run.next_test_key then
@@ -338,7 +338,7 @@ function M.ensure_io_view()
   vim.api.nvim_set_current_win(solution_win)
 end
 
-function M.run_io_view(test_index, debug, mode)
+function M.run_io_view(test_indices_arg, debug, mode)
   mode = mode or 'combined'
 
   local platform, contest_id, problem_id =
@@ -380,19 +380,21 @@ function M.run_io_view(test_index, debug, mode)
   if mode == 'individual' then
     local test_state = run.get_panel_state()
 
-    if test_index then
-      if test_index < 1 or test_index > #test_state.test_cases then
-        logger.log(
-          string.format(
-            'Test %d does not exist (only %d tests available)',
-            test_index,
-            #test_state.test_cases
-          ),
-          vim.log.levels.WARN
-        )
-        return
+    if test_indices_arg then
+      for _, idx in ipairs(test_indices_arg) do
+        if idx < 1 or idx > #test_state.test_cases then
+          logger.log(
+            string.format(
+              'Test %d does not exist (only %d tests available)',
+              idx,
+              #test_state.test_cases
+            ),
+            vim.log.levels.WARN
+          )
+          return
+        end
       end
-      test_indices = { test_index }
+      test_indices = test_indices_arg
     else
       for i = 1, #test_state.test_cases do
         test_indices[i] = i
