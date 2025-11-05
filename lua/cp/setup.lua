@@ -216,7 +216,16 @@ function M.setup_problem(problem_id, language)
     return
   end
 
+  local old_problem_id = state.get_problem_id()
   state.set_problem_id(problem_id)
+
+  if old_problem_id ~= problem_id then
+    local io_state = state.get_io_view_state()
+    if io_state and io_state.output_buf and vim.api.nvim_buf_is_valid(io_state.output_buf) then
+      local utils = require('cp.utils')
+      utils.update_buffer_content(io_state.output_buf, {}, nil, nil)
+    end
+  end
   local config = config_module.get_config()
   local lang = language
     or (config.platforms[platform] and config.platforms[platform].default_language)
@@ -367,6 +376,12 @@ function M.navigate_problem(direction, language)
         end
       end
     end
+  end
+
+  local io_state = state.get_io_view_state()
+  if io_state and io_state.output_buf and vim.api.nvim_buf_is_valid(io_state.output_buf) then
+    local utils = require('cp.utils')
+    utils.update_buffer_content(io_state.output_buf, {}, nil, nil)
   end
 
   M.setup_contest(platform, contest_id, problems[new_index].id, lang)

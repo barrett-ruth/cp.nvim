@@ -736,7 +736,6 @@ function M.toggle_panel(panel_opts)
         end
       end
     end
-    state.set_io_view_state(nil)
   end
 
   local session_file = vim.fn.tempname()
