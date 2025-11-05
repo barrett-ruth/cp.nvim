@@ -191,12 +191,6 @@ end
 ---@param problem_id? string
 ---@return CombinedTest?
 function M.get_combined_test(platform, contest_id, problem_id)
-  vim.validate({
-    platform = { platform, 'string' },
-    contest_id = { contest_id, 'string' },
-    problem_id = { problem_id, { 'string', 'nil' }, true },
-  })
-
   if
     not cache_data[platform]
     or not cache_data[platform][contest_id]
