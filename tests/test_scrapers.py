@@ -55,18 +55,21 @@ def test_scraper_offline_fixture_matrix(run_scraper_offline, scraper, mode):
         else:
             assert len(model.contests) >= 1
     else:
+        assert len(objs) >= 1, "No test objects returned"
         validated_any = False
         for obj in objs:
-            if "success" in obj and "tests" in obj and "problem_id" in obj:
-                tr = TestsResult.model_validate(obj)
-                assert tr.problem_id != ""
-                assert isinstance(tr.tests, list)
-                validated_any = True
-            else:
-                assert "problem_id" in obj
-                assert "tests" in obj and isinstance(obj["tests"], list)
-                assert (
-                    "timeout_ms" in obj and "memory_mb" in obj and "interactive" in obj
-                )
-                validated_any = True
+            assert "problem_id" in obj, "Missing problem_id"
+            assert obj["problem_id"] != "", "Empty problem_id"
+            assert "combined" in obj, "Missing combined field"
+            assert isinstance(obj["combined"], dict), "combined must be a dict"
+            assert "input" in obj["combined"], "Missing combined.input"
+            assert "expected" in obj["combined"], "Missing combined.expected"
+            assert "tests" in obj, "Missing tests field"
+            assert isinstance(obj["tests"], list), "tests must be a list"
+            assert "timeout_ms" in obj, "Missing timeout_ms"
+            assert "memory_mb" in obj, "Missing memory_mb"
+            assert "interactive" in obj, "Missing interactive"
+            assert "multi_test" in obj, "Missing multi_test field"
+            assert isinstance(obj["multi_test"], bool), "multi_test must be bool"
+            validated_any = True
         assert validated_any, "No valid tests payloads validated"
