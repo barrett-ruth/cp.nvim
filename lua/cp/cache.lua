@@ -16,6 +16,10 @@
 ---@field name string
 ---@field id string
 
+---@class CombinedTest
+---@field input string
+---@field expected string
+
 ---@class Problem
 ---@field id string
 ---@field name? string
@@ -23,6 +27,7 @@
 ---@field multi_test? boolean
 ---@field memory_mb? number
 ---@field timeout_ms? number
+---@field combined_test? CombinedTest
 ---@field test_cases TestCase[]
 
 ---@class TestCase
@@ -183,7 +188,32 @@ end
 
 ---@param platform string
 ---@param contest_id string
+---@param problem_id? string
+---@return CombinedTest?
+function M.get_combined_test(platform, contest_id, problem_id)
+  vim.validate({
+    platform = { platform, 'string' },
+    contest_id = { contest_id, 'string' },
+    problem_id = { problem_id, { 'string', 'nil' }, true },
+  })
+
+  if
+    not cache_data[platform]
+    or not cache_data[platform][contest_id]
+    or not cache_data[platform][contest_id].problems
+    or not cache_data[platform][contest_id].index_map
+  then
+    return nil
+  end
+
+  local index = cache_data[platform][contest_id].index_map[problem_id]
+  return cache_data[platform][contest_id].problems[index].combined_test
+end
+
+---@param platform string
+---@param contest_id string
 ---@param problem_id string
+---@param combined_test? CombinedTest
 ---@param test_cases TestCase[]
 ---@param timeout_ms number
 ---@param memory_mb number
@@ -193,6 +223,7 @@ function M.set_test_cases(
   platform,
   contest_id,
   problem_id,
+  combined_test,
   test_cases,
   timeout_ms,
   memory_mb,
@@ -203,6 +234,7 @@ function M.set_test_cases(
     platform = { platform, 'string' },
     contest_id = { contest_id, 'string' },
     problem_id = { problem_id, { 'string', 'nil' }, true },
+    combined_test = { combined_test, { 'table', 'nil' }, true },
     test_cases = { test_cases, 'table' },
     timeout_ms = { timeout_ms, { 'number', 'nil' }, true },
     memory_mb = { memory_mb, { 'number', 'nil' }, true },
@@ -212,6 +244,7 @@ function M.set_test_cases(
 
   local index = cache_data[platform][contest_id].index_map[problem_id]
 
+  cache_data[platform][contest_id].problems[index].combined_test = combined_test
   cache_data[platform][contest_id].problems[index].test_cases = test_cases
   cache_data[platform][contest_id].problems[index].timeout_ms = timeout_ms
   cache_data[platform][contest_id].problems[index].memory_mb = memory_mb

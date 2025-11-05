@@ -11,6 +11,7 @@ from scrapling.fetchers import StealthyFetcher
 
 from .base import BaseScraper
 from .models import (
+    CombinedTest,
     ContestListResult,
     ContestSummary,
     MetadataResult,
@@ -279,6 +280,7 @@ async def main_async() -> int:
                 success=False,
                 error="Usage: codechef.py tests <contest_id>",
                 problem_id="",
+                combined=CombinedTest(input="", expected=""),
                 tests=[],
                 timeout_ms=0,
                 memory_mb=0,

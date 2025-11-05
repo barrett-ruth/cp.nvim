@@ -8,6 +8,13 @@ class TestCase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class CombinedTest(BaseModel):
+    input: str
+    expected: str
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class ProblemSummary(BaseModel):
     id: str
     name: str
@@ -46,6 +53,7 @@ class ContestListResult(ScrapingResult):
 
 class TestsResult(ScrapingResult):
     problem_id: str
+    combined: CombinedTest
     tests: list[TestCase] = Field(default_factory=list)
     timeout_ms: int
     memory_mb: float

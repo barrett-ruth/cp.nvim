@@ -338,7 +338,9 @@ function M.ensure_io_view()
   vim.api.nvim_set_current_win(solution_win)
 end
 
-function M.run_io_view(test_index, debug)
+function M.run_io_view(test_index, debug, mode)
+  mode = mode or 'combined'
+
   local platform, contest_id, problem_id =
     state.get_platform(), state.get_contest_id(), state.get_problem_id()
   if not platform or not contest_id or not problem_id then
@@ -359,30 +361,42 @@ function M.run_io_view(test_index, debug)
   M.ensure_io_view()
 
   local run = require('cp.runner.run')
-  if not run.load_test_cases() then
-    logger.log('No test cases available', vim.log.levels.ERROR)
-    return
-  end
 
-  local test_state = run.get_panel_state()
-  local test_indices = {}
-
-  if test_index then
-    if test_index < 1 or test_index > #test_state.test_cases then
-      logger.log(
-        string.format(
-          'Test %d does not exist (only %d tests available)',
-          test_index,
-          #test_state.test_cases
-        ),
-        vim.log.levels.WARN
-      )
+  if mode == 'combined' then
+    local combined = cache.get_combined_test(platform, contest_id, problem_id)
+    if not combined then
+      logger.log('No combined test available', vim.log.levels.ERROR)
       return
     end
-    test_indices = { test_index }
   else
-    for i = 1, #test_state.test_cases do
-      test_indices[i] = i
+    if not run.load_test_cases() then
+      logger.log('No test cases available', vim.log.levels.ERROR)
+      return
+    end
+  end
+
+  local test_indices = {}
+
+  if mode == 'individual' then
+    local test_state = run.get_panel_state()
+
+    if test_index then
+      if test_index < 1 or test_index > #test_state.test_cases then
+        logger.log(
+          string.format(
+            'Test %d does not exist (only %d tests available)',
+            test_index,
+            #test_state.test_cases
+          ),
+          vim.log.levels.WARN
+        )
+        return
+      end
+      test_indices = { test_index }
+    else
+      for i = 1, #test_state.test_cases do
+        test_indices[i] = i
+      end
     end
   end
 
@@ -418,8 +432,6 @@ function M.run_io_view(test_index, debug)
     return
   end
 
-  run.run_all_test_cases(test_indices, debug)
-
   local run_render = require('cp.runner.run_render')
   run_render.setup_highlights()
 
@@ -430,64 +442,55 @@ function M.run_io_view(test_index, debug)
 
   local formatter = config.ui.run.format_verdict
 
-  local max_time_actual = 0
-  local max_time_limit = 0
-  local max_mem_actual = 0
-  local max_mem_limit = 0
+  if mode == 'combined' then
+    local combined = cache.get_combined_test(platform, contest_id, problem_id)
 
-  for _, idx in ipairs(test_indices) do
-    local tc = test_state.test_cases[idx]
-    max_time_actual = math.max(max_time_actual, #string.format('%.2f', tc.time_ms or 0))
-    max_time_limit = math.max(
-      max_time_limit,
-      #tostring(test_state.constraints and test_state.constraints.timeout_ms or 0)
-    )
-    max_mem_actual = math.max(max_mem_actual, #string.format('%.0f', tc.rss_mb or 0))
-    max_mem_limit = math.max(
-      max_mem_limit,
-      #string.format('%.0f', test_state.constraints and test_state.constraints.memory_mb or 0)
-    )
-  end
+    run.load_test_cases()
 
-  local is_multi_test = contest_data.problems[contest_data.index_map[problem_id]].multi_test
+    local result = run.run_combined_test(debug)
 
-  if is_multi_test and #test_indices > 1 then
-    table.insert(input_lines, tostring(#test_indices))
-  end
-
-  for _, idx in ipairs(test_indices) do
-    local tc = test_state.test_cases[idx]
-
-    if tc.actual then
-      for _, line in ipairs(vim.split(tc.actual, '\n', { plain = true, trimempty = false })) do
-        table.insert(output_lines, line)
-      end
+    if not result then
+      logger.log('Failed to run combined test', vim.log.levels.ERROR)
+      return
     end
 
-    local status = run_render.get_status_info(tc)
+    input_lines = vim.split(combined.input, '\n')
+
+    if result.actual then
+      output_lines = vim.split(result.actual, '\n')
+    end
+
+    local status = run_render.get_status_info(result)
+    local test_state = run.get_panel_state()
 
     ---@type VerdictFormatData
     local format_data = {
-      index = idx,
+      index = 1,
       status = status,
-      time_ms = tc.time_ms or 0,
+      time_ms = result.time_ms or 0,
       time_limit_ms = test_state.constraints and test_state.constraints.timeout_ms or 0,
-      memory_mb = tc.rss_mb or 0,
+      memory_mb = result.rss_mb or 0,
       memory_limit_mb = test_state.constraints and test_state.constraints.memory_mb or 0,
-      exit_code = tc.code or 0,
-      signal = (tc.code and tc.code >= 128) and require('cp.constants').signal_codes[tc.code]
+      exit_code = result.code or 0,
+      signal = (result.code and result.code >= 128)
+          and require('cp.constants').signal_codes[result.code]
         or nil,
-      time_actual_width = max_time_actual,
-      time_limit_width = max_time_limit,
-      mem_actual_width = max_mem_actual,
-      mem_limit_width = max_mem_limit,
+      time_actual_width = #string.format('%.2f', result.time_ms or 0),
+      time_limit_width = #tostring(
+        test_state.constraints and test_state.constraints.timeout_ms or 0
+      ),
+      mem_actual_width = #string.format('%.0f', result.rss_mb or 0),
+      mem_limit_width = #string.format(
+        '%.0f',
+        test_state.constraints and test_state.constraints.memory_mb or 0
+      ),
     }
 
-    local result = formatter(format_data)
-    table.insert(verdict_lines, result.line)
+    local verdict_result = formatter(format_data)
+    table.insert(verdict_lines, verdict_result.line)
 
-    if result.highlights then
-      for _, hl in ipairs(result.highlights) do
+    if verdict_result.highlights then
+      for _, hl in ipairs(verdict_result.highlights) do
         table.insert(verdict_highlights, {
           line_offset = #verdict_lines - 1,
           col_start = hl.col_start,
@@ -496,13 +499,83 @@ function M.run_io_view(test_index, debug)
         })
       end
     end
+  else
+    run.run_all_test_cases(test_indices, debug)
+    local test_state = run.get_panel_state()
 
-    local test_input = tc.input
-    if is_multi_test and #test_indices > 1 then
-      test_input = test_input:gsub('^1\n', '')
+    local max_time_actual = 0
+    local max_time_limit = 0
+    local max_mem_actual = 0
+    local max_mem_limit = 0
+
+    for _, idx in ipairs(test_indices) do
+      local tc = test_state.test_cases[idx]
+      max_time_actual = math.max(max_time_actual, #string.format('%.2f', tc.time_ms or 0))
+      max_time_limit = math.max(
+        max_time_limit,
+        #tostring(test_state.constraints and test_state.constraints.timeout_ms or 0)
+      )
+      max_mem_actual = math.max(max_mem_actual, #string.format('%.0f', tc.rss_mb or 0))
+      max_mem_limit = math.max(
+        max_mem_limit,
+        #string.format('%.0f', test_state.constraints and test_state.constraints.memory_mb or 0)
+      )
     end
-    for _, line in ipairs(vim.split(test_input, '\n')) do
-      table.insert(input_lines, line)
+
+    local all_outputs = {}
+    for _, idx in ipairs(test_indices) do
+      local tc = test_state.test_cases[idx]
+
+      for _, line in ipairs(vim.split(tc.input, '\n')) do
+        table.insert(input_lines, line)
+      end
+
+      if tc.actual then
+        table.insert(all_outputs, tc.actual)
+      end
+    end
+
+    local combined_output = table.concat(all_outputs, '')
+    if combined_output ~= '' then
+      for _, line in ipairs(vim.split(combined_output, '\n')) do
+        table.insert(output_lines, line)
+      end
+    end
+
+    for _, idx in ipairs(test_indices) do
+      local tc = test_state.test_cases[idx]
+      local status = run_render.get_status_info(tc)
+
+      ---@type VerdictFormatData
+      local format_data = {
+        index = idx,
+        status = status,
+        time_ms = tc.time_ms or 0,
+        time_limit_ms = test_state.constraints and test_state.constraints.timeout_ms or 0,
+        memory_mb = tc.rss_mb or 0,
+        memory_limit_mb = test_state.constraints and test_state.constraints.memory_mb or 0,
+        exit_code = tc.code or 0,
+        signal = (tc.code and tc.code >= 128) and require('cp.constants').signal_codes[tc.code]
+          or nil,
+        time_actual_width = max_time_actual,
+        time_limit_width = max_time_limit,
+        mem_actual_width = max_mem_actual,
+        mem_limit_width = max_mem_limit,
+      }
+
+      local result = formatter(format_data)
+      table.insert(verdict_lines, result.line)
+
+      if result.highlights then
+        for _, hl in ipairs(result.highlights) do
+          table.insert(verdict_highlights, {
+            line_offset = #verdict_lines - 1,
+            col_start = hl.col_start,
+            col_end = hl.col_end,
+            group = hl.group,
+          })
+        end
+      end
     end
   end
 

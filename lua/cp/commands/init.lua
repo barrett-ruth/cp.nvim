@@ -76,50 +76,74 @@ local function parse_command(args)
     elseif first == 'run' or first == 'panel' then
       local debug = false
       local test_index = nil
+      local mode = 'combined'
 
       if #args == 2 then
         if args[2] == '--debug' then
           debug = true
+        elseif args[2] == 'all' then
+          mode = 'individual'
         else
           local idx = tonumber(args[2])
           if not idx then
             return {
               type = 'error',
-              message = ("Invalid argument '%s': expected test number or --debug"):format(args[2]),
+              message = ("Invalid argument '%s': expected test number, 'all', or --debug"):format(
+                args[2]
+              ),
             }
           end
           if idx < 1 or idx ~= math.floor(idx) then
             return { type = 'error', message = ("'%s' is not a valid test index"):format(idx) }
           end
           test_index = idx
+          mode = 'individual'
         end
       elseif #args == 3 then
-        local idx = tonumber(args[2])
-        if not idx then
-          return {
-            type = 'error',
-            message = ("Invalid argument '%s': expected test number"):format(args[2]),
-          }
+        if args[2] == 'all' then
+          mode = 'individual'
+          if args[3] ~= '--debug' then
+            return {
+              type = 'error',
+              message = ("Invalid argument '%s': expected --debug"):format(args[3]),
+            }
+          end
+          debug = true
+        else
+          local idx = tonumber(args[2])
+          if not idx then
+            return {
+              type = 'error',
+              message = ("Invalid argument '%s': expected test number"):format(args[2]),
+            }
+          end
+          if idx < 1 or idx ~= math.floor(idx) then
+            return { type = 'error', message = ("'%s' is not a valid test index"):format(idx) }
+          end
+          if args[3] ~= '--debug' then
+            return {
+              type = 'error',
+              message = ("Invalid argument '%s': expected --debug"):format(args[3]),
+            }
+          end
+          test_index = idx
+          mode = 'individual'
+          debug = true
         end
-        if idx < 1 or idx ~= math.floor(idx) then
-          return { type = 'error', message = ("'%s' is not a valid test index"):format(idx) }
-        end
-        if args[3] ~= '--debug' then
-          return {
-            type = 'error',
-            message = ("Invalid argument '%s': expected --debug"):format(args[3]),
-          }
-        end
-        test_index = idx
-        debug = true
       elseif #args > 3 then
         return {
           type = 'error',
-          message = 'Too many arguments. Usage: :CP ' .. first .. ' [test_num] [--debug]',
+          message = 'Too many arguments. Usage: :CP ' .. first .. ' [all|test_num] [--debug]',
         }
       end
 
-      return { type = 'action', action = first, test_index = test_index, debug = debug }
+      return {
+        type = 'action',
+        action = first,
+        test_index = test_index,
+        debug = debug,
+        mode = mode,
+      }
     else
       local language = nil
       if #args >= 3 and args[2] == '--lang' then
@@ -197,7 +221,7 @@ function M.handle_command(opts)
     if cmd.action == 'interact' then
       ui.toggle_interactive(cmd.interactor_cmd)
     elseif cmd.action == 'run' then
-      ui.run_io_view(cmd.test_index, cmd.debug)
+      ui.run_io_view(cmd.test_index, cmd.debug, cmd.mode)
     elseif cmd.action == 'panel' then
       ui.toggle_panel({ debug = cmd.debug, test_index = cmd.test_index })
     elseif cmd.action == 'next' then

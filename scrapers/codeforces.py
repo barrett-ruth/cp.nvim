@@ -13,6 +13,7 @@ from scrapling.fetchers import StealthyFetcher
 
 from .base import BaseScraper
 from .models import (
+    CombinedTest,
     ContestListResult,
     ContestSummary,
     MetadataResult,
@@ -126,16 +127,12 @@ def _extract_samples(block: Tag) -> tuple[list[TestCase], bool]:
                 )
                 for k in keys
             ]
-            samples_with_prefix = [
-                TestCase(input=f"1\n{tc.input}", expected=tc.expected) for tc in samples
-            ]
-            return samples_with_prefix, True
+            return samples, True
 
     inputs = [_text_from_pre(p) for p in input_pres]
     outputs = [_text_from_pre(p) for p in output_pres]
     n = min(len(inputs), len(outputs))
-    samples = [TestCase(input=inputs[i], expected=outputs[i]) for i in range(n)]
-    return samples, False
+    return [TestCase(input=inputs[i], expected=outputs[i]) for i in range(n)], False
 
 
 def _is_interactive(block: Tag) -> bool:
@@ -164,18 +161,35 @@ def _parse_all_blocks(html: str) -> list[dict[str, Any]]:
         name = _extract_title(b)[1]
         if not letter:
             continue
-        tests, multi_test = _extract_samples(b)
+        raw_samples, is_grouped = _extract_samples(b)
         timeout_ms, memory_mb = _extract_limits(b)
         interactive = _is_interactive(b)
+
+        if is_grouped and raw_samples:
+            combined_input = f"{len(raw_samples)}\n" + "\n".join(
+                tc.input for tc in raw_samples
+            )
+            combined_expected = "\n".join(tc.expected for tc in raw_samples)
+            individual_tests = [
+                TestCase(input=f"1\n{tc.input}", expected=tc.expected)
+                for tc in raw_samples
+            ]
+        else:
+            combined_input = "\n".join(tc.input for tc in raw_samples)
+            combined_expected = "\n".join(tc.expected for tc in raw_samples)
+            individual_tests = raw_samples
+
         out.append(
             {
                 "letter": letter,
                 "name": name,
-                "tests": tests,
+                "combined_input": combined_input,
+                "combined_expected": combined_expected,
+                "tests": individual_tests,
                 "timeout_ms": timeout_ms,
                 "memory_mb": memory_mb,
                 "interactive": interactive,
-                "multi_test": multi_test,
+                "multi_test": is_grouped,
             }
         )
     return out
@@ -252,6 +266,10 @@ class CodeforcesScraper(BaseScraper):
                 json.dumps(
                     {
                         "problem_id": pid,
+                        "combined": {
+                            "input": b.get("combined_input", ""),
+                            "expected": b.get("combined_expected", ""),
+                        },
                         "tests": [
                             {"input": t.input, "expected": t.expected} for t in tests
                         ],
@@ -298,6 +316,7 @@ async def main_async() -> int:
                 success=False,
                 error="Usage: codeforces.py tests <contest_id>",
                 problem_id="",
+                combined=CombinedTest(input="", expected=""),
                 tests=[],
                 timeout_ms=0,
                 memory_mb=0,

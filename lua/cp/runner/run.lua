@@ -198,6 +198,40 @@ function M.load_test_cases()
   return #tcs > 0
 end
 
+---@param debug boolean?
+---@return RanTestCase?
+function M.run_combined_test(debug)
+  local combined = cache.get_combined_test(
+    state.get_platform() or '',
+    state.get_contest_id() or '',
+    state.get_problem_id()
+  )
+
+  if not combined then
+    logger.log('No combined test found', vim.log.levels.ERROR)
+    return nil
+  end
+
+  local ran_test = {
+    index = 1,
+    input = combined.input,
+    expected = combined.expected,
+    status = 'running',
+    actual = nil,
+    time_ms = nil,
+    code = nil,
+    ok = nil,
+    signal = nil,
+    tled = false,
+    mled = false,
+    rss_mb = 0,
+    selected = true,
+  }
+
+  local result = run_single_test_case(ran_test, debug)
+  return result
+end
+
 ---@param index number
 ---@param debug boolean?
 ---@return boolean
