@@ -193,6 +193,133 @@ function M.toggle_interactive(interactor_cmd)
   state.set_active_panel('interactive')
 end
 
+---@return integer, integer
+local function get_or_create_io_buffers()
+  local io_state = state.get_io_view_state()
+
+  if io_state then
+    local output_valid = io_state.output_buf and vim.api.nvim_buf_is_valid(io_state.output_buf)
+    local input_valid = io_state.input_buf and vim.api.nvim_buf_is_valid(io_state.input_buf)
+
+    if output_valid and input_valid then
+      return io_state.output_buf, io_state.input_buf
+    end
+  end
+
+  local output_buf = utils.create_buffer_with_options('cpout')
+  local input_buf = utils.create_buffer_with_options('cpin')
+
+  state.set_io_view_state({
+    output_buf = output_buf,
+    input_buf = input_buf,
+    current_test_index = 1,
+  })
+
+  local solution_win = state.get_solution_win()
+  local source_buf = vim.api.nvim_win_get_buf(solution_win)
+
+  local group_name = 'cp_io_cleanup_buf' .. source_buf
+  vim.api.nvim_create_augroup(group_name, { clear = true })
+  vim.api.nvim_create_autocmd('BufDelete', {
+    group = group_name,
+    buffer = source_buf,
+    callback = function()
+      local io = state.get_io_view_state()
+      if io then
+        if io.output_buf and vim.api.nvim_buf_is_valid(io.output_buf) then
+          vim.api.nvim_buf_delete(io.output_buf, { force = true })
+        end
+        if io.input_buf and vim.api.nvim_buf_is_valid(io.input_buf) then
+          vim.api.nvim_buf_delete(io.input_buf, { force = true })
+        end
+        state.set_io_view_state(nil)
+      end
+    end,
+  })
+
+  local cfg = config_module.get_config()
+  local platform = state.get_platform()
+  local contest_id = state.get_contest_id()
+  local problem_id = state.get_problem_id()
+
+  local function navigate_test(delta)
+    local io_view_state = state.get_io_view_state()
+    if not io_view_state then
+      return
+    end
+    local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
+    if not test_cases or #test_cases == 0 then
+      return
+    end
+    local new_index = (io_view_state.current_test_index or 1) + delta
+    if new_index < 1 or new_index > #test_cases then
+      return
+    end
+    io_view_state.current_test_index = new_index
+    M.run_io_view(new_index)
+  end
+
+  if cfg.ui.run.next_test_key then
+    vim.keymap.set('n', cfg.ui.run.next_test_key, function()
+      navigate_test(1)
+    end, { buffer = output_buf, silent = true, desc = 'Next test' })
+    vim.keymap.set('n', cfg.ui.run.next_test_key, function()
+      navigate_test(1)
+    end, { buffer = input_buf, silent = true, desc = 'Next test' })
+  end
+
+  if cfg.ui.run.prev_test_key then
+    vim.keymap.set('n', cfg.ui.run.prev_test_key, function()
+      navigate_test(-1)
+    end, { buffer = output_buf, silent = true, desc = 'Previous test' })
+    vim.keymap.set('n', cfg.ui.run.prev_test_key, function()
+      navigate_test(-1)
+    end, { buffer = input_buf, silent = true, desc = 'Previous test' })
+  end
+
+  return output_buf, input_buf
+end
+
+---@param output_buf integer
+---@param input_buf integer
+---@return boolean
+local function buffers_are_displayed(output_buf, input_buf)
+  local output_displayed = false
+  local input_displayed = false
+
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    if buf == output_buf then
+      output_displayed = true
+    end
+    if buf == input_buf then
+      input_displayed = true
+    end
+  end
+
+  return output_displayed and input_displayed
+end
+
+---@param output_buf integer
+---@param input_buf integer
+local function create_window_layout(output_buf, input_buf)
+  local solution_win = state.get_solution_win()
+  vim.api.nvim_set_current_win(solution_win)
+
+  vim.cmd.vsplit()
+  local output_win = vim.api.nvim_get_current_win()
+  local cfg = config_module.get_config()
+  local width = math.floor(vim.o.columns * (cfg.ui.run.width or 0.3))
+  vim.api.nvim_win_set_width(output_win, width)
+  vim.api.nvim_win_set_buf(output_win, output_buf)
+
+  vim.cmd.split()
+  local input_win = vim.api.nvim_get_current_win()
+  vim.api.nvim_win_set_buf(input_win, input_buf)
+
+  vim.api.nvim_set_current_win(solution_win)
+end
+
 function M.ensure_io_view()
   local platform, contest_id, problem_id =
     state.get_platform(), state.get_contest_id(), state.get_problem_id()
@@ -202,6 +329,21 @@ function M.ensure_io_view()
       vim.log.levels.ERROR
     )
     return
+  end
+
+  local source_file = state.get_source_file()
+  if source_file then
+    local source_file_abs = vim.fn.fnamemodify(source_file, ':p')
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      local buf = vim.api.nvim_win_get_buf(win)
+      local buf_name = vim.api.nvim_buf_get_name(buf)
+      if buf_name == source_file_abs then
+        state.set_solution_win(win)
+        break
+      end
+    end
+  else
+    state.set_solution_win(vim.api.nvim_get_current_win())
   end
 
   cache.load()
@@ -215,102 +357,29 @@ function M.ensure_io_view()
     return
   end
 
-  local solution_win = state.get_solution_win()
-  local io_state = state.get_io_view_state()
-  local output_buf, input_buf, output_win, input_win
+  local output_buf, input_buf = get_or_create_io_buffers()
 
-  if io_state then
-    output_buf = io_state.output_buf
-    input_buf = io_state.input_buf
-    output_win = io_state.output_win
-    input_win = io_state.input_win
-  else
-    vim.api.nvim_set_current_win(solution_win)
+  if not buffers_are_displayed(output_buf, input_buf) then
+    local solution_win = state.get_solution_win()
 
-    vim.cmd.vsplit()
-    output_win = vim.api.nvim_get_current_win()
-    local cfg = config_module.get_config()
-    local width = math.floor(vim.o.columns * (cfg.ui.run.width or 0.3))
-    vim.api.nvim_win_set_width(output_win, width)
-    output_buf = utils.create_buffer_with_options('cpout')
-    vim.api.nvim_win_set_buf(output_win, output_buf)
-
-    vim.cmd.split()
-    input_win = vim.api.nvim_get_current_win()
-    input_buf = utils.create_buffer_with_options('cpin')
-    vim.api.nvim_win_set_buf(input_win, input_buf)
-
-    state.set_io_view_state({
-      output_buf = output_buf,
-      input_buf = input_buf,
-      output_win = output_win,
-      input_win = input_win,
-      current_test_index = 1,
-    })
-
-    local source_buf = vim.api.nvim_win_get_buf(solution_win)
-    vim.api.nvim_create_autocmd('BufDelete', {
-      buffer = source_buf,
-      callback = function()
-        local io = state.get_io_view_state()
-        if io then
-          if io.output_buf and vim.api.nvim_buf_is_valid(io.output_buf) then
-            vim.api.nvim_buf_delete(io.output_buf, { force = true })
-          end
-          if io.input_buf and vim.api.nvim_buf_is_valid(io.input_buf) then
-            vim.api.nvim_buf_delete(io.input_buf, { force = true })
-          end
-          state.set_io_view_state(nil)
-        end
-      end,
-    })
-
-    if cfg.hooks and cfg.hooks.setup_io_output then
-      pcall(cfg.hooks.setup_io_output, output_buf, state)
-    end
-
-    if cfg.hooks and cfg.hooks.setup_io_input then
-      pcall(cfg.hooks.setup_io_input, input_buf, state)
-    end
-
-    local function navigate_test(delta)
-      local io_view_state = state.get_io_view_state()
-      if not io_view_state then
-        return
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if win ~= solution_win then
+        pcall(vim.api.nvim_win_close, win, true)
       end
-      local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
-      if not test_cases or #test_cases == 0 then
-        return
-      end
-      local new_index = (io_view_state.current_test_index or 1) + delta
-      if new_index < 1 or new_index > #test_cases then
-        return
-      end
-      io_view_state.current_test_index = new_index
-      M.run_io_view(new_index)
     end
 
-    if cfg.ui.run.next_test_key then
-      vim.keymap.set('n', cfg.ui.run.next_test_key, function()
-        navigate_test(1)
-      end, { buffer = output_buf, silent = true, desc = 'Next test' })
-      vim.keymap.set('n', cfg.ui.run.next_test_key, function()
-        navigate_test(1)
-      end, { buffer = input_buf, silent = true, desc = 'Next test' })
-    end
-
-    if cfg.ui.run.prev_test_key then
-      vim.keymap.set('n', cfg.ui.run.prev_test_key, function()
-        navigate_test(-1)
-      end, { buffer = output_buf, silent = true, desc = 'Previous test' })
-      vim.keymap.set('n', cfg.ui.run.prev_test_key, function()
-        navigate_test(-1)
-      end, { buffer = input_buf, silent = true, desc = 'Previous test' })
-    end
+    create_window_layout(output_buf, input_buf)
   end
 
-  utils.update_buffer_content(input_buf, {})
-  utils.update_buffer_content(output_buf, {})
+  local cfg = config_module.get_config()
+
+  if cfg.hooks and cfg.hooks.setup_io_output then
+    pcall(cfg.hooks.setup_io_output, output_buf, state)
+  end
+
+  if cfg.hooks and cfg.hooks.setup_io_input then
+    pcall(cfg.hooks.setup_io_input, input_buf, state)
+  end
 
   local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
   if test_cases and #test_cases > 0 then
@@ -334,8 +403,6 @@ function M.ensure_io_view()
     end
     utils.update_buffer_content(input_buf, input_lines, nil, nil)
   end
-
-  vim.api.nvim_set_current_win(solution_win)
 end
 
 function M.run_io_view(test_index, debug, mode)
@@ -661,11 +728,13 @@ function M.toggle_panel(panel_opts)
 
   local io_state = state.get_io_view_state()
   if io_state then
-    if vim.api.nvim_win_is_valid(io_state.output_win) then
-      vim.api.nvim_win_close(io_state.output_win, true)
-    end
-    if vim.api.nvim_win_is_valid(io_state.input_win) then
-      vim.api.nvim_win_close(io_state.input_win, true)
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      local buf = vim.api.nvim_win_get_buf(win)
+      if buf == io_state.output_buf or buf == io_state.input_buf then
+        if vim.api.nvim_win_is_valid(win) then
+          vim.api.nvim_win_close(win, true)
+        end
+      end
     end
     state.set_io_view_state(nil)
   end
