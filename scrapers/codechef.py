@@ -231,14 +231,22 @@ class CodeChefScraper(BaseScraper):
                         memory_mb = 256.0
                         interactive = False
 
+                    combined_input = "\n".join(t.input for t in tests)
+                    combined_expected = "\n".join(t.expected for t in tests)
+
                     return {
                         "problem_id": problem_code,
+                        "combined": {
+                            "input": combined_input,
+                            "expected": combined_expected,
+                        },
                         "tests": [
                             {"input": t.input, "expected": t.expected} for t in tests
                         ],
                         "timeout_ms": timeout_ms,
                         "memory_mb": memory_mb,
                         "interactive": interactive,
+                        "multi_test": False,
                     }
 
             tasks = [run_one(problem_code) for problem_code in problems.keys()]
