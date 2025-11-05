@@ -447,6 +447,11 @@ function M.run_io_view(test_indices_arg, debug, mode)
   if mode == 'combined' then
     local combined = cache.get_combined_test(platform, contest_id, problem_id)
 
+    if not combined then
+      logger.log('No combined test found', vim.log.levels.ERROR)
+      return
+    end
+
     run.load_test_cases()
 
     local result = run.run_combined_test(debug)

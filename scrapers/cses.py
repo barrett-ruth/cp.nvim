@@ -250,6 +250,7 @@ class CSESScraper(BaseScraper):
                         "timeout_ms": timeout_ms,
                         "memory_mb": memory_mb,
                         "interactive": interactive,
+                        "multi_test": False,
                     }
 
             tasks = [run_one(p.id) for p in problems]
