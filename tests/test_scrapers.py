@@ -66,9 +66,9 @@ def test_scraper_offline_fixture_matrix(run_scraper_offline, scraper, mode):
                 assert hasattr(tr.combined, "input"), "combined missing input"
                 assert hasattr(tr.combined, "expected"), "combined missing expected"
                 assert isinstance(tr.combined.input, str), "combined.input not string"
-                assert isinstance(
-                    tr.combined.expected, str
-                ), "combined.expected not string"
+                assert isinstance(tr.combined.expected, str), (
+                    "combined.expected not string"
+                )
                 assert hasattr(tr, "multi_test"), "Missing multi_test field"
                 assert isinstance(tr.multi_test, bool), "multi_test not boolean"
                 validated_any = True
@@ -82,12 +82,12 @@ def test_scraper_offline_fixture_matrix(run_scraper_offline, scraper, mode):
                 assert isinstance(obj["combined"], dict), "combined not a dict"
                 assert "input" in obj["combined"], "combined missing input key"
                 assert "expected" in obj["combined"], "combined missing expected key"
-                assert isinstance(
-                    obj["combined"]["input"], str
-                ), "combined.input not string"
-                assert isinstance(
-                    obj["combined"]["expected"], str
-                ), "combined.expected not string"
+                assert isinstance(obj["combined"]["input"], str), (
+                    "combined.input not string"
+                )
+                assert isinstance(obj["combined"]["expected"], str), (
+                    "combined.expected not string"
+                )
                 assert "multi_test" in obj, "Missing multi_test field in raw JSON"
                 assert isinstance(obj["multi_test"], bool), "multi_test not boolean"
                 validated_any = True
