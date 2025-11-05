@@ -34,15 +34,28 @@ COMMANDS                                                         *cp-commands*
                                     :CP codeforces 1933 --lang python
 <
         View Commands ~
-            :CP run [--debug] [n]
+            :CP run [all|n|n,m,...] [--debug]
                                 Run tests in I/O view (see |cp-io-view|).
                                 Lightweight split showing test verdicts.
-                                Without [n]: runs all tests, shows verdict summary
-                                With [n]: runs test n, shows detailed output
+
+                                Execution modes:
+                                • :CP run              Combined: single execution with all tests
+                                • :CP run all          Individual: N separate executions
+                                • :CP run n            Individual: run test n only
+                                • :CP run n,m,...      Individual: run specific tests (e.g. nth and mth)
+
                                 --debug: Use debug build (builds to build/<name>.dbg)
+
+                                Combined mode mimics platform behavior in order to accurately
+                                simulate online judge environments. Individual mode provides
+                                per-test verdicts.
+
                                 Examples: >
-                                    :CP run              " All tests
-                                    :CP run --debug 2    " Test 2, debug build
+                                    :CP run              " Combined: all tests, one execution
+                                    :CP run all          " Individual: all tests, N executions
+                                    :CP run 2            " Individual: test 2 only
+                                    :CP run 1,3,5        " Individual: tests 1, 3, and 5
+                                    :CP run all --debug  " Individual with debug build
 <
             :CP panel [--debug] [n]
                                 Open full-screen test panel (see |cp-panel|).
@@ -536,10 +549,25 @@ Example: Setting up and solving AtCoder contest ABC324
 I/O VIEW                                                          *cp-io-view*
 
 The I/O view provides lightweight test feedback in persistent side splits.
-All test outputs are concatenated with verdict summaries at the bottom.
+Test outputs are concatenated with verdict summaries at the bottom.
 The |cp-panel| offers more fine-grained analysis with diff modes.
 
-Access the I/O view with :CP run [n]
+Execution Modes ~
+
+The I/O view supports two execution modes:
+
+Combined Mode (default: :CP run)
+    • Single execution with all test inputs concatenated
+    • Matches platform behavior (e.g. Codeforces multi-test format)
+    • Shows one verdict for the entire execution
+    • Input split: All test inputs concatenated
+    • Output split: Single program output + verdict
+
+Individual Mode (:CP run all / :CP run n / :CP run n,m,...)
+    • Separate execution for each test case
+    • Per-test verdicts for debugging
+    • Input split: Selected test inputs concatenated
+    • Output split: All test outputs concatenated + per-test verdicts
 
 Layout ~
 
@@ -552,7 +580,7 @@ The I/O view appears as 30% width splits on the right side: >
     │                          │ 7 714                                       │
     │   Solution Code          │                                             │
     │                          │ Test 1: WA  | 212.07/2000 ms | 1/512 MB |...│
-    │                          │ Test 2: WA  | 81.94/2000  ms | 1/512 MB |...│ 
+    │                          │ Test 2: WA  | 81.94/2000  ms | 1/512 MB |...│
     │                          ├─────────────────────────────────────────────┤
     │                          │ Input (Bottom Split)                        │
     │                          │ 1 2 3                                       │
@@ -561,7 +589,7 @@ The I/O view appears as 30% width splits on the right side: >
     └──────────────────────────┴─────────────────────────────────────────────┘
 <
 The output split shows:
-1. Concatenated test outputs (separated by blank lines)
+1. Program output (raw, preserving all formatting)
 2. Space-aligned verdict summary with:
    - Test number and status (AC/WA/TLE/MLE/RTE with color highlighting)
    - Runtime: actual/limit in milliseconds
@@ -570,8 +598,10 @@ The output split shows:
 
 Usage ~
 
-    :CP run             Run all tests
-    :CP run 3           Run test 3 only
+    :CP run             Combined mode: all tests in one execution
+    :CP run all         Individual mode: all tests separately
+    :CP run 3           Individual mode: test 3 only
+    :CP run 1,3,5       Individual mode: specific tests (1, 3, and 5)
 
 Navigation ~
 
