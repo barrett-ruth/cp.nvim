@@ -40,15 +40,17 @@ COMMANDS                                                         *cp-commands*
 
                                 Execution modes:
                                 • :CP run              Combined: single execution with all tests
+                                                       (auto-switches to individual when multiple samples)
                                 • :CP run all          Individual: N separate executions
                                 • :CP run n            Individual: run test n only
                                 • :CP run n,m,...      Individual: run specific tests (e.g. nth and mth)
 
                                 --debug: Use debug build (builds to build/<name>.dbg)
 
-                                Combined mode mimics platform behavior in order to accurately
-                                simulate online judge environments. Individual mode provides
-                                per-test verdicts.
+                                Combined mode runs all test inputs in one execution (matching
+                                platform behavior for multi-test problems). When a problem has
+                                multiple independent sample test cases, :CP run auto-switches to
+                                individual mode to run each sample separately.
 
                                 Examples: >
                                     :CP run              " Combined: all tests, one execution
@@ -556,18 +558,20 @@ Execution Modes ~
 
 The I/O view supports two execution modes:
 
-Combined Mode (default: :CP run)
+Combined Mode (:CP run with single sample)
     • Single execution with all test inputs concatenated
     • Matches platform behavior (e.g. Codeforces multi-test format)
     • Shows one verdict for the entire execution
     • Input split: All test inputs concatenated
     • Output split: Single program output + verdict
+    • Used when problem has one sample containing multiple test cases
 
 Individual Mode (:CP run all / :CP run n / :CP run n,m,...)
     • Separate execution for each test case
     • Per-test verdicts for debugging
     • Input split: Selected test inputs concatenated
     • Output split: All test outputs concatenated + per-test verdicts
+    • Auto-selected when problem has multiple independent samples
 
 Layout ~
 

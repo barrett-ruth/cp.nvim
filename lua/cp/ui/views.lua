@@ -358,6 +358,13 @@ function M.run_io_view(test_indices_arg, debug, mode)
     return
   end
 
+  if mode == 'combined' then
+    local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
+    if test_cases and #test_cases > 1 then
+      mode = 'individual'
+    end
+  end
+
   M.ensure_io_view()
 
   local run = require('cp.runner.run')
