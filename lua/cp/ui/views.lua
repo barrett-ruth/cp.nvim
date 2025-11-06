@@ -440,8 +440,6 @@ function M.run_io_view(test_indices_arg, debug, mode)
     end
   end
 
-  M.ensure_io_view()
-
   local run = require('cp.runner.run')
 
   if mode == 'combined' then
@@ -482,6 +480,10 @@ function M.run_io_view(test_indices_arg, debug, mode)
         test_indices[i] = i
       end
     end
+  end
+
+  if not test_indices_arg then
+    M.ensure_io_view()
   end
 
   local io_state = state.get_io_view_state()
