@@ -247,6 +247,9 @@ local function get_or_create_io_buffers()
     if not io_view_state then
       return
     end
+    if not platform or not contest_id or not problem_id then
+      return
+    end
     local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
     if not test_cases or #test_cases == 0 then
       return
@@ -384,7 +387,12 @@ function M.ensure_io_view()
   local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
   if test_cases and #test_cases > 0 then
     local input_lines = {}
-    local is_multi_test = contest_data.problems[contest_data.index_map[problem_id]].multi_test
+    local is_multi_test = contest_data
+        and contest_data.problems
+        and contest_data.index_map
+        and contest_data.index_map[problem_id]
+        and contest_data.problems[contest_data.index_map[problem_id]].multi_test
+      or false
 
     if is_multi_test and #test_cases > 1 then
       table.insert(input_lines, tostring(#test_cases))
