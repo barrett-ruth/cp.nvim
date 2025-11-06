@@ -9,8 +9,6 @@
 ---@class cp.IoViewState
 ---@field output_buf integer
 ---@field input_buf integer
----@field output_win integer
----@field input_win integer
 ---@field current_test_index integer?
 
 ---@class cp.State
@@ -200,19 +198,7 @@ end
 
 ---@return cp.IoViewState?
 function M.get_io_view_state()
-  if not state.io_view_state then
-    return nil
-  end
-  local s = state.io_view_state
-  if
-    vim.api.nvim_buf_is_valid(s.output_buf)
-    and vim.api.nvim_buf_is_valid(s.input_buf)
-    and vim.api.nvim_win_is_valid(s.output_win)
-    and vim.api.nvim_win_is_valid(s.input_win)
-  then
-    return s
-  end
-  return nil
+  return state.io_view_state
 end
 
 ---@param s cp.IoViewState?

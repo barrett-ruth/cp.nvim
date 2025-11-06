@@ -315,10 +315,8 @@ class AtcoderScraper(BaseScraper):
                 return
             data = await asyncio.to_thread(_scrape_problem_page_sync, category_id, slug)
             tests: list[TestCase] = data.get("tests", [])
-
-            combined_input = "\n".join(t.input for t in tests)
-            combined_expected = "\n".join(t.expected for t in tests)
-
+            combined_input = "\n".join(t.input for t in tests) if tests else ""
+            combined_expected = "\n".join(t.expected for t in tests) if tests else ""
             print(
                 json.dumps(
                     {

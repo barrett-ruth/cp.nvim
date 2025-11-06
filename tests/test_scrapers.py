@@ -55,6 +55,7 @@ def test_scraper_offline_fixture_matrix(run_scraper_offline, scraper, mode):
         else:
             assert len(model.contests) >= 1
     else:
+        assert len(objs) >= 1, "No test objects returned"
         validated_any = False
         for obj in objs:
             if "success" in obj and "tests" in obj and "problem_id" in obj:

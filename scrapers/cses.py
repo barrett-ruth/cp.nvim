@@ -235,8 +235,10 @@ class CSESScraper(BaseScraper):
                         tests = []
                         timeout_ms, memory_mb, interactive = 0, 0, False
 
-                    combined_input = "\n".join(t.input for t in tests)
-                    combined_expected = "\n".join(t.expected for t in tests)
+                    combined_input = "\n".join(t.input for t in tests) if tests else ""
+                    combined_expected = (
+                        "\n".join(t.expected for t in tests) if tests else ""
+                    )
 
                     return {
                         "problem_id": pid,
