@@ -34,10 +34,13 @@ class BaseScraper(ABC):
     def _create_tests_error(
         self, error_msg: str, problem_id: str = "", url: str = ""
     ) -> TestsResult:
+        from .models import CombinedTest
+
         return TestsResult(
             success=False,
             error=f"{self.platform_name}: {error_msg}",
             problem_id=problem_id,
+            combined=CombinedTest(input="", expected=""),
             tests=[],
             timeout_ms=0,
             memory_mb=0,

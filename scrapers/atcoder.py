@@ -16,6 +16,7 @@ from urllib3.util.retry import Retry
 
 from .base import BaseScraper
 from .models import (
+    CombinedTest,
     ContestListResult,
     ContestSummary,
     MetadataResult,
@@ -70,7 +71,7 @@ def _retry_after_requests(details):
     on_backoff=_retry_after_requests,
 )
 def _fetch(url: str) -> str:
-    r = _session.get(url, headers=HEADERS, timeout=TIMEOUT_SECONDS)
+    r = _session.get(url, headers=HEADERS, timeout=TIMEOUT_SECONDS, verify=False)
     if r.status_code in RETRY_STATUS:
         raise requests.HTTPError(response=r)
     r.raise_for_status()
@@ -242,7 +243,8 @@ def _to_problem_summaries(rows: list[dict[str, str]]) -> list[ProblemSummary]:
 
 async def _fetch_all_contests_async() -> list[ContestSummary]:
     async with httpx.AsyncClient(
-        limits=httpx.Limits(max_connections=100, max_keepalive_connections=100)
+        limits=httpx.Limits(max_connections=100, max_keepalive_connections=100),
+        verify=False,
     ) as client:
         first_html = await _get_async(client, ARCHIVE_URL)
         last = _parse_last_page(first_html)
@@ -313,16 +315,25 @@ class AtcoderScraper(BaseScraper):
                 return
             data = await asyncio.to_thread(_scrape_problem_page_sync, category_id, slug)
             tests: list[TestCase] = data.get("tests", [])
+
+            combined_input = "\n".join(t.input for t in tests)
+            combined_expected = "\n".join(t.expected for t in tests)
+
             print(
                 json.dumps(
                     {
                         "problem_id": letter,
+                        "combined": {
+                            "input": combined_input,
+                            "expected": combined_expected,
+                        },
                         "tests": [
                             {"input": t.input, "expected": t.expected} for t in tests
                         ],
                         "timeout_ms": data.get("timeout_ms", 0),
                         "memory_mb": data.get("memory_mb", 0),
                         "interactive": bool(data.get("interactive")),
+                        "multi_test": False,
                     }
                 ),
                 flush=True,
@@ -364,6 +375,7 @@ async def main_async() -> int:
                 success=False,
                 error="Usage: atcoder.py tests <contest_id>",
                 problem_id="",
+                combined=CombinedTest(input="", expected=""),
                 tests=[],
                 timeout_ms=0,
                 memory_mb=0,

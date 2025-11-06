@@ -10,6 +10,7 @@ import httpx
 
 from .base import BaseScraper
 from .models import (
+    CombinedTest,
     ContestListResult,
     ContestSummary,
     MetadataResult,
@@ -233,14 +234,23 @@ class CSESScraper(BaseScraper):
                     except Exception:
                         tests = []
                         timeout_ms, memory_mb, interactive = 0, 0, False
+
+                    combined_input = "\n".join(t.input for t in tests)
+                    combined_expected = "\n".join(t.expected for t in tests)
+
                     return {
                         "problem_id": pid,
+                        "combined": {
+                            "input": combined_input,
+                            "expected": combined_expected,
+                        },
                         "tests": [
                             {"input": t.input, "expected": t.expected} for t in tests
                         ],
                         "timeout_ms": timeout_ms,
                         "memory_mb": memory_mb,
                         "interactive": interactive,
+                        "multi_test": False,
                     }
 
             tasks = [run_one(p.id) for p in problems]
@@ -282,6 +292,7 @@ async def main_async() -> int:
                 success=False,
                 error="Usage: cses.py tests <category>",
                 problem_id="",
+                combined=CombinedTest(input="", expected=""),
                 tests=[],
                 timeout_ms=0,
                 memory_mb=0,

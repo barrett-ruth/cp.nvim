@@ -194,6 +194,7 @@ function M.scrape_all_tests(platform, contest_id, callback)
         end
         if type(callback) == 'function' then
           callback({
+            combined = ev.combined,
             tests = ev.tests,
             timeout_ms = ev.timeout_ms or 0,
             memory_mb = ev.memory_mb or 0,

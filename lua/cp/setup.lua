@@ -82,7 +82,7 @@ local function start_tests(platform, contest_id, problems)
     return not vim.tbl_isempty(cache.get_test_cases(platform, contest_id, p.id))
   end, problems)
   if cached_len ~= #problems then
-    logger.log(('Fetching test cases... (%d/%d)'):format(cached_len, #problems))
+    logger.log(('Fetching problem test data... (%d/%d)'):format(cached_len, #problems))
     scraper.scrape_all_tests(platform, contest_id, function(ev)
       local cached_tests = {}
       if not ev.interactive and vim.tbl_isempty(ev.tests) then
@@ -95,6 +95,7 @@ local function start_tests(platform, contest_id, problems)
         platform,
         contest_id,
         ev.problem_id,
+        ev.combined,
         cached_tests,
         ev.timeout_ms or 0,
         ev.memory_mb or 0,
@@ -104,30 +105,11 @@ local function start_tests(platform, contest_id, problems)
 
       local io_state = state.get_io_view_state()
       if io_state then
-        local problem_id = state.get_problem_id()
-        local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
-        local input_lines = {}
-
-        local contest_data = cache.get_contest_data(platform, contest_id)
-        local is_multi_test = contest_data.problems[contest_data.index_map[problem_id]].multi_test
-
-        if is_multi_test and #test_cases > 1 then
-          table.insert(input_lines, tostring(#test_cases))
-          for _, tc in ipairs(test_cases) do
-            local stripped = tc.input:gsub('^1\n', '')
-            for _, line in ipairs(vim.split(stripped, '\n')) do
-              table.insert(input_lines, line)
-            end
-          end
-        else
-          for _, tc in ipairs(test_cases) do
-            for _, line in ipairs(vim.split(tc.input, '\n')) do
-              table.insert(input_lines, line)
-            end
-          end
+        local combined_test = cache.get_combined_test(platform, contest_id, state.get_problem_id())
+        if combined_test then
+          local input_lines = vim.split(combined_test.input, '\n')
+          require('cp.utils').update_buffer_content(io_state.input_buf, input_lines, nil, nil)
         end
-
-        require('cp.utils').update_buffer_content(io_state.input_buf, input_lines, nil, nil)
       end
     end)
   end
