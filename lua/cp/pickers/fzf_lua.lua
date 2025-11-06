@@ -51,8 +51,6 @@ local function contest_picker(platform, refresh, language)
         end
       end,
       ['ctrl-r'] = function()
-        local cache = require('cp.cache')
-        cache.clear_contest_list(platform)
         contest_picker(platform, true, language)
       end,
     },

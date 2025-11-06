@@ -434,8 +434,8 @@ function M.run_io_view(test_indices_arg, debug, mode)
   end
 
   if mode == 'combined' then
-    local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
-    if test_cases and #test_cases > 1 then
+    local problem_data = contest_data.problems[contest_data.index_map[problem_id]]
+    if not problem_data.multi_test then
       mode = 'individual'
     end
   end
@@ -545,7 +545,7 @@ function M.run_io_view(test_indices_arg, debug, mode)
 
     input_lines = vim.split(combined.input, '\n')
 
-    if result.actual then
+    if result.actual and result.actual ~= '' then
       output_lines = vim.split(result.actual, '\n')
     end
 
