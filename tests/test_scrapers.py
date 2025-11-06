@@ -58,18 +58,38 @@ def test_scraper_offline_fixture_matrix(run_scraper_offline, scraper, mode):
         assert len(objs) >= 1, "No test objects returned"
         validated_any = False
         for obj in objs:
-            assert "problem_id" in obj, "Missing problem_id"
-            assert obj["problem_id"] != "", "Empty problem_id"
-            assert "combined" in obj, "Missing combined field"
-            assert isinstance(obj["combined"], dict), "combined must be a dict"
-            assert "input" in obj["combined"], "Missing combined.input"
-            assert "expected" in obj["combined"], "Missing combined.expected"
-            assert "tests" in obj, "Missing tests field"
-            assert isinstance(obj["tests"], list), "tests must be a list"
-            assert "timeout_ms" in obj, "Missing timeout_ms"
-            assert "memory_mb" in obj, "Missing memory_mb"
-            assert "interactive" in obj, "Missing interactive"
-            assert "multi_test" in obj, "Missing multi_test field"
-            assert isinstance(obj["multi_test"], bool), "multi_test must be bool"
-            validated_any = True
+            if "success" in obj and "tests" in obj and "problem_id" in obj:
+                tr = TestsResult.model_validate(obj)
+                assert tr.problem_id != ""
+                assert isinstance(tr.tests, list)
+                assert hasattr(tr, "combined"), "Missing combined field"
+                assert tr.combined is not None, "combined field is None"
+                assert hasattr(tr.combined, "input"), "combined missing input"
+                assert hasattr(tr.combined, "expected"), "combined missing expected"
+                assert isinstance(tr.combined.input, str), "combined.input not string"
+                assert isinstance(tr.combined.expected, str), (
+                    "combined.expected not string"
+                )
+                assert hasattr(tr, "multi_test"), "Missing multi_test field"
+                assert isinstance(tr.multi_test, bool), "multi_test not boolean"
+                validated_any = True
+            else:
+                assert "problem_id" in obj
+                assert "tests" in obj and isinstance(obj["tests"], list)
+                assert (
+                    "timeout_ms" in obj and "memory_mb" in obj and "interactive" in obj
+                )
+                assert "combined" in obj, "Missing combined field in raw JSON"
+                assert isinstance(obj["combined"], dict), "combined not a dict"
+                assert "input" in obj["combined"], "combined missing input key"
+                assert "expected" in obj["combined"], "combined missing expected key"
+                assert isinstance(obj["combined"]["input"], str), (
+                    "combined.input not string"
+                )
+                assert isinstance(obj["combined"]["expected"], str), (
+                    "combined.expected not string"
+                )
+                assert "multi_test" in obj, "Missing multi_test field in raw JSON"
+                assert isinstance(obj["multi_test"], bool), "multi_test not boolean"
+                validated_any = True
         assert validated_any, "No valid tests payloads validated"

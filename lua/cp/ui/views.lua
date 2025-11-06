@@ -405,7 +405,7 @@ function M.ensure_io_view()
   end
 end
 
-function M.run_io_view(test_index, debug, mode)
+function M.run_io_view(test_indices_arg, debug, mode)
   mode = mode or 'combined'
 
   local platform, contest_id, problem_id =
@@ -423,6 +423,13 @@ function M.run_io_view(test_index, debug, mode)
   if not contest_data or not contest_data.index_map then
     logger.log('No test cases available.', vim.log.levels.ERROR)
     return
+  end
+
+  if mode == 'combined' then
+    local test_cases = cache.get_test_cases(platform, contest_id, problem_id)
+    if test_cases and #test_cases > 1 then
+      mode = 'individual'
+    end
   end
 
   M.ensure_io_view()
@@ -447,19 +454,21 @@ function M.run_io_view(test_index, debug, mode)
   if mode == 'individual' then
     local test_state = run.get_panel_state()
 
-    if test_index then
-      if test_index < 1 or test_index > #test_state.test_cases then
-        logger.log(
-          string.format(
-            'Test %d does not exist (only %d tests available)',
-            test_index,
-            #test_state.test_cases
-          ),
-          vim.log.levels.WARN
-        )
-        return
+    if test_indices_arg then
+      for _, idx in ipairs(test_indices_arg) do
+        if idx < 1 or idx > #test_state.test_cases then
+          logger.log(
+            string.format(
+              'Test %d does not exist (only %d tests available)',
+              idx,
+              #test_state.test_cases
+            ),
+            vim.log.levels.WARN
+          )
+          return
+        end
       end
-      test_indices = { test_index }
+      test_indices = test_indices_arg
     else
       for i = 1, #test_state.test_cases do
         test_indices[i] = i
@@ -511,6 +520,11 @@ function M.run_io_view(test_index, debug, mode)
 
   if mode == 'combined' then
     local combined = cache.get_combined_test(platform, contest_id, problem_id)
+
+    if not combined then
+      logger.log('No combined test found', vim.log.levels.ERROR)
+      return
+    end
 
     run.load_test_cases()
 

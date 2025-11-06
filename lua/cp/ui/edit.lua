@@ -274,10 +274,25 @@ local function save_all_tests()
   local is_multi_test = contest_data.problems[contest_data.index_map[problem_id]].multi_test
     or false
 
+  -- Generate combined test from individual test cases
+  local combined_input = table.concat(
+    vim.tbl_map(function(tc)
+      return tc.input
+    end, edit_state.test_cases),
+    '\n'
+  )
+  local combined_expected = table.concat(
+    vim.tbl_map(function(tc)
+      return tc.expected
+    end, edit_state.test_cases),
+    '\n'
+  )
+
   cache.set_test_cases(
     platform,
     contest_id,
     problem_id,
+    { input = combined_input, expected = combined_expected },
     edit_state.test_cases,
     edit_state.constraints and edit_state.constraints.timeout_ms or 0,
     edit_state.constraints and edit_state.constraints.memory_mb or 0,
