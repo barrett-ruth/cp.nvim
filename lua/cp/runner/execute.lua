@@ -73,13 +73,19 @@ local function parse_and_strip_time_v(output)
     return s, 0
   end
 
-  local k = last_i - 1
-  while k >= 1 do
-    local ch = s:sub(k, k)
-    if ch ~= ' ' and ch ~= '\t' then
-      break
+  local tab_before_marker = s:find('\t[^\t]*Command being timed:', 1)
+  local k
+  if tab_before_marker then
+    k = tab_before_marker - 1
+  else
+    k = last_i - 1
+    while k >= 1 do
+      local ch = s:sub(k, k)
+      if ch == '\n' then
+        break
+      end
+      k = k - 1
     end
-    k = k - 1
   end
 
   local head = s:sub(1, k)
