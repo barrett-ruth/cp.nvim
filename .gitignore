@@ -7,3 +7,4 @@ debug
 venv/
 CLAUDE.md
 __pycache__
+.claude/
