@@ -100,7 +100,13 @@ function M.setup_python_env()
 
   if vim.fn.isdirectory(venv_dir) == 0 then
     logger.log('Setting up Python environment for scrapers...')
-    local result = vim.system({ 'uv', 'sync' }, { cwd = plugin_path, text = true }):wait()
+    local env = vim.fn.environ()
+    env.VIRTUAL_ENV = ''
+    env.PYTHONPATH = ''
+    env.CONDA_PREFIX = ''
+    local result = vim
+      .system({ 'uv', 'sync' }, { cwd = plugin_path, text = true, env = env })
+      :wait()
     if result.code ~= 0 then
       logger.log('Failed to setup Python environment: ' .. result.stderr, vim.log.levels.ERROR)
       return false
