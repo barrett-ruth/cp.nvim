@@ -29,6 +29,11 @@ local function run_scraper(platform, subcommand, args, opts)
   local cmd = { 'uv', 'run', '--directory', plugin_path, '-m', 'scrapers.' .. platform, subcommand }
   vim.list_extend(cmd, args)
 
+  local env = vim.fn.environ()
+  env.VIRTUAL_ENV = ''
+  env.PYTHONPATH = ''
+  env.CONDA_PREFIX = ''
+
   if opts and opts.ndjson then
     local uv = vim.loop
     local stdout = uv.new_pipe(false)
@@ -38,7 +43,7 @@ local function run_scraper(platform, subcommand, args, opts)
     local handle
     handle = uv.spawn(
       cmd[1],
-      { args = vim.list_slice(cmd, 2), stdio = { nil, stdout, stderr } },
+      { args = vim.list_slice(cmd, 2), stdio = { nil, stdout, stderr }, env = env },
       function(code, signal)
         if buf ~= '' and opts.on_event then
           local ok_tail, ev_tail = pcall(vim.json.decode, buf)
@@ -97,7 +102,7 @@ local function run_scraper(platform, subcommand, args, opts)
     return
   end
 
-  local sysopts = { text = true, timeout = 30000 }
+  local sysopts = { text = true, timeout = 30000, env = env }
   if opts and opts.sync then
     local result = vim.system(cmd, sysopts):wait()
     return syshandle(result)
