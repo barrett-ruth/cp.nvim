@@ -8,3 +8,4 @@ venv/
 CLAUDE.md
 __pycache__
 .claude/
+node_modules/

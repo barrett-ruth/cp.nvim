@@ -40,7 +40,7 @@ function M.handle_pick_action(language)
     local ok, _ = pcall(require, 'fzf-lua')
     if not ok then
       logger.log(
-        'fzf-lua is not available. Install fzf-lua xor change your picker config',
+        'fzf-lua is not available. Install fzf-lua or change your picker config',
         vim.log.levels.ERROR
       )
       return
