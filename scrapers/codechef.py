@@ -165,13 +165,13 @@ class CodeChefScraper(BaseScraper):
 
         return ContestListResult(success=True, error="", contests=contests)
 
-    async def stream_tests_for_category_async(self, contest_id: str) -> None:
+    async def stream_tests_for_category_async(self, category_id: str) -> None:
         async with httpx.AsyncClient(
             limits=httpx.Limits(max_connections=CONNECTIONS)
         ) as client:
             try:
                 contest_data = await fetch_json(
-                    client, API_CONTEST.format(contest_id=contest_id)
+                    client, API_CONTEST.format(category_id=category_id)
                 )
             except Exception:
                 return
@@ -194,7 +194,7 @@ class CodeChefScraper(BaseScraper):
                         problem_data = await fetch_json(
                             client,
                             API_PROBLEM.format(
-                                contest_id=contest_id, problem_id=problem_code
+                                category_id=category_id, problem_id=problem_code
                             ),
                         )
 
