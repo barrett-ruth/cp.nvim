@@ -71,7 +71,7 @@ def _retry_after_requests(details):
     on_backoff=_retry_after_requests,
 )
 def _fetch(url: str) -> str:
-    r = _session.get(url, headers=HEADERS, timeout=TIMEOUT_SECONDS, verify=False)
+    r = _session.get(url, headers=HEADERS, timeout=TIMEOUT_SECONDS)
     if r.status_code in RETRY_STATUS:
         raise requests.HTTPError(response=r)
     r.raise_for_status()
@@ -244,7 +244,6 @@ def _to_problem_summaries(rows: list[dict[str, str]]) -> list[ProblemSummary]:
 async def _fetch_all_contests_async() -> list[ContestSummary]:
     async with httpx.AsyncClient(
         limits=httpx.Limits(max_connections=100, max_keepalive_connections=100),
-        verify=False,
     ) as client:
         first_html = await _get_async(client, ARCHIVE_URL)
         last = _parse_last_page(first_html)
