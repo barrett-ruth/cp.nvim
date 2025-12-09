@@ -172,7 +172,7 @@ def run_scraper_offline(fixture_text):
                     raise AssertionError(f"Unexpected requests.get call: {url}")
 
                 return {
-                    "StealthyFetcher.fetch": _mock_stealthy_fetch,
+                    "Fetcher.get": _mock_stealthy_fetch,
                     "requests.get": _mock_requests_get,
                 }
 
@@ -226,7 +226,7 @@ def run_scraper_offline(fixture_text):
 
                 return {
                     "__offline_get_async": __offline_get_async,
-                    "StealthyFetcher.fetch": _mock_stealthy_fetch,
+                    "Fetcher.get": _mock_stealthy_fetch,
                 }
 
             case _:
@@ -238,7 +238,7 @@ def run_scraper_offline(fixture_text):
         offline_fetches = _make_offline_fetches(scraper_name)
 
         if scraper_name == "codeforces":
-            fetchers.StealthyFetcher.fetch = offline_fetches["StealthyFetcher.fetch"]  # type: ignore[assignment]
+            fetchers.Fetcher.get = offline_fetches["Fetcher.get"]  # type: ignore[assignment]
             requests.get = offline_fetches["requests.get"]
         elif scraper_name == "atcoder":
             ns._fetch = offline_fetches["_fetch"]
@@ -247,7 +247,7 @@ def run_scraper_offline(fixture_text):
             httpx.AsyncClient.get = offline_fetches["__offline_fetch_text"]  # type: ignore[assignment]
         elif scraper_name == "codechef":
             httpx.AsyncClient.get = offline_fetches["__offline_get_async"]  # type: ignore[assignment]
-            fetchers.StealthyFetcher.fetch = offline_fetches["StealthyFetcher.fetch"]  # type: ignore[assignment]
+            fetchers.Fetcher.get = offline_fetches["Fetcher.get"]  # type: ignore[assignment]
 
         main_async = getattr(ns, "main_async")
         assert callable(main_async), f"main_async not found in {scraper_name}"

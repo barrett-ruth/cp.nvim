@@ -6,7 +6,7 @@ import sys
 from typing import Any
 
 import httpx
-from scrapling.fetchers import StealthyFetcher
+from scrapling.fetchers import Fetcher
 
 from .base import BaseScraper
 from .models import (
@@ -52,7 +52,7 @@ def _extract_memory_limit(html: str) -> float:
 
 
 def _fetch_html_sync(url: str) -> str:
-    response = StealthyFetcher.fetch(url, headless=True, network_idle=True)
+    response = Fetcher.get(url)
     return str(response.body)
 
 
