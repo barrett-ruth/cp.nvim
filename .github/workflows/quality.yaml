@@ -115,10 +115,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install uv
         uses: astral-sh/setup-uv@v4
-      - name: Install mypy
-        run: uv tool install mypy
-      - name: Type check Python files with mypy
-        run: mypy .
+      - name: Install dependencies with uv
+        run: uv sync --dev
+      - name: Type check Python files with ty
+        run: uvx ty check .
 
   markdown-format:
     name: Markdown Format Check

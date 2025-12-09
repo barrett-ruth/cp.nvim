@@ -5,3 +5,4 @@ build/
 dist/
 *.pyc
 __pycache__/
+tests/fixtures/

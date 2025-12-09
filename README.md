@@ -1,5 +1,8 @@
 # cp.nvim
 
+> NOTE: [scrapling] is currently down - CodeForces scraping will not work (for
+> now). Track the issue [here](https://github.com/D4Vinci/Scrapling/issues/118).
+
 **The definitive competitive programming environment for Neovim**
 
 Scrape problems, run tests, and debug solutions across multiple platforms with
