@@ -9,7 +9,7 @@ from typing import Any
 
 import requests
 from bs4 import BeautifulSoup, Tag
-from scrapling.fetchers import StealthyFetcher
+from scrapling.fetchers import Fetcher
 
 from .base import BaseScraper
 from .models import (
@@ -143,10 +143,8 @@ def _is_interactive(block: Tag) -> bool:
 
 def _fetch_problems_html(contest_id: str) -> str:
     url = f"{BASE_URL}/contest/{contest_id}/problems"
-    page = StealthyFetcher.fetch(
+    page = Fetcher.get(
         url,
-        headless=True,
-        solve_cloudflare=True,
     )
     return page.html_content
 
