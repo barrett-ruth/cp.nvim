@@ -414,6 +414,8 @@ function M.ensure_io_view()
 end
 
 function M.run_io_view(test_indices_arg, debug, mode)
+  logger.log(('%s tests...'):format(debug and 'Debugging' or 'Running'), vim.log.levels.INFO, true)
+
   mode = mode or 'combined'
 
   local platform, contest_id, problem_id =
