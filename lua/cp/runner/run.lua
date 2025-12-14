@@ -276,6 +276,15 @@ function M.run_all_test_cases(indices, debug)
     M.run_test_case(i, debug)
   end
 
+  logger.log(
+    ('Finished %s %s test cases.'):format(
+      debug and 'running' or 'debugging',
+      #panel_state.test_cases
+    ),
+    vim.log.levels.INFO,
+    true
+  )
+
   return panel_state.test_cases
 end
 
