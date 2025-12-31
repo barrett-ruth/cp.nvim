@@ -125,6 +125,7 @@ function M.create_buffer_with_options(filetype)
   vim.api.nvim_set_option_value('bufhidden', 'hide', { buf = buf })
   vim.api.nvim_set_option_value('readonly', true, { buf = buf })
   vim.api.nvim_set_option_value('modifiable', false, { buf = buf })
+
   if filetype then
     vim.api.nvim_set_option_value('filetype', filetype, { buf = buf })
   end
