@@ -151,9 +151,7 @@ function M.toggle_interactive(interactor_cmd)
 
   vim.api.nvim_create_autocmd({ 'BufWipeout', 'BufUnload' }, {
     buffer = term_buf,
-    callback = function()
-      cleanup()
-    end,
+    callback = cleanup,
   })
 
   vim.api.nvim_create_autocmd('WinClosed', {
@@ -225,15 +223,51 @@ local function get_or_create_io_buffers()
     buffer = source_buf,
     callback = function()
       local io = state.get_io_view_state()
-      if io then
-        if io.output_buf and vim.api.nvim_buf_is_valid(io.output_buf) then
-          vim.api.nvim_buf_delete(io.output_buf, { force = true })
-        end
-        if io.input_buf and vim.api.nvim_buf_is_valid(io.input_buf) then
-          vim.api.nvim_buf_delete(io.input_buf, { force = true })
-        end
-        state.set_io_view_state(nil)
+
+      if not io then
+        return
       end
+
+      if io.output_buf and vim.api.nvim_buf_is_valid(io.output_buf) then
+        vim.api.nvim_buf_delete(io.output_buf, { force = true })
+      end
+      if io.input_buf and vim.api.nvim_buf_is_valid(io.input_buf) then
+        vim.api.nvim_buf_delete(io.input_buf, { force = true })
+      end
+
+      state.set_io_view_state(nil)
+    end,
+  })
+
+  vim.api.nvim_create_autocmd({ 'BufWinEnter', 'BufWinLeave' }, {
+    group = group_name,
+    buffer = source_buf,
+    callback = function()
+      vim.schedule(function()
+        local io = state.get_io_view_state()
+        if not io then
+          return
+        end
+
+        local wins = vim.api.nvim_list_wins()
+        for _, win in ipairs(wins) do
+          if vim.api.nvim_win_get_buf(win) == source_buf then
+            return
+          end
+        end
+
+        for _, win in ipairs(wins) do
+          local buf = vim.api.nvim_win_get_buf(win)
+          if buf == io.output_buf or buf == io.input_buf then
+            if #vim.api.nvim_list_wins() > 1 then
+              pcall(vim.api.nvim_win_close, win, true)
+            else
+              local replacement = vim.api.nvim_create_buf(false, true)
+              vim.api.nvim_win_set_buf(win, replacement)
+            end
+          end
+        end
+      end)
     end,
   })
 
