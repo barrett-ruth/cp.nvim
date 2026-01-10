@@ -68,7 +68,7 @@ cp.nvim follows a simple principle: **solve locally, submit remotely**.
 ```
 
 See
-[my config](https://github.com/barrett-ruth/dots/blob/main/nvim/lua/plugins/cp.lua)
+[my config](https://github.com/barrettruth/dots/blob/main/.config/nvim/lua/plugins/cp.lua)
 for the setup in the video shown above.
 
 ## Similar Projects
