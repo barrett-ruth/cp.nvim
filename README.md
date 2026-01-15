@@ -73,10 +73,11 @@ for the setup in the video shown above.
 
 ## Motivation
 
-I could not find a neovim-centric, efficient, dependency-free, flexible, and easily customizable
-competitive programming workflow that "just works"--so I made it myself. I conferenced with top
-competitive programmers at Carnegie Mellon Univerity and the University of
-Virginia and covered their (and my) pain points:
+I could not find a neovim-centric, efficient, dependency-free, flexible, and
+easily customizable competitive programming workflow that "just works"--so I
+made it myself. I conferenced with top competitive programmers at Carnegie
+Mellon Univerity and the University of Virginia and covered their (and my) pain
+points:
 
 - Scraping: contests are automatically loaded asynchronously
 - Test Case Management: test case editor (`:CP edit`)
