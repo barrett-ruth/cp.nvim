@@ -4,6 +4,10 @@
 
 local M = {}
 
+local function strwidth(s)
+  return vim.api.nvim_strwidth(s)
+end
+
 local exit_code_names = {
   [128] = 'SIGHUP',
   [129] = 'SIGINT',
@@ -69,24 +73,24 @@ local function compute_cols(test_state)
 
   for i, tc in ipairs(test_state.test_cases) do
     local prefix = (i == test_state.current_index) and '>' or ' '
-    w.num = math.max(w.num, #(' ' .. prefix .. i .. ' '))
-    w.status = math.max(w.status, #(' ' .. M.get_status_info(tc).text .. ' '))
+    w.num = math.max(w.num, strwidth(' ' .. prefix .. i .. ' '))
+    w.status = math.max(w.status, strwidth(' ' .. M.get_status_info(tc).text .. ' '))
     local time_str = tc.time_ms and string.format('%.2f', tc.time_ms) or '—'
-    w.time = math.max(w.time, #(' ' .. time_str .. ' '))
-    w.timeout = math.max(w.timeout, #(' ' .. timeout_str .. ' '))
+    w.time = math.max(w.time, strwidth(' ' .. time_str .. ' '))
+    w.timeout = math.max(w.timeout, strwidth(' ' .. timeout_str .. ' '))
     local rss_str = (tc.rss_mb and string.format('%.0f', tc.rss_mb)) or '—'
-    w.rss = math.max(w.rss, #(' ' .. rss_str .. ' '))
-    w.memory = math.max(w.memory, #(' ' .. memory_str .. ' '))
-    w.exit = math.max(w.exit, #(' ' .. format_exit_code(tc.code) .. ' '))
+    w.rss = math.max(w.rss, strwidth(' ' .. rss_str .. ' '))
+    w.memory = math.max(w.memory, strwidth(' ' .. memory_str .. ' '))
+    w.exit = math.max(w.exit, strwidth(' ' .. format_exit_code(tc.code) .. ' '))
   end
 
-  w.num = math.max(w.num, #' # ')
-  w.status = math.max(w.status, #' Status ')
-  w.time = math.max(w.time, #' Runtime (ms) ')
-  w.timeout = math.max(w.timeout, #' Time (ms) ')
-  w.rss = math.max(w.rss, #' RSS (MB) ')
-  w.memory = math.max(w.memory, #' Mem (MB) ')
-  w.exit = math.max(w.exit, #' Exit Code ')
+  w.num = math.max(w.num, strwidth(' # '))
+  w.status = math.max(w.status, strwidth(' Status '))
+  w.time = math.max(w.time, strwidth(' Runtime (ms) '))
+  w.timeout = math.max(w.timeout, strwidth(' Time (ms) '))
+  w.rss = math.max(w.rss, strwidth(' RSS (MB) '))
+  w.memory = math.max(w.memory, strwidth(' Mem (MB) '))
+  w.exit = math.max(w.exit, strwidth(' Exit Code '))
 
   local sum = w.num + w.status + w.time + w.timeout + w.rss + w.memory + w.exit
   local inner = sum + 6
@@ -95,7 +99,7 @@ local function compute_cols(test_state)
 end
 
 local function center(text, width)
-  local pad = width - #text
+  local pad = width - strwidth(text)
   if pad <= 0 then
     return text
   end
@@ -107,7 +111,7 @@ local function format_num_column(prefix, idx, width)
   local num_str = tostring(idx)
   local content = (#num_str == 1) and (' ' .. prefix .. ' ' .. num_str .. ' ')
     or (' ' .. prefix .. num_str .. ' ')
-  local total_pad = width - #content
+  local total_pad = width - strwidth(content)
   if total_pad <= 0 then
     return content
   end
@@ -320,10 +324,10 @@ function M.render_test_list(test_state)
 
       for _, input_line in ipairs(vim.split(tc.input, '\n', { plain = true, trimempty = false })) do
         local s = input_line or ''
-        if #s > c.inner then
+        if strwidth(s) > c.inner then
           s = string.sub(s, 1, c.inner)
         end
-        local pad = c.inner - #s
+        local pad = c.inner - strwidth(s)
         table.insert(lines, '│' .. s .. string.rep(' ', pad) .. '│')
       end
 
