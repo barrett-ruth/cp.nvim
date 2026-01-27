@@ -784,12 +784,15 @@ HIGHLIGHT GROUPS                                               *cp-highlights*
 
 Test Status Groups ~
 
-    CpTestAC        Green foreground for AC status
-    CpTestWA        Red foreground for WA status
-    CpTestTLE       Orange foreground for TLE status
-    CpTestMLE       Orange foreground for MLE status
-    CpTestRTE       Purple foreground for RTE status
-    CpTestNA        Gray foreground for remaining state
+All test status groups link to builtin highlight groups, automatically adapting
+to your colorscheme:
+
+    CpTestAC        Links to DiagnosticOk (AC status)
+    CpTestWA        Links to DiagnosticError (WA status)
+    CpTestTLE       Links to DiagnosticWarn (TLE status)
+    CpTestMLE       Links to DiagnosticWarn (MLE status)
+    CpTestRTE       Links to DiagnosticHint (RTE status)
+    CpTestNA        Links to Comment (pending/unknown status)
 
 ANSI Color Groups ~
 
