@@ -1,18 +1,17 @@
-name: Release
-
+name: luarocks
 on:
-  push:
-    tags:
-      - '*'
-  workflow_dispatch:
-
+  workflow_run:
+    workflows: ["ci"]
+    types:
+      - completed
 jobs:
-  publish-luarocks:
-    name: Publish to LuaRocks
+  publish:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Publish to LuaRocks
-        uses: nvim-neorocks/luarocks-tag-release@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: nvim-neorocks/luarocks-tag-release@v7
         env:
           LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
