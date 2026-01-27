@@ -18,7 +18,7 @@
 ---@field overrides? table<string, CpPlatformOverrides>
 
 ---@class PanelConfig
----@field diff_mode "none"|"vim"|"git"
+---@field diff_modes string[]
 ---@field max_output_lines integer
 
 ---@class DiffGitConfig
@@ -173,7 +173,7 @@ M.defaults = {
       add_test_key = 'ga',
       save_and_exit_key = 'q',
     },
-    panel = { diff_mode = 'none', max_output_lines = 50 },
+    panel = { diff_modes = { 'side-by-side', 'git', 'vim' }, max_output_lines = 50 },
     diff = {
       git = {
         args = { 'diff', '--no-index', '--word-diff=plain', '--word-diff-regex=.', '--no-prefix' },
@@ -313,15 +313,26 @@ function M.setup(user_config)
     setup_io_output = { cfg.hooks.setup_io_output, { 'function', 'nil' }, true },
   })
 
+  local layouts = require('cp.ui.layouts')
+  local valid_modes_str = table.concat(vim.tbl_keys(layouts.DIFF_MODES), ',')
+  if type(cfg.ui.panel.diff_modes) == 'table' then
+    local invalid = {}
+    for _, mode in ipairs(cfg.ui.panel.diff_modes) do
+      if not layouts.DIFF_MODES[mode] then
+        table.insert(invalid, mode)
+      end
+    end
+    if #invalid > 0 then
+      error(
+        ('invalid diff modes [%s] - must be one of: {%s}'):format(
+          table.concat(invalid, ','),
+          valid_modes_str
+        )
+      )
+    end
+  end
   vim.validate({
     ansi = { cfg.ui.ansi, 'boolean' },
-    diff_mode = {
-      cfg.ui.panel.diff_mode,
-      function(v)
-        return vim.tbl_contains({ 'none', 'vim', 'git' }, v)
-      end,
-      "diff_mode must be 'none', 'vim', or 'git'",
-    },
     max_output_lines = {
       cfg.ui.panel.max_output_lines,
       function(v)
@@ -383,6 +394,13 @@ function M.setup(user_config)
       end,
       'nil or non-empty string',
     },
+    picker = {
+      cfg.ui.picker,
+      function(v)
+        return v == nil or v == 'telescope' or v == 'fzf-lua'
+      end,
+      "nil, 'telescope', or 'fzf-lua'",
+    },
   })
 
   for id, lang in pairs(cfg.languages) do
@@ -443,7 +461,18 @@ function M.get_language_for_platform(platform_id, language_id)
     }
   end
 
-  local effective = cfg.runtime.effective[platform_id][language_id]
+  local platform_effective = cfg.runtime.effective[platform_id]
+  if not platform_effective then
+    return {
+      valid = false,
+      error = string.format(
+        'No runtime config for platform %s (plugin not initialized)',
+        platform_id
+      ),
+    }
+  end
+
+  local effective = platform_effective[language_id]
   if not effective then
     return {
       valid = false,

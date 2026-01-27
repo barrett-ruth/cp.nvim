@@ -258,7 +258,7 @@ Here's an example configuration with lazy.nvim:
             prev_test_key = '<c-p>',  -- or nil to disable
           },
           panel = {
-            diff_mode = 'vim',
+            diff_modes = { 'side-by-side', 'git', 'vim' },
             max_output_lines = 50,
           },
           diff = {
@@ -378,8 +378,10 @@ run CSES problems with Rust using the single schema:
 
                                                               *cp.PanelConfig*
     Fields: ~
-        {diff_mode}        (string, default: "none") Diff backend: "none",
-                           "vim", or "git".
+        {diff_modes}       (string[], default: {'side-by-side', 'git', 'vim'})
+                           List of diff modes to cycle through with 't' key.
+                           First element is the default mode.
+                           Valid modes: 'side-by-side', 'git', 'vim'.
         {max_output_lines} (number, default: 50) Maximum lines of test output.
 
                                                                *cp.DiffConfig*
@@ -851,17 +853,20 @@ PANEL KEYMAPS                                                  *cp-panel-keys*
 
 <c-n>   Navigate to next test case
 <c-p>   Navigate to previous test case
-t       Cycle through diff modes: none → git → vim
+t       Cycle through configured diff modes (see |cp.PanelConfig|)
 q       Exit panel and restore layout
 <c-q>   Exit interactive terminal and restore layout
 
 Diff Modes ~
 
-Three diff backends are available:
+Three diff modes are available:
 
-    none    Nothing
-    vim     Built-in vim diff (default, always available)
-    git     Character-level git word-diff (requires git, more precise)
+    side-by-side    Expected and actual output shown side-by-side (default)
+    vim             Built-in vim diff (always available)
+    git             Character-level git word-diff (requires git, more precise)
+
+Configure which modes to cycle through via |cp.PanelConfig|.diff_modes.
+The first element is used as the default mode.
 
 The git backend shows character-level changes with [-removed-] and {+added+}
 markers.

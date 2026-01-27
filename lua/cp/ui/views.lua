@@ -900,15 +900,15 @@ function M.toggle_panel(panel_opts)
       M.toggle_panel()
     end, { buffer = buf, silent = true })
     vim.keymap.set('n', 't', function()
-      local modes = { 'none', 'git', 'vim' }
+      local modes = config.ui.panel.diff_modes
       local current_idx = 1
       for i, mode in ipairs(modes) do
-        if config.ui.panel.diff_mode == mode then
+        if current_mode == mode then
           current_idx = i
           break
         end
       end
-      config.ui.panel.diff_mode = modes[(current_idx % #modes) + 1]
+      current_mode = modes[(current_idx % #modes) + 1]
       refresh_panel()
     end, { buffer = buf, silent = true })
     vim.keymap.set('n', '<c-n>', function()
