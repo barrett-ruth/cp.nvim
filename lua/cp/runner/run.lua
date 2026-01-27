@@ -101,8 +101,8 @@ end
 
 ---@param test_case RanTestCase
 ---@param debug boolean?
----@return { status: "pass"|"fail"|"tle"|"mle", actual: string, actual_highlights: Highlight[], error: string, stderr: string, time_ms: number, code: integer, ok: boolean, signal: string, tled: boolean, mled: boolean, rss_mb: number }
-local function run_single_test_case(test_case, debug)
+---@param on_complete fun(result: { status: "pass"|"fail"|"tle"|"mle", actual: string, actual_highlights: Highlight[], error: string, stderr: string, time_ms: number, code: integer, ok: boolean, signal: string?, tled: boolean, mled: boolean, rss_mb: number })
+local function run_single_test_case(test_case, debug, on_complete)
   local source_file = state.get_source_file()
 
   local binary_file = debug and state.get_debug_file() or state.get_binary_file()
@@ -117,65 +117,65 @@ local function run_single_test_case(test_case, debug)
   local timeout_ms = (panel_state.constraints and panel_state.constraints.timeout_ms) or 0
   local memory_mb = panel_state.constraints and panel_state.constraints.memory_mb or 0
 
-  local r = execute.run(cmd, stdin_content, timeout_ms, memory_mb)
+  execute.run(cmd, stdin_content, timeout_ms, memory_mb, function(r)
+    local ansi = require('cp.ui.ansi')
+    local out = r.stdout or ''
+    local highlights = {}
+    if out ~= '' then
+      if config.ui.ansi then
+        local parsed = ansi.parse_ansi_text(out)
+        out = table.concat(parsed.lines, '\n')
+        highlights = parsed.highlights
+      else
+        out = out:gsub('\027%[[%d;]*[a-zA-Z]', '')
+      end
+    end
 
-  local ansi = require('cp.ui.ansi')
-  local out = r.stdout or ''
-  local highlights = {}
-  if out ~= '' then
-    if config.ui.ansi then
-      local parsed = ansi.parse_ansi_text(out)
-      out = table.concat(parsed.lines, '\n')
-      highlights = parsed.highlights
+    local max_lines = config.ui.panel.max_output_lines
+    local lines = vim.split(out, '\n')
+    if #lines > max_lines then
+      local trimmed = {}
+      for i = 1, max_lines do
+        table.insert(trimmed, lines[i])
+      end
+      table.insert(trimmed, string.format('... (output trimmed after %d lines)', max_lines))
+      out = table.concat(trimmed, '\n')
+    end
+
+    local expected = test_case.expected or ''
+    local ok = normalize_lines(out) == normalize_lines(expected)
+
+    local signal = r.signal
+    if not signal and r.code and r.code >= 128 then
+      signal = constants.signal_codes[r.code]
+    end
+
+    local status
+    if r.tled then
+      status = 'tle'
+    elseif r.mled then
+      status = 'mle'
+    elseif ok then
+      status = 'pass'
     else
-      out = out:gsub('\027%[[%d;]*[a-zA-Z]', '')
+      status = 'fail'
     end
-  end
 
-  local max_lines = config.ui.panel.max_output_lines
-  local lines = vim.split(out, '\n')
-  if #lines > max_lines then
-    local trimmed = {}
-    for i = 1, max_lines do
-      table.insert(trimmed, lines[i])
-    end
-    table.insert(trimmed, string.format('... (output trimmed after %d lines)', max_lines))
-    out = table.concat(trimmed, '\n')
-  end
-
-  local expected = test_case.expected or ''
-  local ok = normalize_lines(out) == normalize_lines(expected)
-
-  local signal = r.signal
-  if not signal and r.code and r.code >= 128 then
-    signal = constants.signal_codes[r.code]
-  end
-
-  local status
-  if r.tled then
-    status = 'tle'
-  elseif r.mled then
-    status = 'mle'
-  elseif ok then
-    status = 'pass'
-  else
-    status = 'fail'
-  end
-
-  return {
-    status = status,
-    actual = out,
-    actual_highlights = highlights,
-    error = (r.code ~= 0 and not ok) and out or '',
-    stderr = '',
-    time_ms = r.time_ms,
-    code = r.code,
-    ok = ok,
-    signal = signal,
-    tled = r.tled or false,
-    mled = r.mled or false,
-    rss_mb = r.peak_mb or 0,
-  }
+    on_complete({
+      status = status,
+      actual = out,
+      actual_highlights = highlights,
+      error = (r.code ~= 0 and not ok) and out or '',
+      stderr = '',
+      time_ms = r.time_ms,
+      code = r.code,
+      ok = ok,
+      signal = signal,
+      tled = r.tled or false,
+      mled = r.mled or false,
+      rss_mb = r.peak_mb or 0,
+    })
+  end)
 end
 
 ---@return boolean
@@ -199,8 +199,8 @@ function M.load_test_cases()
 end
 
 ---@param debug boolean?
----@return RanTestCase?
-function M.run_combined_test(debug)
+---@param on_complete fun(result: RanTestCase?)
+function M.run_combined_test(debug, on_complete)
   local combined = cache.get_combined_test(
     state.get_platform() or '',
     state.get_contest_id() or '',
@@ -209,7 +209,8 @@ function M.run_combined_test(debug)
 
   if not combined then
     logger.log('No combined test found', vim.log.levels.ERROR)
-    return nil
+    on_complete(nil)
+    return
   end
 
   local ran_test = {
@@ -228,42 +229,45 @@ function M.run_combined_test(debug)
     selected = true,
   }
 
-  local result = run_single_test_case(ran_test, debug)
-  return result
+  run_single_test_case(ran_test, debug, function(result)
+    on_complete(result)
+  end)
 end
 
 ---@param index number
 ---@param debug boolean?
----@return boolean
-function M.run_test_case(index, debug)
+---@param on_complete fun(success: boolean)
+function M.run_test_case(index, debug, on_complete)
   local tc = panel_state.test_cases[index]
   if not tc then
-    return false
+    on_complete(false)
+    return
   end
 
   tc.status = 'running'
-  local r = run_single_test_case(tc, debug)
+  run_single_test_case(tc, debug, function(r)
+    tc.status = r.status
+    tc.actual = r.actual
+    tc.actual_highlights = r.actual_highlights
+    tc.error = r.error
+    tc.stderr = r.stderr
+    tc.time_ms = r.time_ms
+    tc.code = r.code
+    tc.ok = r.ok
+    tc.signal = r.signal
+    tc.tled = r.tled
+    tc.mled = r.mled
+    tc.rss_mb = r.rss_mb
 
-  tc.status = r.status
-  tc.actual = r.actual
-  tc.actual_highlights = r.actual_highlights
-  tc.error = r.error
-  tc.stderr = r.stderr
-  tc.time_ms = r.time_ms
-  tc.code = r.code
-  tc.ok = r.ok
-  tc.signal = r.signal
-  tc.tled = r.tled
-  tc.mled = r.mled
-  tc.rss_mb = r.rss_mb
-
-  return true
+    on_complete(true)
+  end)
 end
 
 ---@param indices? integer[]
 ---@param debug boolean?
----@return RanTestCase[]
-function M.run_all_test_cases(indices, debug)
+---@param on_each? fun(index: integer, total: integer)
+---@param on_done fun(results: RanTestCase[])
+function M.run_all_test_cases(indices, debug, on_each, on_done)
   local to_run = indices
   if not to_run then
     to_run = {}
@@ -272,20 +276,26 @@ function M.run_all_test_cases(indices, debug)
     end
   end
 
-  for _, i in ipairs(to_run) do
-    M.run_test_case(i, debug)
+  local function run_next(pos)
+    if pos > #to_run then
+      logger.log(
+        ('Finished %s %d test cases.'):format(debug and 'debugging' or 'running', #to_run),
+        vim.log.levels.INFO,
+        true
+      )
+      on_done(panel_state.test_cases)
+      return
+    end
+
+    M.run_test_case(to_run[pos], debug, function()
+      if on_each then
+        on_each(pos, #to_run)
+      end
+      run_next(pos + 1)
+    end)
   end
 
-  logger.log(
-    ('Finished %s %s test cases.'):format(
-      debug and 'debugging' or 'running',
-      #panel_state.test_cases
-    ),
-    vim.log.levels.INFO,
-    true
-  )
-
-  return panel_state.test_cases
+  run_next(1)
 end
 
 ---@return PanelState

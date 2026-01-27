@@ -39,24 +39,27 @@ end
 
 ---@param compile_cmd string[]
 ---@param substitutions SubstitutableCommand
-function M.compile(compile_cmd, substitutions)
+---@param on_complete fun(r: {code: integer, stdout: string})
+function M.compile(compile_cmd, substitutions, on_complete)
   local cmd = substitute_template(compile_cmd, substitutions)
   local sh = table.concat(cmd, ' ') .. ' 2>&1'
 
   local t0 = vim.uv.hrtime()
-  local r = vim.system({ 'sh', '-c', sh }, { text = false }):wait()
-  local dt = (vim.uv.hrtime() - t0) / 1e6
+  vim.system({ 'sh', '-c', sh }, { text = false }, function(r)
+    local dt = (vim.uv.hrtime() - t0) / 1e6
+    local ansi = require('cp.ui.ansi')
+    r.stdout = ansi.bytes_to_string(r.stdout or '')
 
-  local ansi = require('cp.ui.ansi')
-  r.stdout = ansi.bytes_to_string(r.stdout or '')
+    if r.code == 0 then
+      logger.log(('Compilation successful in %.1fms.'):format(dt), vim.log.levels.INFO)
+    else
+      logger.log(('Compilation failed in %.1fms.'):format(dt))
+    end
 
-  if r.code == 0 then
-    logger.log(('Compilation successful in %.1fms.'):format(dt), vim.log.levels.INFO)
-  else
-    logger.log(('Compilation failed in %.1fms.'):format(dt))
-  end
-
-  return r
+    vim.schedule(function()
+      on_complete(r)
+    end)
+  end)
 end
 
 local function parse_and_strip_time_v(output)
@@ -103,7 +106,8 @@ local function parse_and_strip_time_v(output)
   return head, peak_mb
 end
 
-function M.run(cmd, stdin, timeout_ms, memory_mb)
+---@param on_complete fun(result: ExecuteResult)
+function M.run(cmd, stdin, timeout_ms, memory_mb, on_complete)
   local time_bin = utils.time_path()
   local timeout_bin = utils.timeout_path()
 
@@ -117,56 +121,56 @@ function M.run(cmd, stdin, timeout_ms, memory_mb)
   local sh = prefix .. timeout_prefix .. ('%s -v sh -c %q 2>&1'):format(time_bin, prog)
 
   local t0 = vim.uv.hrtime()
-  local r = vim
-    .system({ 'sh', '-c', sh }, {
-      stdin = stdin,
-      text = true,
-    })
-    :wait()
-  local dt = (vim.uv.hrtime() - t0) / 1e6
+  vim.system({ 'sh', '-c', sh }, { stdin = stdin, text = true }, function(r)
+    local dt = (vim.uv.hrtime() - t0) / 1e6
 
-  local code = r.code or 0
-  local raw = r.stdout or ''
-  local cleaned, peak_mb = parse_and_strip_time_v(raw)
-  local tled = code == 124
+    local code = r.code or 0
+    local raw = r.stdout or ''
+    local cleaned, peak_mb = parse_and_strip_time_v(raw)
+    local tled = code == 124
 
-  local signal = nil
-  if code >= 128 then
-    signal = constants.signal_codes[code]
-  end
+    local signal = nil
+    if code >= 128 then
+      signal = constants.signal_codes[code]
+    end
 
-  local lower = (cleaned or ''):lower()
-  local oom_hint = lower:find('std::bad_alloc', 1, true)
-    or lower:find('cannot allocate memory', 1, true)
-    or lower:find('out of memory', 1, true)
-    or lower:find('oom', 1, true)
-    or lower:find('enomem', 1, true)
-  local near_cap = peak_mb >= (0.90 * memory_mb)
+    local lower = (cleaned or ''):lower()
+    local oom_hint = lower:find('std::bad_alloc', 1, true)
+      or lower:find('cannot allocate memory', 1, true)
+      or lower:find('out of memory', 1, true)
+      or lower:find('oom', 1, true)
+      or lower:find('enomem', 1, true)
+    local near_cap = peak_mb >= (0.90 * memory_mb)
 
-  local mled = (peak_mb >= memory_mb) or near_cap or (oom_hint and not tled)
+    local mled = (peak_mb >= memory_mb) or near_cap or (oom_hint ~= nil and not tled)
 
-  if tled then
-    logger.log(('Execution timed out in %.1fms.'):format(dt))
-  elseif mled then
-    logger.log(('Execution memory limit exceeded in %.1fms.'):format(dt))
-  elseif code ~= 0 then
-    logger.log(('Execution failed in %.1fms (exit code %d).'):format(dt, code))
-  else
-    logger.log(('Execution successful in %.1fms.'):format(dt))
-  end
+    if tled then
+      logger.log(('Execution timed out in %.1fms.'):format(dt))
+    elseif mled then
+      logger.log(('Execution memory limit exceeded in %.1fms.'):format(dt))
+    elseif code ~= 0 then
+      logger.log(('Execution failed in %.1fms (exit code %d).'):format(dt, code))
+    else
+      logger.log(('Execution successful in %.1fms.'):format(dt))
+    end
 
-  return {
-    stdout = cleaned,
-    code = code,
-    time_ms = dt,
-    tled = tled,
-    mled = mled,
-    peak_mb = peak_mb,
-    signal = signal,
-  }
+    vim.schedule(function()
+      on_complete({
+        stdout = cleaned,
+        code = code,
+        time_ms = dt,
+        tled = tled,
+        mled = mled,
+        peak_mb = peak_mb,
+        signal = signal,
+      })
+    end)
+  end)
 end
 
-function M.compile_problem(debug)
+---@param debug boolean?
+---@param on_complete fun(result: {success: boolean, output: string?})
+function M.compile_problem(debug, on_complete)
   local state = require('cp.state')
   local config = require('cp.config').get_config()
   local platform = state.get_platform()
@@ -176,17 +180,20 @@ function M.compile_problem(debug)
   local compile_config = (debug and eff.commands.debug) or eff.commands.build
 
   if not compile_config then
-    return { success = true, output = nil }
+    on_complete({ success = true, output = nil })
+    return
   end
 
   local binary = debug and state.get_debug_file() or state.get_binary_file()
   local substitutions = { source = state.get_source_file(), binary = binary }
-  local r = M.compile(compile_config, substitutions)
 
-  if r.code ~= 0 then
-    return { success = false, output = r.stdout or 'unknown error' }
-  end
-  return { success = true, output = nil }
+  M.compile(compile_config, substitutions, function(r)
+    if r.code ~= 0 then
+      on_complete({ success = false, output = r.stdout or 'unknown error' })
+    else
+      on_complete({ success = true, output = nil })
+    end
+  end)
 end
 
 return M
