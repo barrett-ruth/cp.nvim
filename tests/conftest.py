@@ -232,6 +232,13 @@ def run_scraper_offline(fixture_text):
             case _:
                 raise AssertionError(f"Unknown scraper: {scraper_name}")
 
+    scraper_classes = {
+        "cses": "CSESScraper",
+        "atcoder": "AtcoderScraper",
+        "codeforces": "CodeforcesScraper",
+        "codechef": "CodeChefScraper",
+    }
+
     def _run(scraper_name: str, mode: str, *args: str):
         mod_path = ROOT / "scrapers" / f"{scraper_name}.py"
         ns = _load_scraper_module(mod_path, scraper_name)
@@ -249,16 +256,11 @@ def run_scraper_offline(fixture_text):
             httpx.AsyncClient.get = offline_fetches["__offline_get_async"]  # type: ignore[assignment]
             fetchers.Fetcher.get = offline_fetches["Fetcher.get"]  # type: ignore[assignment]
 
-        main_async = getattr(ns, "main_async")
-        assert callable(main_async), f"main_async not found in {scraper_name}"
+        scraper_class = getattr(ns, scraper_classes[scraper_name])
+        scraper = scraper_class()
 
         argv = [str(mod_path), mode, *args]
-        old_argv = sys.argv
-        sys.argv = argv
-        try:
-            rc, out = _capture_stdout(main_async())
-        finally:
-            sys.argv = old_argv
+        rc, out = _capture_stdout(scraper._run_cli_async(argv))
 
         json_lines: list[Any] = []
         for line in (_line for _line in out.splitlines() if _line.strip()):
