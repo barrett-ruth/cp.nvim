@@ -82,7 +82,7 @@ local function start_tests(platform, contest_id, problems)
     return not vim.tbl_isempty(cache.get_test_cases(platform, contest_id, p.id))
   end, problems)
   if cached_len ~= #problems then
-    logger.log(('Fetching problem test data... (%d/%d)'):format(cached_len, #problems))
+    logger.log(('Fetching %s/%s problem tests...'):format(cached_len, #problems))
     scraper.scrape_all_tests(platform, contest_id, function(ev)
       local cached_tests = {}
       if not ev.interactive and vim.tbl_isempty(ev.tests) then
