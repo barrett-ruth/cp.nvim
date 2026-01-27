@@ -305,7 +305,24 @@ function M.setup(user_config)
   vim.validate({
     hooks = { cfg.hooks, { 'table' } },
     ui = { cfg.ui, { 'table' } },
+    debug = { cfg.debug, { 'boolean', 'nil' }, true },
     open_url = { cfg.open_url, { 'boolean', 'nil' }, true },
+    filename = { cfg.filename, { 'function', 'nil' }, true },
+    scrapers = {
+      cfg.scrapers,
+      function(v)
+        if type(v) ~= 'table' then
+          return false
+        end
+        for _, s in ipairs(v) do
+          if not vim.tbl_contains(constants.PLATFORMS, s) then
+            return false
+          end
+        end
+        return true
+      end,
+      ('one of {%s}'):format(table.concat(constants.PLATFORMS, ',')),
+    },
     before_run = { cfg.hooks.before_run, { 'function', 'nil' }, true },
     before_debug = { cfg.hooks.before_debug, { 'function', 'nil' }, true },
     setup_code = { cfg.hooks.setup_code, { 'function', 'nil' }, true },
@@ -314,25 +331,23 @@ function M.setup(user_config)
   })
 
   local layouts = require('cp.ui.layouts')
-  local valid_modes_str = table.concat(vim.tbl_keys(layouts.DIFF_MODES), ',')
-  if type(cfg.ui.panel.diff_modes) == 'table' then
-    local invalid = {}
-    for _, mode in ipairs(cfg.ui.panel.diff_modes) do
-      if not layouts.DIFF_MODES[mode] then
-        table.insert(invalid, mode)
-      end
-    end
-    if #invalid > 0 then
-      error(
-        ('invalid diff modes [%s] - must be one of: {%s}'):format(
-          table.concat(invalid, ','),
-          valid_modes_str
-        )
-      )
-    end
-  end
   vim.validate({
     ansi = { cfg.ui.ansi, 'boolean' },
+    diff_modes = {
+      cfg.ui.panel.diff_modes,
+      function(v)
+        if type(v) ~= 'table' then
+          return false
+        end
+        for _, mode in ipairs(v) do
+          if not layouts.DIFF_MODES[mode] then
+            return false
+          end
+        end
+        return true
+      end,
+      ('one of {%s}'):format(table.concat(vim.tbl_keys(layouts.DIFF_MODES), ',')),
+    },
     max_output_lines = {
       cfg.ui.panel.max_output_lines,
       function(v)
@@ -341,6 +356,14 @@ function M.setup(user_config)
       'positive integer',
     },
     git = { cfg.ui.diff.git, { 'table' } },
+    git_args = { cfg.ui.diff.git.args, is_string_list, 'string[]' },
+    width = {
+      cfg.ui.run.width,
+      function(v)
+        return type(v) == 'number' and v > 0 and v <= 1
+      end,
+      'decimal between 0 and 1',
+    },
     next_test_key = {
       cfg.ui.run.next_test_key,
       function(v)
