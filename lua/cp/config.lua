@@ -307,6 +307,22 @@ function M.setup(user_config)
     ui = { cfg.ui, { 'table' } },
     debug = { cfg.debug, { 'boolean', 'nil' }, true },
     open_url = { cfg.open_url, { 'boolean', 'nil' }, true },
+    filename = { cfg.filename, { 'function', 'nil' }, true },
+    scrapers = {
+      cfg.scrapers,
+      function(v)
+        if type(v) ~= 'table' then
+          return false
+        end
+        for _, s in ipairs(v) do
+          if not vim.tbl_contains(constants.PLATFORMS, s) then
+            return false
+          end
+        end
+        return true
+      end,
+      ('one of {%s}'):format(table.concat(constants.PLATFORMS, ',')),
+    },
     before_run = { cfg.hooks.before_run, { 'function', 'nil' }, true },
     before_debug = { cfg.hooks.before_debug, { 'function', 'nil' }, true },
     setup_code = { cfg.hooks.setup_code, { 'function', 'nil' }, true },
@@ -340,6 +356,14 @@ function M.setup(user_config)
       'positive integer',
     },
     git = { cfg.ui.diff.git, { 'table' } },
+    git_args = { cfg.ui.diff.git.args, is_string_list, 'string[]' },
+    width = {
+      cfg.ui.run.width,
+      function(v)
+        return type(v) == 'number' and v > 0 and v <= 1
+      end,
+      'number/decimal between 0 and 1',
+    },
     next_test_key = {
       cfg.ui.run.next_test_key,
       function(v)
