@@ -31,7 +31,7 @@ local exit_code_names = {
 ---@return StatusInfo
 function M.get_status_info(ran_test_case)
   if ran_test_case.status == 'pending' then
-    return { text = 'PEND', highlight_group = 'CpTestNA' }
+    return { text = 'WAIT', highlight_group = 'CpTestNA' }
   elseif ran_test_case.status == 'running' then
     return { text = 'RUN', highlight_group = 'CpTestNA' }
   end
