@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
+
 import asyncio
 import json
 import re
-import sys
 from typing import Any
 
 import httpx
