@@ -81,114 +81,119 @@ function M.toggle_interactive(interactor_cmd)
 
   local execute = require('cp.runner.execute')
   local run = require('cp.runner.run')
-  local compile_result = execute.compile_problem()
-  if not compile_result.success then
-    run.handle_compilation_failure(compile_result.output)
-    return
-  end
 
-  local binary = state.get_binary_file()
-  if not binary or binary == '' then
-    logger.log('No binary produced.', vim.log.levels.ERROR)
-    return
-  end
-
-  local cmdline
-  if interactor_cmd and interactor_cmd ~= '' then
-    local interactor = interactor_cmd
-    if not interactor:find('/') then
-      interactor = './' .. interactor
-    end
-    if vim.fn.executable(interactor) ~= 1 then
-      logger.log(
-        ("Interactor '%s' is not executable."):format(interactor_cmd),
-        vim.log.levels.ERROR
-      )
-      if state.saved_interactive_session then
-        vim.cmd.source(state.saved_interactive_session)
-        vim.fn.delete(state.saved_interactive_session)
-        state.saved_interactive_session = nil
-      end
-      return
-    end
-    local orchestrator = vim.fn.fnamemodify(utils.get_plugin_path() .. '/scripts/interact.py', ':p')
-    cmdline = table.concat({
-      'uv',
-      'run',
-      vim.fn.shellescape(orchestrator),
-      vim.fn.shellescape(interactor),
-      vim.fn.shellescape(binary),
-    }, ' ')
-  else
-    cmdline = vim.fn.shellescape(binary)
-  end
-
-  vim.cmd.terminal(cmdline)
-  local term_buf = vim.api.nvim_get_current_buf()
-  local term_win = vim.api.nvim_get_current_win()
-
-  local cleaned = false
-  local function cleanup()
-    if cleaned then
-      return
-    end
-    cleaned = true
-    if term_buf and vim.api.nvim_buf_is_valid(term_buf) then
-      local job = vim.b[term_buf] and vim.b[term_buf].terminal_job_id or nil
-      if job then
-        pcall(vim.fn.jobstop, job)
-      end
-    end
+  local function restore_session()
     if state.saved_interactive_session then
       vim.cmd.source(state.saved_interactive_session)
       vim.fn.delete(state.saved_interactive_session)
       state.saved_interactive_session = nil
     end
-    state.interactive_buf = nil
-    state.interactive_win = nil
-    state.set_active_panel(nil)
   end
 
-  vim.api.nvim_create_autocmd({ 'BufWipeout', 'BufUnload' }, {
-    buffer = term_buf,
-    callback = cleanup,
-  })
+  execute.compile_problem(false, function(compile_result)
+    if not compile_result.success then
+      run.handle_compilation_failure(compile_result.output)
+      restore_session()
+      return
+    end
 
-  vim.api.nvim_create_autocmd('WinClosed', {
-    callback = function()
+    local binary = state.get_binary_file()
+    if not binary or binary == '' then
+      logger.log('No binary produced.', vim.log.levels.ERROR)
+      restore_session()
+      return
+    end
+
+    local cmdline
+    if interactor_cmd and interactor_cmd ~= '' then
+      local interactor = interactor_cmd
+      if not interactor:find('/') then
+        interactor = './' .. interactor
+      end
+      if vim.fn.executable(interactor) ~= 1 then
+        logger.log(
+          ("Interactor '%s' is not executable."):format(interactor_cmd),
+          vim.log.levels.ERROR
+        )
+        restore_session()
+        return
+      end
+      local orchestrator =
+        vim.fn.fnamemodify(utils.get_plugin_path() .. '/scripts/interact.py', ':p')
+      cmdline = table.concat({
+        'uv',
+        'run',
+        vim.fn.shellescape(orchestrator),
+        vim.fn.shellescape(interactor),
+        vim.fn.shellescape(binary),
+      }, ' ')
+    else
+      cmdline = vim.fn.shellescape(binary)
+    end
+
+    vim.cmd.terminal(cmdline)
+    local term_buf = vim.api.nvim_get_current_buf()
+    local term_win = vim.api.nvim_get_current_win()
+
+    local cleaned = false
+    local function cleanup()
       if cleaned then
         return
       end
-      local any = false
-      for _, win in ipairs(vim.api.nvim_list_wins()) do
-        if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == term_buf then
-          any = true
-          break
+      cleaned = true
+      if term_buf and vim.api.nvim_buf_is_valid(term_buf) then
+        local job = vim.b[term_buf] and vim.b[term_buf].terminal_job_id or nil
+        if job then
+          pcall(vim.fn.jobstop, job)
         end
       end
-      if not any then
-        cleanup()
-      end
-    end,
-  })
+      restore_session()
+      state.interactive_buf = nil
+      state.interactive_win = nil
+      state.set_active_panel(nil)
+    end
 
-  vim.api.nvim_create_autocmd('TermClose', {
-    buffer = term_buf,
-    callback = function()
-      vim.b[term_buf].cp_interactive_exited = true
-    end,
-  })
+    vim.api.nvim_create_autocmd({ 'BufWipeout', 'BufUnload' }, {
+      buffer = term_buf,
+      callback = cleanup,
+    })
 
-  vim.keymap.set('t', '<c-q>', function()
-    cleanup()
-  end, { buffer = term_buf, silent = true })
-  vim.keymap.set('n', '<c-q>', function()
-    cleanup()
-  end, { buffer = term_buf, silent = true })
+    vim.api.nvim_create_autocmd('WinClosed', {
+      callback = function()
+        if cleaned then
+          return
+        end
+        local any = false
+        for _, win in ipairs(vim.api.nvim_list_wins()) do
+          if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == term_buf then
+            any = true
+            break
+          end
+        end
+        if not any then
+          cleanup()
+        end
+      end,
+    })
 
-  state.interactive_buf = term_buf
-  state.interactive_win = term_win
-  state.set_active_panel('interactive')
+    vim.api.nvim_create_autocmd('TermClose', {
+      buffer = term_buf,
+      callback = function()
+        vim.b[term_buf].cp_interactive_exited = true
+      end,
+    })
+
+    vim.keymap.set('t', '<c-q>', function()
+      cleanup()
+    end, { buffer = term_buf, silent = true })
+    vim.keymap.set('n', '<c-q>', function()
+      cleanup()
+    end, { buffer = term_buf, silent = true })
+
+    state.interactive_buf = term_buf
+    state.interactive_win = term_win
+    state.set_active_panel('interactive')
+  end)
 end
 
 ---@return integer, integer

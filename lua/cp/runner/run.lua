@@ -101,7 +101,7 @@ end
 
 ---@param test_case RanTestCase
 ---@param debug boolean?
----@param on_complete fun(result: { status: "pass"|"fail"|"tle"|"mle", actual: string, actual_highlights: Highlight[], error: string, stderr: string, time_ms: number, code: integer, ok: boolean, signal: string, tled: boolean, mled: boolean, rss_mb: number })
+---@param on_complete fun(result: { status: "pass"|"fail"|"tle"|"mle", actual: string, actual_highlights: Highlight[], error: string, stderr: string, time_ms: number, code: integer, ok: boolean, signal: string?, tled: boolean, mled: boolean, rss_mb: number })
 local function run_single_test_case(test_case, debug, on_complete)
   local source_file = state.get_source_file()
 

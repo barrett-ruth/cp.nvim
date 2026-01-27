@@ -142,7 +142,7 @@ function M.run(cmd, stdin, timeout_ms, memory_mb, on_complete)
       or lower:find('enomem', 1, true)
     local near_cap = peak_mb >= (0.90 * memory_mb)
 
-    local mled = (peak_mb >= memory_mb) or near_cap or (oom_hint and not tled)
+    local mled = (peak_mb >= memory_mb) or near_cap or (oom_hint ~= nil and not tled)
 
     if tled then
       logger.log(('Execution timed out in %.1fms.'):format(dt))
