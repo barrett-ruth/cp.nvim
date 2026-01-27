@@ -177,6 +177,16 @@ function M.compile_problem(debug, on_complete)
   local language = state.get_language() or config.platforms[platform].default_language
   local eff = config.runtime.effective[platform][language]
 
+  local source_file = state.get_source_file()
+  if source_file then
+    local buf = vim.fn.bufnr(source_file)
+    if buf ~= -1 and vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].modified then
+      vim.api.nvim_buf_call(buf, function()
+        vim.cmd.write({ mods = { silent = true, noautocmd = true } })
+      end)
+    end
+  end
+
   local compile_config = (debug and eff.commands.debug) or eff.commands.build
 
   if not compile_config then
