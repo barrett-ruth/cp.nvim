@@ -315,25 +315,23 @@ function M.setup(user_config)
   })
 
   local layouts = require('cp.ui.layouts')
-  local valid_modes_str = table.concat(vim.tbl_keys(layouts.DIFF_MODES), ',')
-  if type(cfg.ui.panel.diff_modes) == 'table' then
-    local invalid = {}
-    for _, mode in ipairs(cfg.ui.panel.diff_modes) do
-      if not layouts.DIFF_MODES[mode] then
-        table.insert(invalid, mode)
-      end
-    end
-    if #invalid > 0 then
-      error(
-        ('invalid diff modes [%s] - must be one of: {%s}'):format(
-          table.concat(invalid, ','),
-          valid_modes_str
-        )
-      )
-    end
-  end
   vim.validate({
     ansi = { cfg.ui.ansi, 'boolean' },
+    diff_modes = {
+      cfg.ui.panel.diff_modes,
+      function(v)
+        if type(v) ~= 'table' then
+          return false
+        end
+        for _, mode in ipairs(v) do
+          if not layouts.DIFF_MODES[mode] then
+            return false
+          end
+        end
+        return true
+      end,
+      ('one of {%s}'):format(table.concat(vim.tbl_keys(layouts.DIFF_MODES), ',')),
+    },
     max_output_lines = {
       cfg.ui.panel.max_output_lines,
       function(v)
