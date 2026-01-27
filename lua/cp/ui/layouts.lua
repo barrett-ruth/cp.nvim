@@ -69,8 +69,8 @@ local function create_vim_diff_layout(parent_win, expected_content, actual_conte
   vim.api.nvim_set_option_value('filetype', 'cp', { buf = expected_buf })
   vim.api.nvim_set_option_value('filetype', 'cp', { buf = actual_buf })
   local label = MODE_LABELS.vim
-  vim.api.nvim_set_option_value('winbar', ('Expected (%s)'):format(label), { win = expected_win })
-  vim.api.nvim_set_option_value('winbar', ('Actual (%s)'):format(label), { win = actual_win })
+  vim.api.nvim_set_option_value('winbar', ('expected [%s]'):format(label), { win = expected_win })
+  vim.api.nvim_set_option_value('winbar', ('actual [%s]'):format(label), { win = actual_win })
 
   local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
   local actual_lines = vim.split(actual_content, '\n', { plain = true })
