@@ -367,14 +367,12 @@ end
 ---@return table<string, table>
 function M.get_highlight_groups()
   return {
-    CpTestAC = { fg = '#10b981' },
-    CpTestWA = { fg = '#ef4444' },
-    CpTestTLE = { fg = '#f59e0b' },
-    CpTestMLE = { fg = '#f59e0b' },
-    CpTestRTE = { fg = '#8b5cf6' },
-    CpTestNA = { fg = '#6b7280' },
-    CpDiffRemoved = { fg = '#ef4444', bg = '#1f1f1f' },
-    CpDiffAdded = { fg = '#10b981', bg = '#1f1f1f' },
+    CpTestAC = { link = 'DiagnosticOk' },
+    CpTestWA = { link = 'DiagnosticError' },
+    CpTestTLE = { link = 'DiagnosticWarn' },
+    CpTestMLE = { link = 'DiagnosticWarn' },
+    CpTestRTE = { link = 'DiagnosticHint' },
+    CpTestNA = { link = 'Comment' },
   }
 end
 

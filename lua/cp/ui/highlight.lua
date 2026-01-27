@@ -26,7 +26,7 @@ local function parse_diff_line(text)
         line = 0,
         col_start = highlight_start,
         col_end = #result_text,
-        highlight_group = 'CpDiffRemoved',
+        highlight_group = 'DiffDelete',
       })
       pos = removed_end + 1
     else
@@ -38,7 +38,7 @@ local function parse_diff_line(text)
           line = 0,
           col_start = highlight_start,
           col_end = #result_text,
-          highlight_group = 'CpDiffAdded',
+          highlight_group = 'DiffAdd',
         })
         pos = added_end + 1
       else
