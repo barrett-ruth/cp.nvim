@@ -348,6 +348,8 @@ function M.navigate_problem(direction, language)
     return
   end
 
+  logger.log(('navigate_problem: %s -> %s'):format(current_problem_id, problems[new_index].id))
+
   local active_panel = state.get_active_panel()
   if active_panel == 'run' then
     require('cp.ui.views').disable()

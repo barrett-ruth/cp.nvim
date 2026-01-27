@@ -194,13 +194,26 @@ end
 ---@return integer, integer
 local function get_or_create_io_buffers()
   local io_state = state.get_io_view_state()
+  local solution_win = state.get_solution_win()
+  local current_source_buf = vim.api.nvim_win_get_buf(solution_win)
 
   if io_state then
     local output_valid = io_state.output_buf and vim.api.nvim_buf_is_valid(io_state.output_buf)
     local input_valid = io_state.input_buf and vim.api.nvim_buf_is_valid(io_state.input_buf)
+    local same_source = io_state.source_buf == current_source_buf
 
-    if output_valid and input_valid then
+    if output_valid and input_valid and same_source then
       return io_state.output_buf, io_state.input_buf
+    end
+
+    if io_state.source_buf then
+      pcall(vim.api.nvim_del_augroup_by_name, 'cp_io_cleanup_buf' .. io_state.source_buf)
+    end
+    if output_valid then
+      pcall(vim.api.nvim_buf_delete, io_state.output_buf, { force = true })
+    end
+    if input_valid then
+      pcall(vim.api.nvim_buf_delete, io_state.input_buf, { force = true })
     end
   end
 
@@ -211,10 +224,10 @@ local function get_or_create_io_buffers()
     output_buf = output_buf,
     input_buf = input_buf,
     current_test_index = 1,
+    source_buf = current_source_buf,
   })
 
-  local solution_win = state.get_solution_win()
-  local source_buf = vim.api.nvim_win_get_buf(solution_win)
+  local source_buf = current_source_buf
 
   local group_name = 'cp_io_cleanup_buf' .. source_buf
   vim.api.nvim_create_augroup(group_name, { clear = true })
@@ -246,6 +259,10 @@ local function get_or_create_io_buffers()
       vim.schedule(function()
         local io = state.get_io_view_state()
         if not io then
+          return
+        end
+
+        if io.source_buf ~= source_buf then
           return
         end
 
