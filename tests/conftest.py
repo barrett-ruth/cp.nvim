@@ -245,16 +245,16 @@ def run_scraper_offline(fixture_text):
         offline_fetches = _make_offline_fetches(scraper_name)
 
         if scraper_name == "codeforces":
-            fetchers.Fetcher.get = offline_fetches["Fetcher.get"]  # type: ignore[assignment]
+            fetchers.Fetcher.get = offline_fetches["Fetcher.get"]
             requests.get = offline_fetches["requests.get"]
         elif scraper_name == "atcoder":
             ns._fetch = offline_fetches["_fetch"]
             ns._get_async = offline_fetches["_get_async"]
         elif scraper_name == "cses":
-            httpx.AsyncClient.get = offline_fetches["__offline_fetch_text"]  # type: ignore[assignment]
+            httpx.AsyncClient.get = offline_fetches["__offline_fetch_text"]
         elif scraper_name == "codechef":
-            httpx.AsyncClient.get = offline_fetches["__offline_get_async"]  # type: ignore[assignment]
-            fetchers.Fetcher.get = offline_fetches["Fetcher.get"]  # type: ignore[assignment]
+            httpx.AsyncClient.get = offline_fetches["__offline_get_async"]
+            fetchers.Fetcher.get = offline_fetches["Fetcher.get"]
 
         scraper_class = getattr(ns, scraper_classes[scraper_name])
         scraper = scraper_class()

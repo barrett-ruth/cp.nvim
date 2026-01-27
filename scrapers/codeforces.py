@@ -86,14 +86,14 @@ def _extract_samples(block: Tag) -> tuple[list[TestCase], bool]:
     if not st:
         return [], False
 
-    input_pres: list[Tag] = [  # type: ignore[misc]
-        inp.find("pre")  # type: ignore[misc]
-        for inp in st.find_all("div", class_="input")  # type: ignore[union-attr]
+    input_pres: list[Tag] = [
+        inp.find("pre")
+        for inp in st.find_all("div", class_="input")
         if isinstance(inp, Tag) and inp.find("pre")
     ]
     output_pres: list[Tag] = [
-        out.find("pre")  # type: ignore[misc]
-        for out in st.find_all("div", class_="output")  # type: ignore[union-attr]
+        out.find("pre")
+        for out in st.find_all("div", class_="output")
         if isinstance(out, Tag) and out.find("pre")
     ]
     input_pres = [p for p in input_pres if isinstance(p, Tag)]
