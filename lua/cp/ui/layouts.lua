@@ -3,6 +3,12 @@ local M = {}
 local helpers = require('cp.helpers')
 local utils = require('cp.utils')
 
+local MODE_LABELS = {
+  none = 'none',
+  vim = 'vim',
+  git = 'git',
+}
+
 local function create_none_diff_layout(parent_win, expected_content, actual_content)
   local expected_buf = utils.create_buffer_with_options()
   local actual_buf = utils.create_buffer_with_options()
@@ -21,8 +27,9 @@ local function create_none_diff_layout(parent_win, expected_content, actual_cont
 
   vim.api.nvim_set_option_value('filetype', 'cp', { buf = expected_buf })
   vim.api.nvim_set_option_value('filetype', 'cp', { buf = actual_buf })
-  vim.api.nvim_set_option_value('winbar', 'Expected', { win = expected_win })
-  vim.api.nvim_set_option_value('winbar', 'Actual', { win = actual_win })
+  local label = MODE_LABELS.none
+  vim.api.nvim_set_option_value('winbar', ('expected [%s]'):format(label), { win = expected_win })
+  vim.api.nvim_set_option_value('winbar', ('actual [%s]'):format(label), { win = actual_win })
 
   local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
   local actual_lines = vim.split(actual_content, '\n', { plain = true })
@@ -33,6 +40,7 @@ local function create_none_diff_layout(parent_win, expected_content, actual_cont
   return {
     buffers = { expected_buf, actual_buf },
     windows = { expected_win, actual_win },
+    mode = 'none',
     cleanup = function()
       pcall(vim.api.nvim_win_close, expected_win, true)
       pcall(vim.api.nvim_win_close, actual_win, true)
@@ -60,8 +68,9 @@ local function create_vim_diff_layout(parent_win, expected_content, actual_conte
 
   vim.api.nvim_set_option_value('filetype', 'cp', { buf = expected_buf })
   vim.api.nvim_set_option_value('filetype', 'cp', { buf = actual_buf })
-  vim.api.nvim_set_option_value('winbar', 'Expected', { win = expected_win })
-  vim.api.nvim_set_option_value('winbar', 'Actual', { win = actual_win })
+  local label = MODE_LABELS.vim
+  vim.api.nvim_set_option_value('winbar', ('Expected (%s)'):format(label), { win = expected_win })
+  vim.api.nvim_set_option_value('winbar', ('Actual (%s)'):format(label), { win = actual_win })
 
   local expected_lines = vim.split(expected_content, '\n', { plain = true, trimempty = true })
   local actual_lines = vim.split(actual_content, '\n', { plain = true })
@@ -83,6 +92,7 @@ local function create_vim_diff_layout(parent_win, expected_content, actual_conte
   return {
     buffers = { expected_buf, actual_buf },
     windows = { expected_win, actual_win },
+    mode = 'vim',
     cleanup = function()
       pcall(vim.api.nvim_win_close, expected_win, true)
       pcall(vim.api.nvim_win_close, actual_win, true)
@@ -103,7 +113,8 @@ local function create_git_diff_layout(parent_win, expected_content, actual_conte
   vim.api.nvim_win_set_buf(diff_win, diff_buf)
 
   vim.api.nvim_set_option_value('filetype', 'cp', { buf = diff_buf })
-  vim.api.nvim_set_option_value('winbar', 'Expected vs Actual', { win = diff_win })
+  local label = MODE_LABELS.git
+  vim.api.nvim_set_option_value('winbar', ('Diff (%s)'):format(label), { win = diff_win })
 
   local diff_backend = require('cp.ui.diff')
   local backend = diff_backend.get_best_backend('git')
@@ -121,6 +132,7 @@ local function create_git_diff_layout(parent_win, expected_content, actual_conte
   return {
     buffers = { diff_buf },
     windows = { diff_win },
+    mode = 'git',
     cleanup = function()
       pcall(vim.api.nvim_win_close, diff_win, true)
       pcall(vim.api.nvim_buf_delete, diff_buf, { force = true })
@@ -143,6 +155,7 @@ local function create_single_layout(parent_win, content)
   return {
     buffers = { buf },
     windows = { win },
+    mode = 'single',
     cleanup = function()
       pcall(vim.api.nvim_win_close, win, true)
       pcall(vim.api.nvim_buf_delete, buf, { force = true })
