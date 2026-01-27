@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
+
 import asyncio
 import json
 import re
-import sys
 from typing import Any
 
 import httpx
@@ -10,13 +10,11 @@ from scrapling.fetchers import Fetcher
 
 from .base import BaseScraper
 from .models import (
-    CombinedTest,
     ContestListResult,
     ContestSummary,
     MetadataResult,
     ProblemSummary,
     TestCase,
-    TestsResult,
 )
 
 BASE_URL = "https://www.codechef.com"
@@ -62,42 +60,40 @@ class CodeChefScraper(BaseScraper):
         return "codechef"
 
     async def scrape_contest_metadata(self, contest_id: str) -> MetadataResult:
-        async with httpx.AsyncClient() as client:
-            try:
+        try:
+            async with httpx.AsyncClient() as client:
                 data = await fetch_json(
                     client, API_CONTEST.format(contest_id=contest_id)
                 )
-            except httpx.HTTPStatusError as e:
-                return self._create_metadata_error(
-                    f"Failed to fetch contest {contest_id}: {e}", contest_id
+            if not data.get("problems"):
+                return self._metadata_error(
+                    f"No problems found for contest {contest_id}"
                 )
-        if not data.get("problems"):
-            return self._create_metadata_error(
-                f"No problems found for contest {contest_id}", contest_id
-            )
-        problems = []
-        for problem_code, problem_data in data["problems"].items():
-            if problem_data.get("category_name") == "main":
-                problems.append(
-                    ProblemSummary(
-                        id=problem_code,
-                        name=problem_data.get("name", problem_code),
+            problems = []
+            for problem_code, problem_data in data["problems"].items():
+                if problem_data.get("category_name") == "main":
+                    problems.append(
+                        ProblemSummary(
+                            id=problem_code,
+                            name=problem_data.get("name", problem_code),
+                        )
                     )
-                )
-        return MetadataResult(
-            success=True,
-            error="",
-            contest_id=contest_id,
-            problems=problems,
-            url=f"{BASE_URL}/{contest_id}",
-        )
+            return MetadataResult(
+                success=True,
+                error="",
+                contest_id=contest_id,
+                problems=problems,
+                url=f"{BASE_URL}/{contest_id}",
+            )
+        except Exception as e:
+            return self._metadata_error(f"Failed to fetch contest {contest_id}: {e}")
 
     async def scrape_contest_list(self) -> ContestListResult:
         async with httpx.AsyncClient() as client:
             try:
                 data = await fetch_json(client, API_CONTESTS_ALL)
             except httpx.HTTPStatusError as e:
-                return self._create_contests_error(f"Failed to fetch contests: {e}")
+                return self._contests_error(f"Failed to fetch contests: {e}")
             all_contests = data.get("future_contests", []) + data.get(
                 "past_contests", []
             )
@@ -110,7 +106,7 @@ class CodeChefScraper(BaseScraper):
                         num = int(match.group(1))
                         max_num = max(max_num, num)
             if max_num == 0:
-                return self._create_contests_error("No Starters contests found")
+                return self._contests_error("No Starters contests found")
             contests = []
             sem = asyncio.Semaphore(CONNECTIONS)
 
@@ -252,68 +248,5 @@ class CodeChefScraper(BaseScraper):
                 print(json.dumps(payload), flush=True)
 
 
-async def main_async() -> int:
-    if len(sys.argv) < 2:
-        result = MetadataResult(
-            success=False,
-            error="Usage: codechef.py metadata <contest_id> OR codechef.py tests <contest_id> OR codechef.py contests",
-            url="",
-        )
-        print(result.model_dump_json())
-        return 1
-    mode: str = sys.argv[1]
-    scraper = CodeChefScraper()
-    if mode == "metadata":
-        if len(sys.argv) != 3:
-            result = MetadataResult(
-                success=False,
-                error="Usage: codechef.py metadata <contest_id>",
-                url="",
-            )
-            print(result.model_dump_json())
-            return 1
-        contest_id = sys.argv[2]
-        result = await scraper.scrape_contest_metadata(contest_id)
-        print(result.model_dump_json())
-        return 0 if result.success else 1
-    if mode == "tests":
-        if len(sys.argv) != 3:
-            tests_result = TestsResult(
-                success=False,
-                error="Usage: codechef.py tests <contest_id>",
-                problem_id="",
-                combined=CombinedTest(input="", expected=""),
-                tests=[],
-                timeout_ms=0,
-                memory_mb=0,
-            )
-            print(tests_result.model_dump_json())
-            return 1
-        contest_id = sys.argv[2]
-        await scraper.stream_tests_for_category_async(contest_id)
-        return 0
-    if mode == "contests":
-        if len(sys.argv) != 2:
-            contest_result = ContestListResult(
-                success=False, error="Usage: codechef.py contests"
-            )
-            print(contest_result.model_dump_json())
-            return 1
-        contest_result = await scraper.scrape_contest_list()
-        print(contest_result.model_dump_json())
-        return 0 if contest_result.success else 1
-    result = MetadataResult(
-        success=False,
-        error=f"Unknown mode: {mode}. Use 'metadata <contest_id>', 'tests <contest_id>', or 'contests'",
-        url="",
-    )
-    print(result.model_dump_json())
-    return 1
-
-
-def main() -> None:
-    sys.exit(asyncio.run(main_async()))
-
-
 if __name__ == "__main__":
-    main()
+    CodeChefScraper().run_cli()

@@ -266,43 +266,31 @@ class AtcoderScraper(BaseScraper):
         return "atcoder"
 
     async def scrape_contest_metadata(self, contest_id: str) -> MetadataResult:
-        async def impl(cid: str) -> MetadataResult:
-            try:
-                rows = await asyncio.to_thread(_scrape_tasks_sync, cid)
-            except requests.HTTPError as e:
-                if e.response is not None and e.response.status_code == 404:
-                    return self._create_metadata_error(
-                        f"No problems found for contest {cid}", cid
-                    )
-                raise
-
+        try:
+            rows = await asyncio.to_thread(_scrape_tasks_sync, contest_id)
             problems = _to_problem_summaries(rows)
             if not problems:
-                return self._create_metadata_error(
-                    f"No problems found for contest {cid}", cid
+                return self._metadata_error(
+                    f"No problems found for contest {contest_id}"
                 )
-
             return MetadataResult(
                 success=True,
                 error="",
-                contest_id=cid,
+                contest_id=contest_id,
                 problems=problems,
                 url=f"https://atcoder.jp/contests/{contest_id}/tasks/{contest_id}_%s",
             )
-
-        return await self._safe_execute("metadata", impl, contest_id)
+        except Exception as e:
+            return self._metadata_error(str(e))
 
     async def scrape_contest_list(self) -> ContestListResult:
-        async def impl() -> ContestListResult:
-            try:
-                contests = await _fetch_all_contests_async()
-            except Exception as e:
-                return self._create_contests_error(str(e))
+        try:
+            contests = await _fetch_all_contests_async()
             if not contests:
-                return self._create_contests_error("No contests found")
+                return self._contests_error("No contests found")
             return ContestListResult(success=True, error="", contests=contests)
-
-        return await self._safe_execute("contests", impl)
+        except Exception as e:
+            return self._contests_error(str(e))
 
     async def stream_tests_for_category_async(self, category_id: str) -> None:
         rows = await asyncio.to_thread(_scrape_tasks_sync, category_id)

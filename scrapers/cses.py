@@ -3,20 +3,17 @@
 import asyncio
 import json
 import re
-import sys
 from typing import Any
 
 import httpx
 
 from .base import BaseScraper
 from .models import (
-    CombinedTest,
     ContestListResult,
     ContestSummary,
     MetadataResult,
     ProblemSummary,
     TestCase,
-    TestsResult,
 )
 
 BASE_URL = "https://cses.fi"
@@ -261,73 +258,5 @@ class CSESScraper(BaseScraper):
                 print(json.dumps(payload), flush=True)
 
 
-async def main_async() -> int:
-    if len(sys.argv) < 2:
-        result = MetadataResult(
-            success=False,
-            error="Usage: cses.py metadata <category_id> OR cses.py tests <category> OR cses.py contests",
-            url="",
-        )
-        print(result.model_dump_json())
-        return 1
-
-    mode: str = sys.argv[1]
-    scraper = CSESScraper()
-
-    if mode == "metadata":
-        if len(sys.argv) != 3:
-            result = MetadataResult(
-                success=False,
-                error="Usage: cses.py metadata <category_id>",
-                url="",
-            )
-            print(result.model_dump_json())
-            return 1
-        category_id = sys.argv[2]
-        result = await scraper.scrape_contest_metadata(category_id)
-        print(result.model_dump_json())
-        return 0 if result.success else 1
-
-    if mode == "tests":
-        if len(sys.argv) != 3:
-            tests_result = TestsResult(
-                success=False,
-                error="Usage: cses.py tests <category>",
-                problem_id="",
-                combined=CombinedTest(input="", expected=""),
-                tests=[],
-                timeout_ms=0,
-                memory_mb=0,
-            )
-            print(tests_result.model_dump_json())
-            return 1
-        category = sys.argv[2]
-        await scraper.stream_tests_for_category_async(category)
-        return 0
-
-    if mode == "contests":
-        if len(sys.argv) != 2:
-            contest_result = ContestListResult(
-                success=False, error="Usage: cses.py contests"
-            )
-            print(contest_result.model_dump_json())
-            return 1
-        contest_result = await scraper.scrape_contest_list()
-        print(contest_result.model_dump_json())
-        return 0 if contest_result.success else 1
-
-    result = MetadataResult(
-        success=False,
-        error=f"Unknown mode: {mode}. Use 'metadata <category>', 'tests <category>', or 'contests'",
-        url="",
-    )
-    print(result.model_dump_json())
-    return 1
-
-
-def main() -> None:
-    sys.exit(asyncio.run(main_async()))
-
-
 if __name__ == "__main__":
-    main()
+    CSESScraper().run_cli()
