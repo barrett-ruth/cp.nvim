@@ -362,7 +362,7 @@ function M.setup(user_config)
       function(v)
         return type(v) == 'number' and v > 0 and v <= 1
       end,
-      'number/decimal between 0 and 1',
+      'decimal between 0 and 1',
     },
     next_test_key = {
       cfg.ui.run.next_test_key,
