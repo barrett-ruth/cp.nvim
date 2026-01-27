@@ -305,6 +305,7 @@ function M.setup(user_config)
   vim.validate({
     hooks = { cfg.hooks, { 'table' } },
     ui = { cfg.ui, { 'table' } },
+    debug = { cfg.debug, { 'boolean', 'nil' }, true },
     open_url = { cfg.open_url, { 'boolean', 'nil' }, true },
     before_run = { cfg.hooks.before_run, { 'function', 'nil' }, true },
     before_debug = { cfg.hooks.before_debug, { 'function', 'nil' }, true },
