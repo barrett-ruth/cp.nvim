@@ -4,7 +4,6 @@ import asyncio
 import json
 import logging
 import re
-import sys
 from typing import Any
 
 import requests
@@ -13,13 +12,11 @@ from scrapling.fetchers import Fetcher
 
 from .base import BaseScraper
 from .models import (
-    CombinedTest,
     ContestListResult,
     ContestSummary,
     MetadataResult,
     ProblemSummary,
     TestCase,
-    TestsResult,
 )
 
 # suppress scrapling logging - https://github.com/D4Vinci/Scrapling/issues/31)
@@ -209,49 +206,46 @@ class CodeforcesScraper(BaseScraper):
         return "codeforces"
 
     async def scrape_contest_metadata(self, contest_id: str) -> MetadataResult:
-        async def impl(cid: str) -> MetadataResult:
-            problems = await asyncio.to_thread(_scrape_contest_problems_sync, cid)
+        try:
+            problems = await asyncio.to_thread(
+                _scrape_contest_problems_sync, contest_id
+            )
             if not problems:
-                return self._create_metadata_error(
-                    f"No problems found for contest {cid}", cid
+                return self._metadata_error(
+                    f"No problems found for contest {contest_id}"
                 )
             return MetadataResult(
                 success=True,
                 error="",
-                contest_id=cid,
+                contest_id=contest_id,
                 problems=problems,
                 url=f"https://codeforces.com/contest/{contest_id}/problem/%s",
             )
-
-        return await self._safe_execute("metadata", impl, contest_id)
+        except Exception as e:
+            return self._metadata_error(str(e))
 
     async def scrape_contest_list(self) -> ContestListResult:
-        async def impl() -> ContestListResult:
-            try:
-                r = requests.get(API_CONTEST_LIST_URL, timeout=TIMEOUT_SECONDS)
-                r.raise_for_status()
-                data = r.json()
-                if data.get("status") != "OK":
-                    return self._create_contests_error("Invalid API response")
+        try:
+            r = requests.get(API_CONTEST_LIST_URL, timeout=TIMEOUT_SECONDS)
+            r.raise_for_status()
+            data = r.json()
+            if data.get("status") != "OK":
+                return self._contests_error("Invalid API response")
 
-                contests: list[ContestSummary] = []
-                for c in data["result"]:
-                    if c.get("phase") != "FINISHED":
-                        continue
-                    cid = str(c["id"])
-                    name = c["name"]
-                    contests.append(
-                        ContestSummary(id=cid, name=name, display_name=name)
-                    )
+            contests: list[ContestSummary] = []
+            for c in data["result"]:
+                if c.get("phase") != "FINISHED":
+                    continue
+                cid = str(c["id"])
+                name = c["name"]
+                contests.append(ContestSummary(id=cid, name=name, display_name=name))
 
-                if not contests:
-                    return self._create_contests_error("No contests found")
+            if not contests:
+                return self._contests_error("No contests found")
 
-                return ContestListResult(success=True, error="", contests=contests)
-            except Exception as e:
-                return self._create_contests_error(str(e))
-
-        return await self._safe_execute("contests", impl)
+            return ContestListResult(success=True, error="", contests=contests)
+        except Exception as e:
+            return self._contests_error(str(e))
 
     async def stream_tests_for_category_async(self, category_id: str) -> None:
         html = await asyncio.to_thread(_fetch_problems_html, category_id)
@@ -281,73 +275,5 @@ class CodeforcesScraper(BaseScraper):
             )
 
 
-async def main_async() -> int:
-    if len(sys.argv) < 2:
-        result = MetadataResult(
-            success=False,
-            error="Usage: codeforces.py metadata <contest_id> OR codeforces.py tests <contest_id> OR codeforces.py contests",
-            url="",
-        )
-        print(result.model_dump_json())
-        return 1
-
-    mode: str = sys.argv[1]
-    scraper = CodeforcesScraper()
-
-    if mode == "metadata":
-        if len(sys.argv) != 3:
-            result = MetadataResult(
-                success=False,
-                error="Usage: codeforces.py metadata <contest_id>",
-                url="",
-            )
-            print(result.model_dump_json())
-            return 1
-        contest_id = sys.argv[2]
-        result = await scraper.scrape_contest_metadata(contest_id)
-        print(result.model_dump_json())
-        return 0 if result.success else 1
-
-    if mode == "tests":
-        if len(sys.argv) != 3:
-            tests_result = TestsResult(
-                success=False,
-                error="Usage: codeforces.py tests <contest_id>",
-                problem_id="",
-                combined=CombinedTest(input="", expected=""),
-                tests=[],
-                timeout_ms=0,
-                memory_mb=0,
-            )
-            print(tests_result.model_dump_json())
-            return 1
-        contest_id = sys.argv[2]
-        await scraper.stream_tests_for_category_async(contest_id)
-        return 0
-
-    if mode == "contests":
-        if len(sys.argv) != 2:
-            contest_result = ContestListResult(
-                success=False, error="Usage: codeforces.py contests"
-            )
-            print(contest_result.model_dump_json())
-            return 1
-        contest_result = await scraper.scrape_contest_list()
-        print(contest_result.model_dump_json())
-        return 0 if contest_result.success else 1
-
-    result = MetadataResult(
-        success=False,
-        error="Unknown mode. Use 'metadata <contest_id>', 'tests <contest_id>', or 'contests'",
-        url="",
-    )
-    print(result.model_dump_json())
-    return 1
-
-
-def main() -> None:
-    sys.exit(asyncio.run(main_async()))
-
-
 if __name__ == "__main__":
-    main()
+    CodeforcesScraper().run_cli()
