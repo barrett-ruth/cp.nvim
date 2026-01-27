@@ -194,13 +194,26 @@ end
 ---@return integer, integer
 local function get_or_create_io_buffers()
   local io_state = state.get_io_view_state()
+  local solution_win = state.get_solution_win()
+  local current_source_buf = vim.api.nvim_win_get_buf(solution_win)
 
   if io_state then
     local output_valid = io_state.output_buf and vim.api.nvim_buf_is_valid(io_state.output_buf)
     local input_valid = io_state.input_buf and vim.api.nvim_buf_is_valid(io_state.input_buf)
+    local same_source = io_state.source_buf == current_source_buf
 
-    if output_valid and input_valid then
+    if output_valid and input_valid and same_source then
       return io_state.output_buf, io_state.input_buf
+    end
+
+    if io_state.source_buf then
+      pcall(vim.api.nvim_del_augroup_by_name, 'cp_io_cleanup_buf' .. io_state.source_buf)
+    end
+    if output_valid then
+      pcall(vim.api.nvim_buf_delete, io_state.output_buf, { force = true })
+    end
+    if input_valid then
+      pcall(vim.api.nvim_buf_delete, io_state.input_buf, { force = true })
     end
   end
 
@@ -211,10 +224,10 @@ local function get_or_create_io_buffers()
     output_buf = output_buf,
     input_buf = input_buf,
     current_test_index = 1,
+    source_buf = current_source_buf,
   })
 
-  local solution_win = state.get_solution_win()
-  local source_buf = vim.api.nvim_win_get_buf(solution_win)
+  local source_buf = current_source_buf
 
   local group_name = 'cp_io_cleanup_buf' .. source_buf
   vim.api.nvim_create_augroup(group_name, { clear = true })
@@ -242,23 +255,34 @@ local function get_or_create_io_buffers()
   vim.api.nvim_create_autocmd({ 'BufWinEnter', 'BufWinLeave' }, {
     group = group_name,
     buffer = source_buf,
-    callback = function()
+    callback = function(ev)
+      logger.log(('autocmd %s fired for source_buf=%s'):format(ev.event, source_buf))
       vim.schedule(function()
         local io = state.get_io_view_state()
         if not io then
+          logger.log('autocmd scheduled: no io_state, returning')
+          return
+        end
+
+        if io.source_buf ~= source_buf then
+          logger.log(('autocmd scheduled: source_buf mismatch (autocmd=%s, io_state=%s), returning'):format(
+            source_buf, io.source_buf))
           return
         end
 
         local wins = vim.api.nvim_list_wins()
         for _, win in ipairs(wins) do
           if vim.api.nvim_win_get_buf(win) == source_buf then
+            logger.log(('autocmd scheduled: source_buf=%s visible in win=%s, returning'):format(source_buf, win))
             return
           end
         end
 
+        logger.log(('autocmd scheduled: source_buf=%s NOT visible, closing io windows'):format(source_buf))
         for _, win in ipairs(wins) do
           local buf = vim.api.nvim_win_get_buf(win)
           if buf == io.output_buf or buf == io.input_buf then
+            logger.log(('autocmd scheduled: closing win=%s with buf=%s'):format(win, buf))
             if #vim.api.nvim_list_wins() > 1 then
               pcall(vim.api.nvim_win_close, win, true)
             else
@@ -358,6 +382,7 @@ local function create_window_layout(output_buf, input_buf)
 end
 
 function M.ensure_io_view()
+  logger.log('ensure_io_view: starting')
   local platform, contest_id, problem_id =
     state.get_platform(), state.get_contest_id(), state.get_problem_id()
   if not platform or not contest_id or not problem_id then
@@ -369,6 +394,7 @@ function M.ensure_io_view()
   end
 
   local source_file = state.get_source_file()
+  logger.log(('ensure_io_view: source_file=%s'):format(source_file or 'nil'))
   if source_file then
     local source_file_abs = vim.fn.fnamemodify(source_file, ':p')
     for _, win in ipairs(vim.api.nvim_list_wins()) do
@@ -376,6 +402,7 @@ function M.ensure_io_view()
       local buf_name = vim.api.nvim_buf_get_name(buf)
       if buf_name == source_file_abs then
         state.set_solution_win(win)
+        logger.log(('ensure_io_view: found solution_win=%s for buf=%s'):format(win, buf))
         break
       end
     end
@@ -395,17 +422,22 @@ function M.ensure_io_view()
   end
 
   local output_buf, input_buf = get_or_create_io_buffers()
+  logger.log(('ensure_io_view: got buffers output=%s input=%s'):format(output_buf, input_buf))
 
   if not buffers_are_displayed(output_buf, input_buf) then
     local solution_win = state.get_solution_win()
+    logger.log(('ensure_io_view: buffers not displayed, closing non-solution windows (solution_win=%s)'):format(solution_win))
 
     for _, win in ipairs(vim.api.nvim_list_wins()) do
       if win ~= solution_win then
+        logger.log(('ensure_io_view: closing win=%s'):format(win))
         pcall(vim.api.nvim_win_close, win, true)
       end
     end
 
     create_window_layout(output_buf, input_buf)
+  else
+    logger.log('ensure_io_view: buffers already displayed, skipping layout creation')
   end
 
   local cfg = config_module.get_config()

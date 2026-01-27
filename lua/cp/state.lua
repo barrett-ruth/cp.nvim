@@ -10,6 +10,7 @@
 ---@field output_buf integer
 ---@field input_buf integer
 ---@field current_test_index integer?
+---@field source_buf integer?
 
 ---@class cp.State
 ---@field get_platform fun(): string?
