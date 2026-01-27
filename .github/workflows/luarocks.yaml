@@ -1,17 +1,21 @@
 name: luarocks
+
 on:
-  workflow_run:
-    workflows: ["ci"]
-    types:
-      - completed
+  push:
+    tags:
+      - "v*"
+
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   publish:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    needs: ci
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+
       - uses: nvim-neorocks/luarocks-tag-release@v7
         env:
           LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
