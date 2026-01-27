@@ -114,7 +114,7 @@ local function create_git_diff_layout(parent_win, expected_content, actual_conte
 
   vim.api.nvim_set_option_value('filetype', 'cp', { buf = diff_buf })
   local label = MODE_LABELS.git
-  vim.api.nvim_set_option_value('winbar', ('Diff (%s)'):format(label), { win = diff_win })
+  vim.api.nvim_set_option_value('winbar', ('diff [%s]'):format(label), { win = diff_win })
 
   local diff_backend = require('cp.ui.diff')
   local backend = diff_backend.get_best_backend('git')
